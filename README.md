@@ -70,11 +70,10 @@ cog run python convert_to_tensors.py
 This will tensorize your weights and write the tensorized weights to `./llama_weights/llama-7b/llama_7b_fp16.tensors` if you have a GPU available and `.../llama_7b_fp32.tensors` if you don't.
 (To load the tensorized model instead of the transformers-compatible/huggingface weights, verify that `DEFAULT_MODEL_NAME` in `config.py` is set to the path of your tensorized weights.) 
 
-## Step 3: Make sure `**.tensors` is not in your `.dockerignore`:
+- Make sure `**.tensors` is not in your `.dockerignore`:
+  In your `.dockerignore` file, remove `**.tensors`. This line will ignore all files that end with .tensors, no matter where they are in the directory structure.
 
-In your `.dockerignore` file, remove `**.tensors`. This line will ignore all files that end with .tensors, no matter where they are in the directory structure.
-
-## Step 4: Run the model
+## Step 3: Run the model
 
 You can run the model locally to test it:
 
@@ -90,13 +89,13 @@ Here are a few examples from the [LLaMA FAQ](https://github.com/facebookresearch
 - Do not prompt with "Explain the theory of relativity." but with "Simply put, the theory of relativity states that"
 - Do not prompt with "Ten easy steps to build a website..." but with "Building a website can be done in 10 simple steps:\n"
 
-## Step 5: Create a model on Replicate
+## Step 4: Create a model on Replicate
 
 Go to [replicate.com/create](https://replicate.com/create) to create a Replicate model.
 
 Make sure to specify "private" to keep the model private.
 
-## Step 6: Configure the model to run on A100 GPUs
+## Step 5: Configure the model to run on A100 GPUs
 
 Replicate supports running models on a variety of GPUs. The default GPU type is a T4, but for best performance you'll want to configure your model to run on an A100.
 
