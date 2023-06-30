@@ -1,0 +1,3 @@
+Example code for parsing the dataset needed to train [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca).
+
+This contains both a function, `process_data.py`, which shows how to transform the [given alpaca data](https://github.com/gururise/AlpacaDataCleaned) into the format expected by `cog train`. It also contains an example parsed dataset as a reference for that `{'prompt': ..., 'completion':...}` format.
