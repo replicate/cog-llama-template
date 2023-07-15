@@ -1,1 +1,8 @@
 **/__pycache__/**
+flan-t5**
+checkpoints/**
+tmp/**
+unconverted-weights
+unconverted-weights/
+weights
+weights/

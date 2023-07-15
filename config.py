@@ -13,9 +13,9 @@ from subclass import YieldingLlama
 
 # path from which we pull weights when there's no COG_WEIGHTS environment variable
 # If you want to use tensorized weights, set `DEFAULT_MODEL_NAME` to the path of the tensorized weights.
-DEFAULT_MODEL_NAME = "llama_weights/llama-7b/llama_7b_fp16.tensors"# "llama_7b_fp16.tensors" if you have a GPU avaiable or "llama_7b_fp32.tensors" if you don't. - This is where the convert_to_tensors.py will save the tensorized weights.
+DEFAULT_MODEL_NAME = "llama_weights/llama-13b/llama_13b_fp16.tensors"# "llama_7b_fp16.tensors" if you have a GPU avaiable or "llama_7b_fp32.tensors" if you don't. - This is where the convert_to_tensors.py will save the tensorized weights.
 TOKENIZER_NAME = "llama_weights/tokenizer"
-CONFIG_LOCATION = "llama_weights/llama-7b"
+CONFIG_LOCATION = "llama_weights/llama-13b"
 
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"

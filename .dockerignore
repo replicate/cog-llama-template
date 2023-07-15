@@ -4,4 +4,8 @@ examples/**
 weights_13/**
 tmp/**
 **.jsonl
+unconverted-weights
+unconverted-weights/
+weights
+weights/
 

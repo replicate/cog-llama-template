@@ -61,7 +61,7 @@ class Predictor(BasePredictor):
 
     def predict(
         self,
-        prompt: str = Input(description=f"Prompt to send to Llama."),
+        prompt: str = Input(description=f"Prompt to send to Llama v2."),
         max_length: int = Input(
             description="Maximum number of tokens to generate. A word is generally 2-3 tokens",
             ge=1,
@@ -71,7 +71,7 @@ class Predictor(BasePredictor):
             description="Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic, 0.75 is a good starting value.",
             ge=0.01,
             le=5,
-            default=0.75,
+            default=0.5,
         ),
         top_p: float = Input(
             description="When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens",
@@ -89,6 +89,7 @@ class Predictor(BasePredictor):
             description="provide debugging output in logs", default=False
         ),
     ) -> ConcatenateIterator[str]:
+        prompt = "User: " + prompt + '\nAssistant: '#Uncomment if you want to use for demo with no chat memory.
         input = self.tokenizer(prompt, return_tensors="pt").input_ids.to(self.device)
 
         with torch.inference_mode() and torch.autocast("cuda"):
