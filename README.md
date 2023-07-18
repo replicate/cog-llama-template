@@ -1,5 +1,6 @@
 # LLaMA Cog template 🦙
 
+This Cog template is for LLaMA 1 & 2 versions.
 LLaMA is a [new open-source language model from Meta Research](https://ai.facebook.com/blog/large-language-model-llama-meta-ai/) that performs as well as closed-source models. 
 
 This is a guide to running LLaMA using in the cloud using Replicate. You'll use the [Cog](https://github.com/replicate/cog) command-line tool to package the model and push it to Replicate as a web interface and API.
