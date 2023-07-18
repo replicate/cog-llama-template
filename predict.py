@@ -95,6 +95,8 @@ class Predictor(BasePredictor):
         with torch.inference_mode() and torch.autocast("cuda"):
             first_token_yielded = False
             prev_ids = []
+            previous_token_id = None  # This stores the previous token id so we can look for `\nUser:`
+
             for output in self.model.generate(
                 input_ids=input,
                 max_length=max_length,
@@ -104,6 +106,13 @@ class Predictor(BasePredictor):
                 repetition_penalty=repetition_penalty,
             ):
                 cur_id = output.item()
+
+                # Break if previous token id was 13 (newline) and current id is 2659 (user)
+                if previous_token_id == 13 and cur_id == 2659:
+                    break
+
+                previous_token_id = cur_id  # Store the current token id to check in the next iteration
+
 
                 # in order to properly handle spaces, we need to do our own tokenizing. Fun!
                 # we're building up a buffer of sub-word / punctuation tokens until we hit a space, and then yielding whole words + punctuation.
@@ -135,12 +144,12 @@ class Predictor(BasePredictor):
                     continue
 
             # remove any special tokens such as </s>
-            token = self.tokenizer.decode(prev_ids, skip_special_tokens=True)
+            token = self.tokenizer.decode(prev_ids, skip_special_tokens=True).rstrip('\n')
             if not first_token_yielded:
                 # no leading space for first token
                 token = token.strip()
                 first_token_yielded = True
-            yield token
+            yield token 
 
         if debug:
             print(f"cur memory: {torch.cuda.memory_allocated()}")
