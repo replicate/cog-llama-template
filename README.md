@@ -44,7 +44,7 @@ unconverted-weights
 Convert the weights from a PyTorch checkpoint to a transformers-compatible format using the this command:
 
 ```
-cog run python -m transformers.models.llama.convert_llama_weights_to_hf --input_dir unconverted-weights --model_size 7B --output_dir weights
+cog run python -m transformers.models.llama.convert_llama_weights_to_hf --input_dir unconverted-weights --model_size 70B --output_dir weights
 ```
 
 You final directory structure should look like this:

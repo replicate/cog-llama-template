@@ -6,6 +6,7 @@ tmp/**
 **.jsonl
 unconverted-weights
 unconverted-weights/
-weights
-weights/
+unconverted-weights/**
+weights/*.safetensors
+llama_weights/**/*.safetensors
 

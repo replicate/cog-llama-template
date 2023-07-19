@@ -16,7 +16,7 @@ from subclass import YieldingLlama
 DEFAULT_MODEL_NAME = "llama_weights/llama-2-70b-chat/"# "llama_7b_fp16.tensors" if you have a GPU avaiable or "llama_7b_fp32.tensors" if you don't. - This is where the convert_to_tensors.py will save the tensorized weights.
 TOKENIZER_NAME = "llama_weights/tokenizer"
 CONFIG_LOCATION = "llama_weights/llama-2-70b-chat"
-REMOTE_PATH = None
+REMOTE_PATH = "https://storage.googleapis.com/replicate-weights/llama-2-70b-chat"
 
 REMOTE_FILES_TO_DOWNLOAD = [
     f"model-{str(i+1).zfill(5)}-of-{str(15).zfill(5)}.safetensors"
@@ -31,7 +31,7 @@ DEFAULT_UNK_TOKEN = "</s>"
 
 def load_tokenizer():
     """Same tokenizer, agnostic from tensorized weights/etc"""
-    tok = LlamaTokenizer.from_pretrained(TOKENIZER_NAME, cache_dir="pretrained_weights")
+    tok = LlamaTokenizer.from_pretrained(TOKENIZER_NAME, cache_dir="pretrained_weights", legacy=False)
     tok.add_special_tokens(
         {
             "eos_token": DEFAULT_EOS_TOKEN,

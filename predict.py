@@ -15,10 +15,6 @@ DEFAULT_MODEL_NAME = 'weights'
 from peft import PeftModel
 import os
 
-# setup logger 
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class Predictor(BasePredictor):
@@ -31,7 +27,7 @@ class Predictor(BasePredictor):
         weights = DEFAULT_MODEL_NAME if weights is None else str(weights)
 
         weights = maybe_download_with_pget(
-            weights, REMOTE_PATH, REMOTE_FILES_TO_DOWNLOAD, logger=logger,
+            weights, REMOTE_PATH, REMOTE_FILES_TO_DOWNLOAD,
         )
 
         if '.zip' in weights:
@@ -42,6 +38,7 @@ class Predictor(BasePredictor):
             self.model = self.load_huggingface_model(weights=weights)
 
         self.tokenizer = load_tokenizer()
+
 
     def load_peft(self, weights):
         st = time.time()
@@ -126,6 +123,11 @@ class Predictor(BasePredictor):
                 # Break if previous token id was 13 (newline) and current id is 2659 (user)
                 if previous_token_id == 13 and cur_id == 2659:
                     break
+                
+                # Break if current token is `User`. This is a hack until we fix the 
+                # tokenizer.
+                elif cur_id == 4911:
+                    break
 
                 previous_token_id = cur_id  # Store the current token id to check in the next iteration
 
@@ -147,7 +149,7 @@ class Predictor(BasePredictor):
 
                     # there are tokens to yield
                     else:
-                        token = self.tokenizer.decode(prev_ids)
+                        token = ' ' + self.tokenizer.decode(prev_ids)
                         prev_ids = [cur_id]
 
                         if not first_token_yielded:
@@ -160,7 +162,7 @@ class Predictor(BasePredictor):
                     continue
 
             # remove any special tokens such as </s>
-            token = self.tokenizer.decode(prev_ids, skip_special_tokens=True).rstrip('\n')
+            token = ' ' + self.tokenizer.decode(prev_ids, skip_special_tokens=True).rstrip('\n')
             if not first_token_yielded:
                 # no leading space for first token
                 token = token.strip()

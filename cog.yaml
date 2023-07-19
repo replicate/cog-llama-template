@@ -22,8 +22,8 @@ build:
 
   run: 
     - "pip install git+https://github.com/huggingface/transformers.git"
-    - "mkdir /gc && cd /gc && curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-426.0.0-linux-x86_64.tar.gz && tar -xf google-cloud-cli-426.0.0-linux-x86_64.tar.gz && ./google-cloud-sdk/install.sh -q"
-    - "pip install google-cloud-storage"
+    # - "mkdir /gc && cd /gc && curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-426.0.0-linux-x86_64.tar.gz && tar -xf google-cloud-cli-426.0.0-linux-x86_64.tar.gz && ./google-cloud-sdk/install.sh -q"
+    # - "pip install google-cloud-storage"
     - pip install peft
     - pip install -q -U bitsandbytes
     - pip install scipy
