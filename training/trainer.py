@@ -178,6 +178,7 @@ def load_peft_model(
         lora_target_modules = lora_target_modules.split(",")
     print("Using LoRA...")
     model = load_model(model_name_or_path)
+    model.gradient_checkpointing_enable()
         
     config = LoraConfig(
         r=lora_rank,
@@ -284,10 +285,11 @@ def train(
             learning_rate=learning_rate,
             max_steps=max_steps,
             tf32=True,
-            fp16=True,
+            bf16=True,
             half_precision_backend="cuda_amp",
             deepspeed=deepspeed,
-            local_rank=local_rank
+            local_rank=local_rank,
+            gradient_checkpointing=True
         ),
         data_collator=SequenceDataCollator(tokenizer, 8),  # depends on bf16 value
     )

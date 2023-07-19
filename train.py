@@ -73,7 +73,7 @@ def train(
         input_weights = local_weights
 
     root_path = os.getcwd()
-    deepspeed_config = os.path.join(root_path, "ds_config/ds_z3_fp16_config.json")
+    deepspeed_config = os.path.join(root_path, "ds_config/ds_z3_bf16_config.json")
 
     output_dir = DIST_OUT_DIR
     if os.path.exists(output_dir):
