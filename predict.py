@@ -6,10 +6,19 @@ import zipfile
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
-from config import DEFAULT_MODEL_NAME, load_tokenizer, load_tensorizer, pull_gcp_file
+from config import DEFAULT_MODEL_NAME, REMOTE_FILES_TO_DOWNLOAD, REMOTE_PATH, load_tokenizer, load_tensorizer, pull_gcp_file
 from subclass import YieldingLlama
+from scripts.utils import maybe_download_with_pget
+
+DEFAULT_MODEL_NAME = 'weights'
+
 from peft import PeftModel
 import os
+
+# setup logger 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class Predictor(BasePredictor):
@@ -20,6 +29,10 @@ class Predictor(BasePredictor):
             weights = None
         
         weights = DEFAULT_MODEL_NAME if weights is None else str(weights)
+
+        weights = maybe_download_with_pget(
+            weights, REMOTE_PATH, REMOTE_FILES_TO_DOWNLOAD, logger=logger,
+        )
 
         if '.zip' in weights:
             self.model = self.load_peft(weights)
@@ -53,9 +66,12 @@ class Predictor(BasePredictor):
         st = time.time()
         print(f"loading weights from {weights} w/o tensorizer")
         model = YieldingLlama.from_pretrained(
-            weights, cache_dir="pretrained_weights", torch_dtype=torch.float16
+            weights, 
+            cache_dir="pretrained_weights", 
+            device_map='auto',
+            load_in_4bit=True
         )
-        model.to(self.device)
+
         print(f"weights loaded in {time.time() - st}")
         return model
 
@@ -89,7 +105,7 @@ class Predictor(BasePredictor):
             description="provide debugging output in logs", default=False
         ),
     ) -> ConcatenateIterator[str]:
-        prompt = "User: " + prompt + '\nAssistant: '#Uncomment if you want to use for demo with no chat memory.
+        # prompt = "User: " + prompt + '\nAssistant: '#Uncomment if you want to use for demo with no chat memory.
         input = self.tokenizer(prompt, return_tensors="pt").input_ids.to(self.device)
 
         with torch.inference_mode() and torch.autocast("cuda"):
