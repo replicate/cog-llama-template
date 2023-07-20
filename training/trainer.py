@@ -204,7 +204,7 @@ def load_peft_model(
     print(f"LoRA config: {config}")
     model = get_peft_model(model, config)
     print_trainable_parameters(model)
-
+    model.config.use_cache = False # required for gradient checkpointing
     return model
 
 
