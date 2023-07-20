@@ -170,6 +170,19 @@ def load_model(model_name_or_path):
     model = load_tensorizer(model_name_or_path, plaid_mode=False, cls=LlamaForCausalLM)
     return model
 
+def print_trainable_parameters(model):
+    """
+    Prints the number of trainable parameters in the model.
+    """
+    trainable_params = 0
+    all_param = 0
+    for _, param in model.named_parameters():
+        all_param += param.numel()
+        if param.requires_grad:
+            trainable_params += param.numel()
+    print(
+        f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
+    )
 
 def load_peft_model(
     model_name_or_path, lora_rank: int, lora_alpha: int, lora_dropout: float, lora_target_modules: Optional[Union[List[str], str]]
@@ -190,6 +203,8 @@ def load_peft_model(
     )
     print(f"LoRA config: {config}")
     model = get_peft_model(model, config)
+    print_trainable_parameters(model)
+
     return model
 
 
