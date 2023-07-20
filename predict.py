@@ -145,6 +145,9 @@ class Predictor(BasePredictor):
                             # no leading space for first token
                             token = token.strip()
                             first_token_yielded = True
+                            if not token:
+                                # first token is empty space sometimes 
+                                continue
                         yield token
                 else:
                     prev_ids.append(cur_id)
