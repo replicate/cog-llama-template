@@ -170,6 +170,19 @@ def load_model(model_name_or_path):
     model = load_tensorizer(model_name_or_path, plaid_mode=False, cls=LlamaForCausalLM)
     return model
 
+def print_trainable_parameters(model):
+    """
+    Prints the number of trainable parameters in the model.
+    """
+    trainable_params = 0
+    all_param = 0
+    for _, param in model.named_parameters():
+        all_param += param.numel()
+        if param.requires_grad:
+            trainable_params += param.numel()
+    print(
+        f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
+    )
 
 def load_peft_model(
     model_name_or_path, lora_rank: int, lora_alpha: int, lora_dropout: float, lora_target_modules: Optional[Union[List[str], str]]
@@ -178,6 +191,7 @@ def load_peft_model(
         lora_target_modules = lora_target_modules.split(",")
     print("Using LoRA...")
     model = load_model(model_name_or_path)
+    model.gradient_checkpointing_enable()
         
     config = LoraConfig(
         r=lora_rank,
@@ -189,6 +203,8 @@ def load_peft_model(
     )
     print(f"LoRA config: {config}")
     model = get_peft_model(model, config)
+    print_trainable_parameters(model)
+    model.config.use_cache = False # required for gradient checkpointing
     return model
 
 
@@ -284,10 +300,11 @@ def train(
             learning_rate=learning_rate,
             max_steps=max_steps,
             tf32=True,
-            fp16=True,
+            bf16=True,
             half_precision_backend="cuda_amp",
             deepspeed=deepspeed,
-            local_rank=local_rank
+            local_rank=local_rank,
+            gradient_checkpointing=True
         ),
         data_collator=SequenceDataCollator(tokenizer, 8),  # depends on bf16 value
     )
