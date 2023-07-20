@@ -11,6 +11,13 @@ from subclass import YieldingLlama
 from peft import PeftModel
 import os
 
+PROMPT_TEMPLATE = '''<s>[INST] <<SYS>>
+You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.
+
+If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.
+<</SYS>>
+
+{instruction} [/INST]'''
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
@@ -89,7 +96,7 @@ class Predictor(BasePredictor):
             description="provide debugging output in logs", default=False
         ),
     ) -> ConcatenateIterator[str]:
-        prompt = "User: " + prompt + '\nAssistant: '#Uncomment if you want to use for demo with no chat memory.
+        prompt = PROMPT_TEMPLATE.format(instruction=prompt.strip())
         input = self.tokenizer(prompt, return_tensors="pt").input_ids.to(self.device)
 
         with torch.inference_mode() and torch.autocast("cuda"):
