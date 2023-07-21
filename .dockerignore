@@ -9,4 +9,7 @@ unconverted-weights/
 unconverted-weights/**
 weights/*.safetensors
 llama_weights/**/*.safetensors
+.git
+.git/**
+.dockerignore
 

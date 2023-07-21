@@ -6,3 +6,5 @@ unconverted-weights
 unconverted-weights/
 weights
 weights/
+llama_weights/
+.cog/
