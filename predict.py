@@ -106,9 +106,9 @@ class Predictor(BasePredictor):
             description="provide debugging output in logs", default=False
         ),
     ) -> ConcatenateIterator[str]:
-        prompt = prompt.strip('\n').lstrip(B_INST).rstrip(E_INST).strip()
+        prompt = prompt.strip('\n').removeprefix(B_INST).removesuffix(E_INST).strip()
         prompt = PROMPT_TEMPLATE.format(system_prompt=system_prompt.strip(), instruction=prompt.strip())
-        print("prompt", prompt)
+        print("Formatted input prompt:\n", prompt)
 
         input = self.tokenizer(prompt, return_tensors="pt").input_ids.to(self.device)
 
