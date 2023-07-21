@@ -6,7 +6,7 @@ import zipfile
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
-from config import DEFAULT_MODEL_NAME, load_tokenizer, load_tensorizer, pull_gcp_file
+from config import DEFAULT_MODEL_NAME, load_tokenizer, load_tensorizer, download_file
 from subclass import YieldingLlama
 from peft import PeftModel
 import os
@@ -45,7 +45,7 @@ class Predictor(BasePredictor):
             model = self.load_huggingface_model(DEFAULT_MODEL_NAME)
         if 'https' in weights: # weights are in the cloud
             local_weights = 'local_weights.zip'
-            pull_gcp_file(weights, local_weights)
+            download_file(weights, local_weights)
             weights = local_weights
         out = '/src/peft_dir'
         if os.path.exists(out):

@@ -1,6 +1,6 @@
 from collections import OrderedDict
 import logging
-import re
+import os
 import time
 from transformers import LlamaTokenizer, AutoConfig, LlamaForCausalLM
 import torch
@@ -35,23 +35,14 @@ def load_tokenizer():
     )
     return tok
 
-def pull_gcp_file(weights, local_filename):
-    """Pulls weights from GCP to local storage"""
-    pattern = r'https://pbxt\.replicate\.delivery/([^/]+/[^/]+)'
-    match = re.search(pattern, weights)
-    if match:
-        weights = f"gs://replicate-files/{match.group(1)}"
 
-    command = (
-        f"/gc/google-cloud-sdk/bin/gcloud storage cp {weights} {local_filename}".split()
-    )
-    res = subprocess.run(command)
-    if res.returncode != 0:
-        raise Exception(
-            f"gcloud storage cp command failed with return code {res.returncode}: {res.stderr.decode('utf-8')}"
-        )
+def download_file(file, local_filename):
+    print(f"Downloading {file}")
+    if os.path.exists(local_filename):
+        os.remove(local_filename)
+    command = ['pget', file, local_filename]
+    subprocess.check_call(command)
     return
-
 
 
 def load_tensorizer(
@@ -61,8 +52,8 @@ def load_tensorizer(
     weights = str(weights)
     local_weights = "/src/llama_tensors"
     print("Deserializing weights...")
-    if 'http' in weights or 'gs' in weights:
-        pull_gcp_file(weights, local_weights)
+    if 'http' in weights:
+        download_file(weights, local_weights)
     else:
         local_weights = weights
 
