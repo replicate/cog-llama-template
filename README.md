@@ -6,9 +6,11 @@ LLaMA is a [new open-source language model from Meta Research](https://ai.facebo
 
 This is a guide to running LLaMA using in the cloud using Replicate. You'll use the [Cog](https://github.com/replicate/cog) command-line tool to package the model and push it to Replicate as a web interface and API.
 
-This model can be used to run the `7B` version of LLaMA and it also works with fine-tuned models.
+This template can be used to run the `7B`, `13B`, and `70B` versions of LLaMA and LLaMA2 and it also works with fine-tuned models.
 
-**Note: LLaMA is for research purposes only. It is not intended for commercial use.**
+**Note: Please verify the system prompt for LLaMA or LLAMA2 and update it accordingly.**
+
+**Note: LLaMA is for research purposes only. It is not intended for commercial use. Check the license of LLaMA & LLaMA2 on the official LLaMA website of Meta Platforms, Inc.**
 
 ## Prerequisites
 
