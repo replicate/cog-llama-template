@@ -265,20 +265,22 @@ def train(
     local_rank: int = -1,
     deepspeed: str = None,
     save_strategy: str = "no",
-    save_steps: int = 500
+    save_steps: int = 500,
+    evaluation_strategy: str = "no",
+    load_best_model_at_end: bool = False
 ) -> None:
     print("Loading model...")
     model = load_peft_model(weights, lora_rank, lora_alpha, lora_dropout, lora_target_modules)
     tokenizer = load_tokenizer()
 
-    print(f"Loading dataset {train_data}...")
-    print(train_data)
+    print(f"Loading train dataset {train_data}...")
     train_data = load_data(train_data)
     p = CausalDatasetBuilder(tokenizer)
     train_dataset = p.construct_dataset(train_data)
     eval_dataset = None
     if eval_data:
-        eval_data = load_json(eval_data)
+        print(f"Loading eval dataset {eval_data}...")
+        eval_data = load_data(eval_data)
         eval_dataset = p.construct_dataset(eval_data)
 
     torch.cuda.empty_cache()
@@ -307,7 +309,10 @@ def train(
             deepspeed=deepspeed,
             local_rank=local_rank,
             gradient_checkpointing=True,
-            save_steps=save_steps
+            save_steps=save_steps,
+            evaluation_strategy=evaluation_strategy,
+            eval_steps=save_steps if evaluation_strategy != "no" else None,
+            load_best_model_at_end=load_best_model_at_end
         ),
         data_collator=SequenceDataCollator(tokenizer, 8),  # depends on bf16 value
     )
@@ -421,6 +426,16 @@ if __name__ == "__main__":
         "--save_steps",
         type=int,
         default=None
+    )
+    parser.add_argument(
+        "--evaluation_strategy",
+        type=str,
+        default="no"
+    )
+    parser.add_argument(
+        "--load_best_model_at_end",
+        type=bool,
+        default=False
     )
     some_args = parser.parse_args()
     train(**vars(some_args))
