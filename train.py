@@ -31,6 +31,12 @@ def train(
         description="path to optional evaluation data file to use for model eval",
         default=None,
     ),
+    train_eval_split: float = Input(
+        description="If no evaluation dataset is passed, (1-train_eval_split) percent of the train data will be sampled and used as an eval set. Set to 1 to have no eval set.",
+        default=0.8,
+        ge=0,
+        le=1
+    ),
     weights: Path = Input(
         description="location of weights that are going to be fine-tuned", default=None
     ),
@@ -62,7 +68,9 @@ def train(
         description="Rank of the lora matrices", default=8, ge=1),
     lora_alpha: int = Input(description="Alpha parameter for scaling lora weights; weights are scaled by alpha/rank", default=16, ge=1),
     lora_dropout: float = Input(description="Dropout for lora training", default=0.1, ge=0.0, le=1.0),
-    lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
+    lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj"),
+    save_strategy: str = Input(description="Whether to save a checkpoint of the model every n steps or every epoch. Only relevant if `eval_data` or `train_eval_split` are set.", default="epoch", choices=["epoch", "steps", "no"]),
+    save_steps: int = Input(description="Evaluate the performance of the model and save a checkpoint every `save_steps`. Has to be used with `save_strategy=steps`.", default=None, ge=1)
 ) -> TrainingOutput:
     input_weights = weights if weights is not None else DEFAULT_MODEL_NAME
 
@@ -79,6 +87,14 @@ def train(
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
     os.makedirs(output_dir)
+
+    # so what we need to do here, then, is determine flow
+    # if eval_set - great
+    # if no eval_set - split train set here UNLESS some flag is set not to
+    # save_strategy 
+    # return best_model is passed *unless* eval nothing 
+    # if nothing is passed then no checkpointing, etc. 
+    # so basically just go through assuming good stuff and then return bad stuff if absolutely needed. 
 
     num_gpus = torch.cuda.device_count()
     num_gpus_flag = f"--num_gpus={num_gpus}"
@@ -115,6 +131,8 @@ def train(
         + f" --lora_alpha {lora_alpha}"
         + f" --lora_dropout {lora_dropout}"
         + _arg_if_present(lora_target_modules, "lora_target_modules")
+        + f" --save_strategy {save_strategy}"
+        + f" --save_steps {save_steps}"
         + " --local_output_dir "
         + output_dir,
         shell=True,

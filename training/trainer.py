@@ -5,7 +5,7 @@ import os
 import time
 import logging
 from collections import OrderedDict
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import torch
 from cog import Input, Path
@@ -263,7 +263,9 @@ def train(
     lora_target_modules: Optional[Union[List[str], str]] = None, 
     local_output_dir: str = None,
     local_rank: int = -1,
-    deepspeed: str = None
+    deepspeed: str = None,
+    save_strategy: str = "no",
+    save_steps: int = 500
 ) -> None:
     print("Loading model...")
     model = load_peft_model(weights, lora_rank, lora_alpha, lora_dropout, lora_target_modules)
@@ -292,7 +294,7 @@ def train(
             output_dir=CHECKPOINT_DIR,
             per_device_train_batch_size=train_batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,
-            save_strategy="no",
+            save_strategy=save_strategy,
             logging_steps=logging_steps,
             lr_scheduler_type=lr_scheduler_type,
             warmup_ratio=warmup_ratio,
@@ -304,7 +306,8 @@ def train(
             half_precision_backend="cuda_amp",
             deepspeed=deepspeed,
             local_rank=local_rank,
-            gradient_checkpointing=True
+            gradient_checkpointing=True,
+            save_steps=save_steps
         ),
         data_collator=SequenceDataCollator(tokenizer, 8),  # depends on bf16 value
     )
@@ -408,6 +411,16 @@ if __name__ == "__main__":
         type=str, 
         default=None,
         help="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default"
+    )
+    parser.add_argument(
+        "--save_strategy",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "--save_steps",
+        type=int,
+        default=None
     )
     some_args = parser.parse_args()
     train(**vars(some_args))
