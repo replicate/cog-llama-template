@@ -11,7 +11,7 @@ from cog import BaseModel, Input, Path
 from tensorizer import TensorSerializer
 from transformers import LlamaForCausalLM
 
-from config import DEFAULT_MODEL_NAME, pull_gcp_file
+from config import DEFAULT_MODEL_NAME, download_file
 
 MODEL_OUT = "/src/tuned_weights.tensors"
 CHECKPOINT_DIR = "checkpoints"
@@ -69,7 +69,7 @@ def train(
     if 'http' in input_weights or 'gs' in input_weights:
         # doing this once instead of 4x
         local_weights = '/src/llama.tensors'
-        pull_gcp_file(input_weights, local_weights)
+        download_file(input_weights, local_weights)
         input_weights = local_weights
 
     root_path = os.getcwd()

@@ -6,11 +6,24 @@ import zipfile
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
-from config import DEFAULT_MODEL_NAME, load_tokenizer, load_tensorizer, pull_gcp_file
+from config import DEFAULT_MODEL_NAME, load_tokenizer, load_tensorizer, download_file
 from subclass import YieldingLlama
 from peft import PeftModel
 import os
 
+# This prompt formatting was copied from the original Llama v2 repo:
+# https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44
+
+# These are components of the prompt that should not be changed by the users
+B_INST, E_INST = "[INST]", "[/INST]"
+B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
+PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_INST}"
+
+# Users may want to change the system prompt, but we use the recommended system prompt by default
+DEFAULT_SYSTEM_PROMPT = """\
+You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.
+
+If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information."""
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
@@ -38,7 +51,7 @@ class Predictor(BasePredictor):
             model = self.load_huggingface_model(DEFAULT_MODEL_NAME)
         if 'https' in weights: # weights are in the cloud
             local_weights = 'local_weights.zip'
-            pull_gcp_file(weights, local_weights)
+            download_file(weights, local_weights)
             weights = local_weights
         out = '/src/peft_dir'
         if os.path.exists(out):
@@ -62,7 +75,11 @@ class Predictor(BasePredictor):
     def predict(
         self,
         prompt: str = Input(description=f"Prompt to send to Llama v2."),
-        max_length: int = Input(
+        system_prompt: str = Input(
+            description="System prompt to send to Llama v2. This is prepended to the prompt and helps guide system behavior.", 
+            default=DEFAULT_SYSTEM_PROMPT,
+        ),
+        max_new_tokens: int = Input(
             description="Maximum number of tokens to generate. A word is generally 2-3 tokens",
             ge=1,
             default=500,
@@ -89,17 +106,19 @@ class Predictor(BasePredictor):
             description="provide debugging output in logs", default=False
         ),
     ) -> ConcatenateIterator[str]:
-        prompt = "User: " + prompt + '\nAssistant: '#Uncomment if you want to use for demo with no chat memory.
+        prompt = prompt.strip('\n').removeprefix(B_INST).removesuffix(E_INST).strip()
+        prompt = PROMPT_TEMPLATE.format(system_prompt=system_prompt.strip(), instruction=prompt.strip())
+        print("Formatted input prompt:\n", prompt)
+
         input = self.tokenizer(prompt, return_tensors="pt").input_ids.to(self.device)
 
         with torch.inference_mode() and torch.autocast("cuda"):
             first_token_yielded = False
             prev_ids = []
-            previous_token_id = None  # This stores the previous token id so we can look for `\nUser:`
 
             for output in self.model.generate(
                 input_ids=input,
-                max_length=max_length,
+                max_new_tokens=max_new_tokens,
                 do_sample=True,
                 temperature=temperature,
                 top_p=top_p,
@@ -107,19 +126,12 @@ class Predictor(BasePredictor):
             ):
                 cur_id = output.item()
 
-                # Break if previous token id was 13 (newline) and current id is 2659 (user)
-                if previous_token_id == 13 and cur_id == 2659:
-                    break
-
-                previous_token_id = cur_id  # Store the current token id to check in the next iteration
-
-
                 # in order to properly handle spaces, we need to do our own tokenizing. Fun!
                 # we're building up a buffer of sub-word / punctuation tokens until we hit a space, and then yielding whole words + punctuation.
                 cur_token = self.tokenizer.convert_ids_to_tokens(cur_id)
 
                 # skip initial newline, which this almost always yields. hack - newline id = 13.
-                if not first_token_yielded and not prev_ids and cur_id == 13:
+                if not first_token_yielded and not prev_ids and cur_id in [13, 259]:
                     continue
 
                 # underscore means a space, means we yield previous tokens
@@ -138,6 +150,9 @@ class Predictor(BasePredictor):
                             # no leading space for first token
                             token = token.strip()
                             first_token_yielded = True
+                            if not token:
+                                # first token is empty space sometimes 
+                                continue
                         yield token
                 else:
                     prev_ids.append(cur_id)

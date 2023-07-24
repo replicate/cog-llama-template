@@ -1,6 +1,6 @@
 from collections import OrderedDict
 import logging
-import re
+import os
 import time
 from transformers import LlamaTokenizer, AutoConfig, LlamaForCausalLM
 import torch
@@ -13,15 +13,14 @@ from subclass import YieldingLlama
 
 # path from which we pull weights when there's no COG_WEIGHTS environment variable
 # If you want to use tensorized weights, set `DEFAULT_MODEL_NAME` to the path of the tensorized weights.
-DEFAULT_MODEL_NAME = "llama_weights/llama-13b/llama_13b_fp16.tensors"# "llama_7b_fp16.tensors" if you have a GPU avaiable or "llama_7b_fp32.tensors" if you don't. - This is where the convert_to_tensors.py will save the tensorized weights.
+DEFAULT_MODEL_NAME = "llama_weights/llama-7b/llama_7b_fp16.tensors"# "llama_7b_fp16.tensors" if you have a GPU avaiable or "llama_7b_fp32.tensors" if you don't. - This is where the convert_to_tensors.py will save the tensorized weights.
 TOKENIZER_NAME = "llama_weights/tokenizer"
-CONFIG_LOCATION = "llama_weights/llama-13b"
+CONFIG_LOCATION = "llama_weights/llama-7b"
 
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
-DEFAULT_BOS_TOKEN = "</s>"
+DEFAULT_BOS_TOKEN = "<s>"
 DEFAULT_UNK_TOKEN = "</s>"
-
 
 def load_tokenizer():
     """Same tokenizer, agnostic from tensorized weights/etc"""
@@ -36,23 +35,14 @@ def load_tokenizer():
     )
     return tok
 
-def pull_gcp_file(weights, local_filename):
-    """Pulls weights from GCP to local storage"""
-    pattern = r'https://pbxt\.replicate\.delivery/([^/]+/[^/]+)'
-    match = re.search(pattern, weights)
-    if match:
-        weights = f"gs://replicate-files/{match.group(1)}"
 
-    command = (
-        f"/gc/google-cloud-sdk/bin/gcloud storage cp {weights} {local_filename}".split()
-    )
-    res = subprocess.run(command)
-    if res.returncode != 0:
-        raise Exception(
-            f"gcloud storage cp command failed with return code {res.returncode}: {res.stderr.decode('utf-8')}"
-        )
+def download_file(file, local_filename):
+    print(f"Downloading {file}")
+    if os.path.exists(local_filename):
+        os.remove(local_filename)
+    command = ['pget', file, local_filename]
+    subprocess.check_call(command)
     return
-
 
 
 def load_tensorizer(
@@ -62,8 +52,8 @@ def load_tensorizer(
     weights = str(weights)
     local_weights = "/src/llama_tensors"
     print("Deserializing weights...")
-    if 'http' in weights or 'gs' in weights:
-        pull_gcp_file(weights, local_weights)
+    if 'http' in weights:
+        download_file(weights, local_weights)
     else:
         local_weights = weights
 
