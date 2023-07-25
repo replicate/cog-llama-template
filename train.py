@@ -10,6 +10,7 @@ import torch
 from cog import BaseModel, Input, Path
 from tensorizer import TensorSerializer
 from transformers import LlamaForCausalLM
+import numpy as np
 
 from config import DEFAULT_MODEL_NAME, download_file
 
@@ -18,6 +19,15 @@ CHECKPOINT_DIR = "checkpoints"
 SAVE_STRATEGY = "epoch"
 DIST_OUT_DIR = "tmp/model"
 
+
+def sample_dataset(train_file, test_file, train_eval_split, train_file_out):
+    """Samples train dataset to create new train & eval datasets"""
+    with open(train_file, "r") as src, open(test_file, "w") as tst, open(train_file_out, "w") as trn:
+        for line in src:
+            if np.random.rand() < train_eval_split:  # move line to test.txt
+                trn.write(line)
+            else:  # keep in train.txt
+                tst.write(line)
 
 class TrainingOutput(BaseModel):
     weights: Path
@@ -30,6 +40,12 @@ def train(
     eval_data: Path = Input(
         description="path to optional evaluation data file to use for model eval",
         default=None,
+    ),
+    train_eval_split: float = Input(
+        description="If no evaluation dataset is passed, (1-train_eval_split) percent of the train data will be sampled and used as an eval set. Set to 1 to have no eval set.",
+        default=0.8,
+        ge=0,
+        le=1
     ),
     weights: Path = Input(
         description="location of weights that are going to be fine-tuned", default=None
@@ -62,7 +78,10 @@ def train(
         description="Rank of the lora matrices", default=8, ge=1),
     lora_alpha: int = Input(description="Alpha parameter for scaling lora weights; weights are scaled by alpha/rank", default=16, ge=1),
     lora_dropout: float = Input(description="Dropout for lora training", default=0.1, ge=0.0, le=1.0),
-    lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
+    lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj"),
+    save_strategy: str = Input(description="Whether to save a checkpoint of the model every n steps or every epoch. Only relevant if `eval_data` or `train_eval_split` are set.", default="epoch", choices=["epoch", "steps", "no"]),
+    save_steps: int = Input(description="Evaluate the performance of the model and save a checkpoint every `save_steps`. Has to be used with `save_strategy=steps`.", default=None, ge=1),
+    seed: int = Input(description="Random seed for reproducibile training", default=None)
 ) -> TrainingOutput:
     input_weights = weights if weights is not None else DEFAULT_MODEL_NAME
 
@@ -79,6 +98,29 @@ def train(
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
     os.makedirs(output_dir)
+
+    if seed is None:
+        seed = np.random.randint(0, 2**32-1)
+    print(f"Using random seed {seed}")
+    
+    # seeding numpy for reproducible train/test split if needed
+    np.random.seed(seed)
+
+    if not eval_data and train_eval_split < 1:
+        # need to do this here as opposed to in parallel workers - or rather this is the simplest way.
+        # probably faster to pass a deterministic partitioning function to `deepspeed`, can look into that if needed 
+        print(f"Sampling eval dataset from train dataset.")
+        new_train_data = '/src/local_train.jsonl'
+        eval_data = '/src/local_eval.jsonl'
+
+        sample_dataset(train_data, eval_data, train_eval_split, new_train_data)
+        print(f"Eval dataset generated.")
+        train_data = new_train_data
+
+    if eval_data:
+        # if we have evaluation data, we return the best model. 
+        evaluation_strategy = save_strategy
+        load_best_model_at_end = True
 
     num_gpus = torch.cuda.device_count()
     num_gpus_flag = f"--num_gpus={num_gpus}"
@@ -115,6 +157,10 @@ def train(
         + f" --lora_alpha {lora_alpha}"
         + f" --lora_dropout {lora_dropout}"
         + _arg_if_present(lora_target_modules, "lora_target_modules")
+        + f" --save_strategy {save_strategy}"
+        + f" --save_steps {save_steps}"
+        + f" --evaluation_strategy {evaluation_strategy}"
+        + f" --load_best_model_at_end {load_best_model_at_end}"
         + " --local_output_dir "
         + output_dir,
         shell=True,

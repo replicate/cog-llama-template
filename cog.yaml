@@ -18,14 +18,12 @@ build:
     - "sentencepiece==0.1.99"
     - "tensorizer==1.0.1"
     - "jinja2==3.1.2"
-    - "deepspeed==0.10.0"
+    - "transformers==4.31.0"
 
 
   run: 
-    - "pip install git+https://github.com/huggingface/transformers.git@786092a35e18154cacad62c30fe92bac2c27a1e1"
-    - "mkdir /gc && cd /gc && curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-426.0.0-linux-x86_64.tar.gz && tar -xf google-cloud-cli-426.0.0-linux-x86_64.tar.gz && ./google-cloud-sdk/install.sh -q"
-    - "pip install google-cloud-storage"
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.1/pget" && chmod +x /usr/local/bin/pget
+    - "pip install git+https://github.com/microsoft/DeepSpeed.git@777ae39a85988da3e934c272842f6c65686b8896"
     
 
 # predict.py defines how predictions are run on your model

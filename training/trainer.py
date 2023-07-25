@@ -5,18 +5,25 @@ import os
 import time
 import logging
 from collections import OrderedDict
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 import torch
 from cog import Input, Path
 from peft import (LoraConfig, get_peft_model)
 from torch.utils.data import Dataset
-from transformers import LlamaForCausalLM, Trainer, TrainingArguments, AutoConfig
+from transformers import LlamaForCausalLM, TrainingArguments, AutoConfig
 from tensorizer import TensorDeserializer
 from tensorizer.utils import no_init_or_tensor
 import sys
 sys.path.append('/src/')
+sys.path.append('/src/training/')
 
+# patching
+import transformers.deepspeed as ds
+from patched_deepspeed_checkpoint import mod_deepspeed_load_checkpoint
+ds.deepspeed_load_checkpoint = mod_deepspeed_load_checkpoint
+
+from patched_hf_trainer import LightweightTrainer as Trainer
 from config import DEFAULT_MODEL_NAME, load_tokenizer, load_tensorizer
 
 MODEL_OUT = "/src/tuned_weights.tensors"
@@ -263,20 +270,24 @@ def train(
     lora_target_modules: Optional[Union[List[str], str]] = None, 
     local_output_dir: str = None,
     local_rank: int = -1,
-    deepspeed: str = None
+    deepspeed: str = None,
+    save_strategy: str = "no",
+    save_steps: int = 500,
+    evaluation_strategy: str = "no",
+    load_best_model_at_end: bool = False
 ) -> None:
     print("Loading model...")
     model = load_peft_model(weights, lora_rank, lora_alpha, lora_dropout, lora_target_modules)
     tokenizer = load_tokenizer()
 
-    print(f"Loading dataset {train_data}...")
-    print(train_data)
+    print(f"Loading train dataset {train_data}...")
     train_data = load_data(train_data)
     p = CausalDatasetBuilder(tokenizer)
     train_dataset = p.construct_dataset(train_data)
     eval_dataset = None
     if eval_data:
-        eval_data = load_json(eval_data)
+        print(f"Loading eval dataset {eval_data}...")
+        eval_data = load_data(eval_data)
         eval_dataset = p.construct_dataset(eval_data)
 
     torch.cuda.empty_cache()
@@ -292,7 +303,7 @@ def train(
             output_dir=CHECKPOINT_DIR,
             per_device_train_batch_size=train_batch_size,
             gradient_accumulation_steps=gradient_accumulation_steps,
-            save_strategy="no",
+            save_strategy=save_strategy,
             logging_steps=logging_steps,
             lr_scheduler_type=lr_scheduler_type,
             warmup_ratio=warmup_ratio,
@@ -304,7 +315,11 @@ def train(
             half_precision_backend="cuda_amp",
             deepspeed=deepspeed,
             local_rank=local_rank,
-            gradient_checkpointing=True
+            gradient_checkpointing=True,
+            save_steps=save_steps,
+            evaluation_strategy=evaluation_strategy,
+            eval_steps=save_steps if evaluation_strategy != "no" else None,
+            load_best_model_at_end=load_best_model_at_end
         ),
         data_collator=SequenceDataCollator(tokenizer, 8),  # depends on bf16 value
     )
@@ -408,6 +423,26 @@ if __name__ == "__main__":
         type=str, 
         default=None,
         help="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default"
+    )
+    parser.add_argument(
+        "--save_strategy",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "--save_steps",
+        type=int,
+        default=None
+    )
+    parser.add_argument(
+        "--evaluation_strategy",
+        type=str,
+        default="no"
+    )
+    parser.add_argument(
+        "--load_best_model_at_end",
+        type=bool,
+        default=False
     )
     some_args = parser.parse_args()
     train(**vars(some_args))
