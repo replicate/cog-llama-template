@@ -11,12 +11,19 @@ import torch
 from cog import Input, Path
 from peft import (LoraConfig, get_peft_model)
 from torch.utils.data import Dataset
-from transformers import LlamaForCausalLM, Trainer, TrainingArguments, AutoConfig
+from transformers import LlamaForCausalLM, TrainingArguments, AutoConfig
 from tensorizer import TensorDeserializer
 from tensorizer.utils import no_init_or_tensor
 import sys
 sys.path.append('/src/')
+sys.path.append('/src/training/')
 
+# patching
+import transformers.deepspeed as ds
+from patched_deepspeed_checkpoint import mod_deepspeed_load_checkpoint
+ds.deepspeed_load_checkpoint = mod_deepspeed_load_checkpoint
+
+from patched_hf_trainer import LightweightTrainer as Trainer
 from config import DEFAULT_MODEL_NAME, load_tokenizer, load_tensorizer
 
 MODEL_OUT = "/src/tuned_weights.tensors"
