@@ -17,7 +17,7 @@ from tensorizer.utils import no_init_or_tensor
 import sys
 sys.path.append('/src/')
 
-from config import DEFAULT_MODEL_NAME, load_tokenizer, load_tensorizer
+from config import DEFAULT_MODEL_NAME, load_tokenizer, load_tensorizer, log_memory_stuff
 
 MODEL_OUT = "/src/tuned_weights.tensors"
 CHECKPOINT_DIR = "checkpoints"
@@ -167,7 +167,11 @@ def load_model(model_name_or_path):
     torch.cuda.set_device(int(os.environ['RANK']))
     if model_name_or_path is None:
         model_name_or_path = DEFAULT_MODEL_NAME
+    print(f"GPU usage pre-load rank Rank : {os.environ['RANK']}, device: {torch.cuda.current_device()}")
+    log_memory_stuff()
     model = load_tensorizer(model_name_or_path, plaid_mode=False, cls=LlamaForCausalLM)
+    print(f"GPU usage post-load rank Rank : {os.environ['RANK']}, device: {torch.cuda.current_device()}")
+    log_memory_stuff()
     return model
 
 def print_trainable_parameters(model):
