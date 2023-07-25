@@ -167,11 +167,9 @@ def load_model(model_name_or_path):
     torch.cuda.set_device(int(os.environ['RANK']))
     if model_name_or_path is None:
         model_name_or_path = DEFAULT_MODEL_NAME
-    print(f"GPU usage pre-load rank Rank : {os.environ['RANK']}, device: {torch.cuda.current_device()}")
-    log_memory_stuff()
+    log_memory_stuff(f"pre-loading memory for {torch.cuda.current_device()}")
     model = load_tensorizer(model_name_or_path, plaid_mode=False, cls=LlamaForCausalLM)
-    print(f"GPU usage post-load rank Rank : {os.environ['RANK']}, device: {torch.cuda.current_device()}")
-    log_memory_stuff()
+    log_memory_stuff(f"post-loading memory for {torch.cuda.current_device()}")
     return model
 
 def print_trainable_parameters(model):
@@ -286,7 +284,7 @@ def train(
     torch.cuda.empty_cache()
     torch.set_float32_matmul_precision("high")
 
-
+    log_memory_stuff(f"pre-training memory {torch.cuda.current_device()}")
     print("Training...")
     trainer = Trainer(
         model=model,
