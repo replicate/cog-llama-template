@@ -3,8 +3,10 @@ import os
 import shutil
 from subprocess import call
 import logging
+import subprocess
 from typing import Optional
 from zipfile import ZipFile
+import psutil
 
 import torch
 from cog import BaseModel, Input, Path
@@ -96,43 +98,60 @@ def train(
         if var:
             return f" --{var_name} {var}"
         return " "
+        
+    args = [
+        "/root/.pyenv/shims/deepspeed",
+        num_gpus_flag,
+        "--master_port=9292",
+        "--module",
+        "training.trainer",
+        "--deepspeed",
+        deepspeed_config,
+        f"--train_data={str(train_data)}",
+        f"--weights={input_weights}",
+        f"--num_train_epochs={num_train_epochs}",
+        f"--max_steps={max_steps}",
+        f"--learning_rate={learning_rate}",
+        f"--train_batch_size={train_batch_size}",
+        f"--gradient_accumulation_steps={gradient_accumulation_steps}",
+        f"--logging_steps={logging_steps}",
+        f"--warmup_ratio={warmup_ratio}",
+        f"--lora_rank={lora_rank}",
+        f"--lora_alpha={lora_alpha}",
+        f"--lora_dropout={lora_dropout}",
+        f"--local_output_dir={output_dir}"
+    ]
+    if eval_data:
+        args.append(f"--eval_data={eval_data}")
+    if lora_target_modules:
+        args.append(f"--lora_target_modules={lora_target_modules}")
 
-    res = call(
-        "deepspeed "
-        + num_gpus_flag
-        + " --master_port=9292"
-        + " --module training.trainer"
-        + f" --deepspeed {deepspeed_config}"
-        + f" --train_data={str(train_data)}"
-        + f" --weights={input_weights}"
-        + f" --num_train_epochs={num_train_epochs}"
-        + f" --max_steps={max_steps}"
-        + _arg_if_present(eval_data, "eval_data")
-        + f" --learning_rate {learning_rate}"
-        + f" --train_batch_size {train_batch_size}"
-        + f" --gradient_accumulation_steps {gradient_accumulation_steps}"
-        + f" --logging_steps {logging_steps}"
-        + f" --warmup_ratio {warmup_ratio}"
-        + f" --lora_rank {lora_rank}"
-        + f" --lora_alpha {lora_alpha}"
-        + f" --lora_dropout {lora_dropout}"
-        + _arg_if_present(lora_target_modules, "lora_target_modules")
-        + " --local_output_dir "
-        + output_dir,
-        shell=True,
-    )
-    if res != 0:
-        raise Exception(f"Training failed! Process returned error code {res}. Check the logs for details.")
-    
-    out_path = "training_output.zip"
+    p = None
+    try:
+        p = subprocess.Popen(args, close_fds=False)
+        p.wait()
+        out_path = "training_output.zip"
 
-    directory = Path(output_dir)
-    with ZipFile(out_path, "w") as zip:
-        for file_path in directory.rglob("*"):
-            print(file_path)
-            zip.write(file_path, arcname=file_path.relative_to(directory))
+        directory = Path(output_dir)
+        with ZipFile(out_path, "w") as zip:
+            for file_path in directory.rglob("*"):
+                print(file_path)
+                zip.write(file_path, arcname=file_path.relative_to(directory))
 
-    return TrainingOutput(weights=Path(out_path))
+        return TrainingOutput(weights=Path(out_path))
+    finally: 
+        if p and p.poll() is None:
+            top = psutil.Process(p.pid)
+            children = top.children(recursive=True)
+            for process in children + [top]:
+                process.terminate()
+            _, alive = psutil.wait_procs(children + [top], timeout = 5)
+            if alive:
+                for process in alive:
+                    print(f"process {process.pid} survived termination")
+            else:
+                print("terminated all processes successfully")
+
 
 
 if __name__ == "__main__":

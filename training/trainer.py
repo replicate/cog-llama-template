@@ -167,9 +167,9 @@ def load_model(model_name_or_path):
     torch.cuda.set_device(int(os.environ['RANK']))
     if model_name_or_path is None:
         model_name_or_path = DEFAULT_MODEL_NAME
-    log_memory_stuff(f"pre-loading memory for {torch.cuda.current_device()}")
+    log_memory_stuff(f"pre-loading model memory for {torch.cuda.current_device()}")
     model = load_tensorizer(model_name_or_path, plaid_mode=False, cls=LlamaForCausalLM)
-    log_memory_stuff(f"post-loading memory for {torch.cuda.current_device()}")
+    log_memory_stuff(f"post-loading model memory for {torch.cuda.current_device()}")
     return model
 
 def print_trainable_parameters(model):
