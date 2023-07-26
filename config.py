@@ -22,6 +22,16 @@ DEFAULT_EOS_TOKEN = "</s>"
 DEFAULT_BOS_TOKEN = "<s>"
 DEFAULT_UNK_TOKEN = "</s>"
 
+def log_memory_stuff(prompt=None):
+    """One method to barf out everything we'd ever want to know about memory"""
+    
+    if prompt is not None:
+        print(prompt)
+    os.system("nvidia-smi")
+    print(torch.cuda.memory_summary())
+
+
+
 def load_tokenizer():
     """Same tokenizer, agnostic from tensorized weights/etc"""
     tok = LlamaTokenizer.from_pretrained(TOKENIZER_NAME, cache_dir="pretrained_weights")
