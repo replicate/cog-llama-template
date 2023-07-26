@@ -1,6 +1,6 @@
 from collections import OrderedDict
 import logging
-import os
+import re
 import time
 from transformers import LlamaTokenizer, AutoConfig, LlamaForCausalLM
 import torch
@@ -11,20 +11,56 @@ from tensorizer.utils import no_init_or_tensor
 
 from subclass import YieldingLlama
 
-# path from which we pull weights when there's no COG_WEIGHTS environment variable
-# If you want to use tensorized weights, set `DEFAULT_MODEL_NAME` to the path of the tensorized weights.
-DEFAULT_MODEL_NAME = "llama_weights/llama-7b/llama_7b_fp16.tensors"# "llama_7b_fp16.tensors" if you have a GPU avaiable or "llama_7b_fp32.tensors" if you don't. - This is where the convert_to_tensors.py will save the tensorized weights.
-TOKENIZER_NAME = "llama_weights/tokenizer"
-CONFIG_LOCATION = "llama_weights/llama-7b"
+############################################
+# Update these variables for the model you want to use
+#
+# - Specify the local path where your weights are stored. If their not local, they'll be downloaded.
+LOCAL_GPTQ_WEIGHTS_PATH = "llama_weights/Llama-2-70B-chat-GPTQ"
+#
+# - If the Hugging Face loader is used, should the model be loaded in 4bit? Should be True for 70b models
+LOAD_IN_4BIT = False
+#
+# - Specify the remote path where your GPTQ weights are stored. If they're not local, they'll be downloaded.
+REMOTE_GPTQ_WEIGHTS_PATH = None
+REMOTE_GPTQ_WEIGHTS_PATH = REMOTE_GPTQ_WEIGHTS_PATH.rstrip("/") if REMOTE_GPTQ_WEIGHTS_PATH else None
+# - Specify the remote path to your HF weights or tensorizer weights.
+BASE_WEIGHTS_PATH = None
+#
+###### YOU SHOULD LOOK AT THE FILE NAMES! ######
+# - Specify the files you want to download from the remote path.
+# N_SHARDS = 1
+# REMOTE_FILES_TO_DOWNLOAD = [
+#     f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
+#     for i in range(N_SHARDS)
+# ]
+
+REMOTE_FILES_TO_DOWNLOAD = ["gptq_model-4bit-32g.safetensors"]
+
+REMOTE_FILES_TO_DOWNLOAD += [
+    "config.json",
+    "generation_config.json",
+    "model.safetensors.index.json",
+    "special_tokens_map.json",
+    "tokenizer_config.json",
+    "tokenizer.json",
+    "tokenizer.model",
+    "quantize_config.json",
+]
+############################################
 
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
 DEFAULT_BOS_TOKEN = "<s>"
 DEFAULT_UNK_TOKEN = "</s>"
 
+# If you do not modify the directory structure, you should not need to modify these lines.
+TOKENIZER_NAME = "llama_weights/tokenizer"
+CONFIG_LOCATION = "llama_weights/llama-2-70b-chat"
+
+
 def load_tokenizer():
     """Same tokenizer, agnostic from tensorized weights/etc"""
-    tok = LlamaTokenizer.from_pretrained(TOKENIZER_NAME, cache_dir="pretrained_weights")
+    tok = LlamaTokenizer.from_pretrained(TOKENIZER_NAME, cache_dir="pretrained_weights", legacy=False)
     tok.add_special_tokens(
         {
             "eos_token": DEFAULT_EOS_TOKEN,
@@ -34,8 +70,7 @@ def load_tokenizer():
         }
     )
     return tok
-
-
+ 
 def download_file(file, local_filename):
     print(f"Downloading {file}")
     if os.path.exists(local_filename):

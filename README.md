@@ -1,5 +1,16 @@
 # LLaMA Cog template 🦙
 
+**NOTE: This is an experimental branch that depends on exllama**
+
+For now, you should:
+```sh
+git clone https://github.com/turboderp/exllama
+cd exllama
+git checkout e8a544f95b3fd64dfa5549eeeafb85b1ac71a793
+```
+
+We're working on a proper integration.
+
 **This Cog template works with LLaMA 1 & 2 versions.**
 
 LLaMA is a [new open-source language model from Meta Research](https://ai.facebook.com/blog/large-language-model-llama-meta-ai/) that performs as well as closed-source models. 
