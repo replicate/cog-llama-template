@@ -17,12 +17,11 @@ from config import (
     load_tokenizer, 
     load_tensorizer, 
     download_file,
+    USE_SYSTEM_PROMPT
 )
 
 from subclass import YieldingLlama
 from scripts.utils import maybe_download_with_pget
-
-DEFAULT_MODEL_NAME = 'weights'
 
 from peft import PeftModel
 import os
@@ -55,9 +54,9 @@ class Predictor(BasePredictor):
         if not weights:
             weights = LOCAL_GPTQ_WEIGHTS_PATH
             from src.exllama_predictor import ExllamaGenerator
-            # weights = maybe_download_with_pget(
-            #     weights, REMOTE_GPTQ_WEIGHTS_PATH, REMOTE_FILES_TO_DOWNLOAD,
-            # )
+            weights = maybe_download_with_pget(
+                weights, REMOTE_GPTQ_WEIGHTS_PATH, REMOTE_FILES_TO_DOWNLOAD,
+            )
             self.generator = ExllamaGenerator(weights)
             self.use_exllama = True
         
@@ -74,7 +73,7 @@ class Predictor(BasePredictor):
         if 'tensors' in BASE_WEIGHTS_PATH:
             model = load_tensorizer(BASE_WEIGHTS_PATH, plaid_mode=False, cls=YieldingLlama)
         else:
-            model = self.load_huggingface_model(BASE_WEIGHTS_PATH)
+            model = self.load_huggingface_model(BASE_WEIGHTS_PATH, load_in_4bit=LOAD_IN_4BIT)
         if 'https' in weights: # weights are in the cloud
             local_weights = 'local_weights.zip'
             download_file(weights, local_weights)
@@ -110,10 +109,10 @@ class Predictor(BasePredictor):
     def predict(
         self,
         prompt: str = Input(description=f"Prompt to send to Llama v2."),
-        system_prompt: str = Input(
-            description="System prompt to send to Llama v2. This is prepended to the prompt and helps guide system behavior.", 
-            default=DEFAULT_SYSTEM_PROMPT,
-        ),
+        # system_prompt: str = Input(
+        #     description="System prompt to send to Llama v2. This is prepended to the prompt and helps guide system behavior.", 
+        #     default=DEFAULT_SYSTEM_PROMPT,
+        # ),
         max_new_tokens: int = Input(
             description="Maximum number of tokens to generate. A word is generally 2-3 tokens",
             ge=1,
@@ -162,8 +161,11 @@ class Predictor(BasePredictor):
         ),
     ) -> ConcatenateIterator: 
         
-        prompt = prompt.strip('\n').lstrip(B_INST).rstrip(E_INST).strip()
-        prompt_templated = PROMPT_TEMPLATE.format(system_prompt=system_prompt.strip(), instruction=prompt.strip())
+        if USE_SYSTEM_PROMPT:
+            prompt = prompt.strip('\n').lstrip(B_INST).rstrip(E_INST).strip()
+            prompt_templated = PROMPT_TEMPLATE.format(system_prompt=system_prompt.strip(), instruction=prompt.strip())
+        else:
+            prompt_templated = prompt
         
         if self.use_exllama:
             n_tokens = 0

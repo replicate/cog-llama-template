@@ -11,7 +11,7 @@ from cog import BaseModel, Input, Path
 from tensorizer import TensorSerializer
 from transformers import LlamaForCausalLM
 
-from config import DEFAULT_MODEL_NAME, download_file
+from config import BASE_WEIGHTS_PATH, download_file
 
 MODEL_OUT = "/src/tuned_weights.tensors"
 CHECKPOINT_DIR = "checkpoints"
@@ -64,7 +64,7 @@ def train(
     lora_dropout: float = Input(description="Dropout for lora training", default=0.1, ge=0.0, le=1.0),
     lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
 ) -> TrainingOutput:
-    input_weights = weights if weights is not None else DEFAULT_MODEL_NAME
+    input_weights = weights if weights is not None else BASE_WEIGHTS_PATH
 
     if 'http' in input_weights or 'gs' in input_weights:
         # doing this once instead of 4x

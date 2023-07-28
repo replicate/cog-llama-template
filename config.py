@@ -8,25 +8,11 @@ import subprocess
 from subprocess import DEVNULL, STDOUT
 from tensorizer import TensorDeserializer
 from tensorizer.utils import no_init_or_tensor
+import os
 
 from subclass import YieldingLlama
 
-############################################
-# Update these variables for the model you want to use
-#
-# - Specify the local path where your weights are stored. If their not local, they'll be downloaded.
-LOCAL_GPTQ_WEIGHTS_PATH = "llama_weights/Llama-2-70B-chat-GPTQ"
-#
-# - If the Hugging Face loader is used, should the model be loaded in 4bit? Should be True for 70b models
-LOAD_IN_4BIT = False
-#
-# - Specify the remote path where your GPTQ weights are stored. If they're not local, they'll be downloaded.
-REMOTE_GPTQ_WEIGHTS_PATH = None
-REMOTE_GPTQ_WEIGHTS_PATH = REMOTE_GPTQ_WEIGHTS_PATH.rstrip("/") if REMOTE_GPTQ_WEIGHTS_PATH else None
-# - Specify the remote path to your HF weights or tensorizer weights.
-BASE_WEIGHTS_PATH = None
-#
-###### YOU SHOULD LOOK AT THE FILE NAMES! ######
+
 # - Specify the files you want to download from the remote path.
 # N_SHARDS = 1
 # REMOTE_FILES_TO_DOWNLOAD = [
@@ -34,8 +20,30 @@ BASE_WEIGHTS_PATH = None
 #     for i in range(N_SHARDS)
 # ]
 
+# UPDATE THESE VARIABLES FOR YOUR MODEL CONFIGURATION
+#######################################################
+# --------------------Notes---------------------------
+# 1. We currently do not include weights in images, so they need to be downloaded.
+# 2. We are currently serving GPTQ weights, but training with fp16 weights. 
+# 3. We're not currently converting fine-tuned weights to GPTQ, so we need to support prediction with weights taht aren't gptq format. 
+# 4. Accordingly, we need to support both GPTQ and non-GPTQ weights for prediction and non-GPTQ weights for training.
+############################################
+#
+# DO YOU WANT TO USE A SYSTEM PROMPT (E.G. FOR A CHAT MODEL?)
+USE_SYSTEM_PROMPT = False
+# Path to directory where tokenizer is stored. 
+TOKENIZER_NAME = "llama_weights/tokenizer"
+# 
+# GPTQ configuration
+# ------------------
+# - Specify the local path where your weights are stored. If their not local, they'll be downloaded to this directory.
+# LOCAL_GPTQ_WEIGHTS_PATH =
+LOCAL_GPTQ_WEIGHTS_PATH = "weights"
+# Specify the remote path where your GPTQ weights are stored. If they're not local, they'll be downloaded from this path.
+REMOTE_GPTQ_WEIGHTS_PATH = 
+REMOTE_GPTQ_WEIGHTS_PATH = REMOTE_GPTQ_WEIGHTS_PATH.rstrip("/") if REMOTE_GPTQ_WEIGHTS_PATH else None
+# - Specify the files that should be downloaded from this remote path.
 REMOTE_FILES_TO_DOWNLOAD = ["gptq_model-4bit-32g.safetensors"]
-
 REMOTE_FILES_TO_DOWNLOAD += [
     "config.json",
     "generation_config.json",
@@ -46,16 +54,27 @@ REMOTE_FILES_TO_DOWNLOAD += [
     "tokenizer.model",
     "quantize_config.json",
 ]
+# --------------------------------
+#
+# Base weights configuration
+#
+# Specify the path to your base weights. The format of this path has implications for model loading:
+#   1. If it's a path to a local directory, we'll attempt to use `.from_pretrained` to load the weights from the provided directory.
+#   2. If it's a local path to a file that ends with `.tensors`, we'll try to load the file with Tensorizer.
+#   3. If it's a remote path to a file that ends with `.tensors`, we'll try to download the file and load it with Tensorizer.
+#   4. If it's something else that won't work under those expectations, it probably won't work.
+BASE_WEIGHTS_PATH = 
+# Specify the path to the model config --- this is necessary for loading tensorized weights.
+CONFIG_LOCATION = "llama_weights/Llama-2-7b-chat"
+
+# - If the Hugging Face loader is used, should the model be loaded in 4bit?
+LOAD_IN_4BIT = False
 ############################################
 
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
 DEFAULT_BOS_TOKEN = "<s>"
 DEFAULT_UNK_TOKEN = "</s>"
-
-# If you do not modify the directory structure, you should not need to modify these lines.
-TOKENIZER_NAME = "llama_weights/tokenizer"
-CONFIG_LOCATION = "llama_weights/llama-2-70b-chat"
 
 
 def load_tokenizer():
