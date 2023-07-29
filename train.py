@@ -98,8 +98,11 @@ def train(
         if var:
             return f" --{var_name} {var}"
         return " "
-        
-    args = [
+    deepspeed = False
+    os.environ['TORCH_DISTRIBUTED_DEBUG'] = "DETAIL"
+    
+    if deepspeed:
+        args = [
         "/root/.pyenv/shims/deepspeed",
         num_gpus_flag,
         "--master_port=9292",
@@ -107,6 +110,18 @@ def train(
         "training.trainer",
         "--deepspeed",
         deepspeed_config,
+        ]
+    else:
+        args = [
+            "torchrun",
+            "--nproc_per_node",
+            str(num_gpus),
+            "--master_port",
+            "8083",
+            "training/basic_hf_trainer.py"
+        ]
+        
+    args += [
         f"--train_data={str(train_data)}",
         f"--weights={input_weights}",
         f"--num_train_epochs={num_train_epochs}",
