@@ -109,10 +109,10 @@ class Predictor(BasePredictor):
     def predict(
         self,
         prompt: str = Input(description=f"Prompt to send to Llama v2."),
-        # system_prompt: str = Input(
-        #     description="System prompt to send to Llama v2. This is prepended to the prompt and helps guide system behavior.", 
-        #     default=DEFAULT_SYSTEM_PROMPT,
-        # ),
+        system_prompt: str = Input(
+            description="System prompt to send to Llama v2. This is prepended to the prompt and helps guide system behavior.", 
+            default=DEFAULT_SYSTEM_PROMPT,
+        ),
         max_new_tokens: int = Input(
             description="Maximum number of tokens to generate. A word is generally 2-3 tokens",
             ge=1,
@@ -189,7 +189,7 @@ class Predictor(BasePredictor):
         # This is our original generation code
         else:
 
-            input = self.tokenizer(prompt, return_tensors="pt").input_ids.to(self.device)
+            input = self.tokenizer(prompt_templated, return_tensors="pt").input_ids.to(self.device)
 
             with torch.inference_mode() and torch.autocast("cuda"):
                 first_token_yielded = False

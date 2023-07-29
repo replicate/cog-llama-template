@@ -34,6 +34,7 @@ def check_files_exist(remote_files, local_path):
 
 async def download_file_with_pget(remote_path, dest_path):
     # Create the subprocess
+    print("Downloading ", remote_path)
     process = await asyncio.create_subprocess_exec(
         'pget', remote_path, dest_path,
         stdout=asyncio.subprocess.PIPE,

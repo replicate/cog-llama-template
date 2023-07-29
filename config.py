@@ -30,7 +30,7 @@ from subclass import YieldingLlama
 ############################################
 #
 # DO YOU WANT TO USE A SYSTEM PROMPT (E.G. FOR A CHAT MODEL?)
-USE_SYSTEM_PROMPT = False
+USE_SYSTEM_PROMPT = True
 # Path to directory where tokenizer is stored. 
 TOKENIZER_NAME = "llama_weights/tokenizer"
 # 
@@ -38,9 +38,10 @@ TOKENIZER_NAME = "llama_weights/tokenizer"
 # ------------------
 # - Specify the local path where your weights are stored. If their not local, they'll be downloaded to this directory.
 # LOCAL_GPTQ_WEIGHTS_PATH =
-LOCAL_GPTQ_WEIGHTS_PATH = "weights"
+LOCAL_GPTQ_WEIGHTS_PATH = "gptq_weights"
 # Specify the remote path where your GPTQ weights are stored. If they're not local, they'll be downloaded from this path.
-REMOTE_GPTQ_WEIGHTS_PATH = 
+REMOTE_GPTQ_WEIGHTS_PATH = "https://storage.googleapis.com/replicate-weights/Llama-2-7b-Chat-GPTQ"
+
 REMOTE_GPTQ_WEIGHTS_PATH = REMOTE_GPTQ_WEIGHTS_PATH.rstrip("/") if REMOTE_GPTQ_WEIGHTS_PATH else None
 # - Specify the files that should be downloaded from this remote path.
 REMOTE_FILES_TO_DOWNLOAD = ["gptq_model-4bit-32g.safetensors"]
@@ -63,9 +64,9 @@ REMOTE_FILES_TO_DOWNLOAD += [
 #   2. If it's a local path to a file that ends with `.tensors`, we'll try to load the file with Tensorizer.
 #   3. If it's a remote path to a file that ends with `.tensors`, we'll try to download the file and load it with Tensorizer.
 #   4. If it's something else that won't work under those expectations, it probably won't work.
-BASE_WEIGHTS_PATH = 
+BASE_WEIGHTS_PATH = "https://weights.replicate.delivery/default/llama-2/llama_2_7b_fp16.tensors"
 # Specify the path to the model config --- this is necessary for loading tensorized weights.
-CONFIG_LOCATION = "llama_weights/Llama-2-7b-chat"
+CONFIG_LOCATION = "llama_weights/llama-7b"
 
 # - If the Hugging Face loader is used, should the model be loaded in 4bit?
 LOAD_IN_4BIT = False
@@ -104,12 +105,10 @@ def load_tensorizer(
 ):
     st = time.time()
     weights = str(weights)
-    local_weights = "/src/llama_tensors"
+    local_weights = os.path.join(CONFIG_LOCATION, BASE_WEIGHTS_PATH.split('/')[-1])
     print("Deserializing weights...")
-    if 'http' in weights:
+    if 'http' in weights and not (os.path.exists(local_weights)):
         download_file(weights, local_weights)
-    else:
-        local_weights = weights
 
     config = AutoConfig.from_pretrained(CONFIG_LOCATION)
 

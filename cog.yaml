@@ -17,21 +17,18 @@ build:
     - "sentencepiece==0.1.97"
     - "tensorizer==1.0.1"
     - "jinja2==3.1.2"
-    - "deepspeed==0.8.3"
+    - "deepspeed==0.10.0"
+    - "peft==0.4.0"
+    - "scipy==1.11.1"
+    - "asyncio==3.4.3"
+    - "safetensors==0.3.1"
+    - "ninja==1.11.1"
 
   run: 
     - "pip install git+https://github.com/huggingface/transformers.git@d2295708a64feff485bb40caf0decf7bae5a05a2"
-    - pip install peft
     - pip install scipy
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.1/pget" && chmod +x /usr/local/bin/pget
-    - pip install asyncio
     - pip install -q -U bitsandbytes
-    - pip install safetensors==0.3.1
-    - pip install ninja==1.11.1
-
-
-
-    
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
