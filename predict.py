@@ -49,7 +49,6 @@ class Predictor(BasePredictor):
         if weights is not None and weights.name == "weights":
             # bugfix
             weights = None
-        
         # If weights aren't passed in, pull GPTQ weights from remote
         if not weights:
             weights = LOCAL_GPTQ_WEIGHTS_PATH
@@ -62,10 +61,13 @@ class Predictor(BasePredictor):
         
         # If weights are passed in, they are LoRa weights
         # so we need to download the fp16 weights and load with peft
-        elif '.zip' in weights:
+        elif '.zip' in str(weights):
+            weights = str(weights)
             self.model = self.load_peft(weights)
             self.tokenizer = load_tokenizer()
             self.use_exllama = False
+        else:
+            raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
 
 
     def load_peft(self, weights):

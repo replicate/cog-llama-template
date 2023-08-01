@@ -64,9 +64,11 @@ REMOTE_FILES_TO_DOWNLOAD += [
 #   2. If it's a local path to a file that ends with `.tensors`, we'll try to load the file with Tensorizer.
 #   3. If it's a remote path to a file that ends with `.tensors`, we'll try to download the file and load it with Tensorizer.
 #   4. If it's something else that won't work under those expectations, it probably won't work.
-BASE_WEIGHTS_PATH = "https://weights.replicate.delivery/default/llama-2/llama_2_7b_fp16.tensors"
+BASE_WEIGHTS_PATH = "https://weights.replicate.delivery/default/llama-2-7b-chat/Llama-2-7b-chat/llama_7b_fp16.tensors"
 # Specify the path to the model config --- this is necessary for loading tensorized weights.
 CONFIG_LOCATION = "llama_weights/llama-7b"
+LOCAL_BASE_WEIGHTS = os.path.join(CONFIG_LOCATION, BASE_WEIGHTS_PATH.split('/')[-1])
+
 
 # - If the Hugging Face loader is used, should the model be loaded in 4bit?
 LOAD_IN_4BIT = False
@@ -105,10 +107,11 @@ def load_tensorizer(
 ):
     st = time.time()
     weights = str(weights)
-    local_weights = os.path.join(CONFIG_LOCATION, BASE_WEIGHTS_PATH.split('/')[-1])
-    print("Deserializing weights...")
-    if 'http' in weights and not (os.path.exists(local_weights)):
-        download_file(weights, local_weights)
+
+    if 'http' in weights:
+        if not (os.path.exists(LOCAL_BASE_WEIGHTS)):
+            download_file(weights, LOCAL_BASE_WEIGHTS)
+        weights = LOCAL_BASE_WEIGHTS
 
     config = AutoConfig.from_pretrained(CONFIG_LOCATION)
 
@@ -120,7 +123,7 @@ def load_tensorizer(
     )
     logging.disable(logging.NOTSET)
 
-    des = TensorDeserializer(local_weights, plaid_mode=plaid_mode)
+    des = TensorDeserializer(weights, plaid_mode=plaid_mode)
     des.load_into_module(model)
     print(f"weights loaded in {time.time() - st}")
     
