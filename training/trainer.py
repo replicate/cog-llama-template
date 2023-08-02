@@ -17,7 +17,7 @@ from tensorizer.utils import no_init_or_tensor
 import sys
 sys.path.append('/src/')
 
-from config import BASE_WEIGHTS_PATH, load_tokenizer, load_tensorizer
+from config import BASE_WEIGHTS_PATH, load_tokenizer, load_tensorizer, log_memory_stuff
 
 MODEL_OUT = "/src/tuned_weights.tensors"
 CHECKPOINT_DIR = "checkpoints"
@@ -172,6 +172,7 @@ def load_model(model_name_or_path):
         model = load_tensorizer(model_name_or_path, plaid_mode=False, cls=LlamaForCausalLM)
     else:
         model = load_huggingface_model(model_name_or_path, load_in_4bit=LOAD_IN_4BIT)
+
     return model
 
 def print_trainable_parameters(model):
@@ -286,7 +287,7 @@ def train(
     torch.cuda.empty_cache()
     torch.set_float32_matmul_precision("high")
 
-
+    log_memory_stuff(f"pre-training memory {torch.cuda.current_device()}")
     print("Training...")
     trainer = Trainer(
         model=model,
