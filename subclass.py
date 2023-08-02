@@ -14,6 +14,7 @@ from transformers import LlamaForCausalLM
 
 class YieldingLlama(LlamaForCausalLM):
     """Overriding sample to yield tokens"""
+    @torch.inference_mode()
     def sample(
             self,
             input_ids: torch.LongTensor,

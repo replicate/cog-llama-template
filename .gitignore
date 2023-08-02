@@ -7,3 +7,6 @@ unconverted-weights/
 weights
 weights/
 .DS_STORE
+*.safetensors
+.cog/
+llama_weights/

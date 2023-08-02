@@ -1,6 +1,6 @@
 from collections import OrderedDict
 import logging
-import os
+import re
 import time
 from transformers import LlamaTokenizer, AutoConfig, LlamaForCausalLM
 import torch
@@ -8,19 +8,89 @@ import subprocess
 from subprocess import DEVNULL, STDOUT
 from tensorizer import TensorDeserializer
 from tensorizer.utils import no_init_or_tensor
+import os
 
 from subclass import YieldingLlama
 
-# path from which we pull weights when there's no COG_WEIGHTS environment variable
-# If you want to use tensorized weights, set `DEFAULT_MODEL_NAME` to the path of the tensorized weights.
-DEFAULT_MODEL_NAME = "llama_weights/llama-7b/llama_7b_fp16.tensors"# "llama_7b_fp16.tensors" if you have a GPU avaiable or "llama_7b_fp32.tensors" if you don't. - This is where the convert_to_tensors.py will save the tensorized weights.
+
+# - Specify the files you want to download from the remote path.
+# N_SHARDS = 1
+# REMOTE_FILES_TO_DOWNLOAD = [
+#     f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
+#     for i in range(N_SHARDS)
+# ]
+
+# UPDATE THESE VARIABLES FOR YOUR MODEL CONFIGURATION
+#######################################################
+# --------------------Notes---------------------------
+# 1. We currently do not include weights in images, so they need to be downloaded.
+# 2. We are currently serving GPTQ weights, but training with fp16 weights. 
+# 3. We're not currently converting fine-tuned weights to GPTQ, so we need to support prediction with weights taht aren't gptq format. 
+# 4. Accordingly, we need to support both GPTQ and non-GPTQ weights for prediction and non-GPTQ weights for training.
+############################################
+#
+# DO YOU WANT TO USE A SYSTEM PROMPT (E.G. FOR A CHAT MODEL?)
+USE_SYSTEM_PROMPT = False
+# Path to directory where tokenizer is stored. 
 TOKENIZER_NAME = "llama_weights/tokenizer"
-CONFIG_LOCATION = "llama_weights/llama-7b"
+# 
+# DEFAULT INFERENCE CONFIGURATION
+# -------------------------------
+# This section defines the default inference configuration, which may differ from
+# how we implement inference for a trained model.
+# -------------------------------
+# - Specify the local path where your weights are stored. If their not local, they'll be downloaded to this directory.
+#
+DEFAULT_INFERENCE_USE_EXLLAMA = False
+# 
+DEFAULT_LOCAL_INFERENCE_WEIGHTS_PATH = "weights"
+# Specify the remote path where your GPTQ weights are stored. If they're not local, they'll be downloaded from this path.
+DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH = None
+
+DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH = DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH.rstrip("/") if DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH else None
+# - Specify the files that should be downloaded from this remote path.
+# REMOTE_FILES_TO_DOWNLOAD = ["gptq_model-4bit-32g.safetensors"]
+N_SHARDS = 3
+REMOTE_FILES_TO_DOWNLOAD = [
+    f"pytorch_model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
+    for i in range(N_SHARDS)
+]
+
+REMOTE_FILES_TO_DOWNLOAD += [
+    "config.json",
+    "generation_config.json",
+    "model.safetensors.index.json",
+    "special_tokens_map.json",
+    "tokenizer_config.json",
+    "tokenizer.json",
+    "tokenizer.model",
+    # "quantize_config.json",
+]
+# --------------------------------
+#
+# Base weights configuration
+#
+# Specify the path to your base weights. The format of this path has implications for model loading:
+#   1. If it's a path to a local directory, we'll attempt to use `.from_pretrained` to load the weights from the provided directory.
+#   2. If it's a local path to a file that ends with `.tensors`, we'll try to load the file with Tensorizer.
+#   3. If it's a remote path to a file that ends with `.tensors`, we'll try to download the file and load it with Tensorizer.
+#   4. If it's something else that won't work under those expectations, it probably won't work.
+BASE_WEIGHTS_PATH = None
+# BASE_WEIGHTS_PATH = "llama_weights/LLongMA-2-13b-16k/llongma-2-13b-16k.tensors"
+# Specify the path to the model config --- this is necessary for loading tensorized weights.
+CONFIG_LOCATION = "llama_weights/LLongMA-2-13b-16k"
+LOCAL_BASE_WEIGHTS = os.path.join(CONFIG_LOCATION, BASE_WEIGHTS_PATH.split('/')[-1])
+
+
+# - If the Hugging Face loader is used, should the model be loaded in 4bit?
+LOAD_IN_4BIT = False
+############################################
 
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
 DEFAULT_BOS_TOKEN = "<s>"
 DEFAULT_UNK_TOKEN = "</s>"
+
 
 def log_memory_stuff(prompt=None):
     """One method to barf out everything we'd ever want to know about memory"""
@@ -31,10 +101,9 @@ def log_memory_stuff(prompt=None):
     print(torch.cuda.memory_summary())
 
 
-
 def load_tokenizer():
     """Same tokenizer, agnostic from tensorized weights/etc"""
-    tok = LlamaTokenizer.from_pretrained(TOKENIZER_NAME, cache_dir="pretrained_weights")
+    tok = LlamaTokenizer.from_pretrained(TOKENIZER_NAME, cache_dir="pretrained_weights", legacy=False)
     tok.add_special_tokens(
         {
             "eos_token": DEFAULT_EOS_TOKEN,
@@ -44,8 +113,7 @@ def load_tokenizer():
         }
     )
     return tok
-
-
+ 
 def download_file(file, local_filename):
     print(f"Downloading {file}")
     if os.path.exists(local_filename):
@@ -60,12 +128,11 @@ def load_tensorizer(
 ):
     st = time.time()
     weights = str(weights)
-    local_weights = "/src/llama_tensors"
-    print("Deserializing weights...")
+
     if 'http' in weights:
-        download_file(weights, local_weights)
-    else:
-        local_weights = weights
+        if not (os.path.exists(LOCAL_BASE_WEIGHTS)):
+            download_file(weights, LOCAL_BASE_WEIGHTS)
+        weights = LOCAL_BASE_WEIGHTS
 
     config = AutoConfig.from_pretrained(CONFIG_LOCATION)
 
@@ -77,7 +144,7 @@ def load_tensorizer(
     )
     logging.disable(logging.NOTSET)
 
-    des = TensorDeserializer(local_weights, plaid_mode=plaid_mode)
+    des = TensorDeserializer(weights, plaid_mode=plaid_mode)
     des.load_into_module(model)
     print(f"weights loaded in {time.time() - st}")
     
