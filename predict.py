@@ -9,8 +9,9 @@ import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
 from config import (
-    LOCAL_GPTQ_WEIGHTS_PATH, 
-    REMOTE_GPTQ_WEIGHTS_PATH,
+    DEFAULT_LOCAL_INFERENCE_WEIGHTS_PATH, 
+    DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH,
+    DEFAULT_INFERENCE_USE_EXLLAMA,
     REMOTE_FILES_TO_DOWNLOAD, 
     BASE_WEIGHTS_PATH, 
     LOAD_IN_4BIT,
@@ -49,15 +50,24 @@ class Predictor(BasePredictor):
         if weights is not None and weights.name == "weights":
             # bugfix
             weights = None
-        # If weights aren't passed in, pull GPTQ weights from remote
+        # If weights aren't passed in, we'll use the default weights configuration
         if not weights:
-            weights = LOCAL_GPTQ_WEIGHTS_PATH
-            from src.exllama_predictor import ExllamaGenerator
+            weights = DEFAULT_LOCAL_INFERENCE_WEIGHTS_PATH
             weights = maybe_download_with_pget(
-                weights, REMOTE_GPTQ_WEIGHTS_PATH, REMOTE_FILES_TO_DOWNLOAD,
+                weights, DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH, REMOTE_FILES_TO_DOWNLOAD,
             )
-            self.generator = ExllamaGenerator(weights)
-            self.use_exllama = True
+
+            if DEFAULT_INFERENCE_USE_EXLLAMA:
+                from src.exllama_predictor import ExllamaGenerator
+                self.generator = ExllamaGenerator(weights)
+                self.use_exllama = True
+            
+            else:
+                if os.path.isdir(weights):
+                    self.model = self.load_huggingface_model(weights, load_in_4bit=LOAD_IN_4BIT)
+                    self.tokenizer = load_tokenizer()
+                    self.use_exllama = False
+
         
         # If weights are passed in, they are LoRa weights
         # so we need to download the fp16 weights and load with peft
@@ -89,7 +99,7 @@ class Predictor(BasePredictor):
         print(f"peft model loaded in {time.time() - st}")
         return model.to('cuda')
 
-    def load_huggingface_model(self, weights=None):
+    def load_huggingface_model(self, weights=None, load_in_4bit=False):
         st = time.time()
         print(f"loading weights from {weights} w/o tensorizer")
         if LOAD_IN_4BIT:
@@ -101,9 +111,8 @@ class Predictor(BasePredictor):
             )
         else:
             model = YieldingLlama.from_pretrained(
-                weights, cache_dir="pretrained_weights", torch_dtype=torch.float16
-            )
-            model.to(self.device)
+                weights, cache_dir="pretrained_weights", torch_dtype=torch.float16, low_cpu_mem_usage=True
+            ).to(self.device)
 
         print(f"weights loaded in {time.time() - st}")
         return model
@@ -249,4 +258,6 @@ class Predictor(BasePredictor):
             print(f"cur memory: {torch.cuda.memory_allocated()}")
             print(f"max allocated: {torch.cuda.max_memory_allocated()}")
             print(f"peak memory: {torch.cuda.max_memory_reserved()}")
+
+
 
