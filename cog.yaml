@@ -4,7 +4,7 @@
 build:
   # set to true if your model requires a GPU
   gpu: true
-  cuda: "11.7"
+  cuda: "11.8"
 
   # python version in the form '3.8' or '3.8.12'
   python_version: "3.10"
@@ -29,6 +29,10 @@ build:
     - pip install scipy
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.1/pget" && chmod +x /usr/local/bin/pget
     - pip install -q -U bitsandbytes
+    - pip install xformers
+    - git clone https://github.com/vllm-project/vllm.git && cd vllm && pip install -e .
+    - pip install pyarrow
+    - pip install -U "ray[air]"
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
