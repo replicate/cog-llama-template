@@ -129,6 +129,9 @@ def train(
     try:
         p = subprocess.Popen(args, close_fds=False)
         p.wait()
+        return_code = p.poll()
+        if return_code != 0:
+            raise Exception(f"Training failed with exit codee {return_code}! Check logs for details")
         out_path = "training_output.zip"
 
         directory = Path(output_dir)
