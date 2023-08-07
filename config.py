@@ -41,20 +41,19 @@ TOKENIZER_NAME = "llama_weights/tokenizer"
 # -------------------------------
 # - Specify the local path where your weights are stored. If their not local, they'll be downloaded to this directory.
 #
-DEFAULT_INFERENCE_USE_EXLLAMA = False
+DEFAULT_INFERENCE_USE_EXLLAMA = True
 # 
-DEFAULT_LOCAL_INFERENCE_WEIGHTS_PATH = "weights"
+DEFAULT_LOCAL_INFERENCE_WEIGHTS_PATH = "default_base_weights"
 # Specify the remote path where your GPTQ weights are stored. If they're not local, they'll be downloaded from this path.
-DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH = None
-
+DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH = "https://storage.googleapis.com/replicate-weights/Llama-2-7B-GPTQ"
 DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH = DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH.rstrip("/") if DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH else None
 # - Specify the files that should be downloaded from this remote path.
-# REMOTE_FILES_TO_DOWNLOAD = ["gptq_model-4bit-32g.safetensors"]
-N_SHARDS = 3
-REMOTE_FILES_TO_DOWNLOAD = [
-    f"pytorch_model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
-    for i in range(N_SHARDS)
-]
+REMOTE_FILES_TO_DOWNLOAD = ["gptq_model-4bit-128g.safetensors"]
+# N_SHARDS = 3
+# REMOTE_FILES_TO_DOWNLOAD = [
+#     f"pytorch_model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
+#     for i in range(N_SHARDS)
+# ]
 
 REMOTE_FILES_TO_DOWNLOAD += [
     "config.json",
@@ -64,7 +63,7 @@ REMOTE_FILES_TO_DOWNLOAD += [
     "tokenizer_config.json",
     "tokenizer.json",
     "tokenizer.model",
-    # "quantize_config.json",
+    "quantize_config.json",
 ]
 # --------------------------------
 #
@@ -75,10 +74,10 @@ REMOTE_FILES_TO_DOWNLOAD += [
 #   2. If it's a local path to a file that ends with `.tensors`, we'll try to load the file with Tensorizer.
 #   3. If it's a remote path to a file that ends with `.tensors`, we'll try to download the file and load it with Tensorizer.
 #   4. If it's something else that won't work under those expectations, it probably won't work.
-BASE_WEIGHTS_PATH = None
+BASE_WEIGHTS_PATH = "https://weights.replicate.delivery/default/llama-2-7b-chat/Llama-2-7b-chat/llama_7b_fp16.tensors"
 # BASE_WEIGHTS_PATH = "llama_weights/LLongMA-2-13b-16k/llongma-2-13b-16k.tensors"
 # Specify the path to the model config --- this is necessary for loading tensorized weights.
-CONFIG_LOCATION = "llama_weights/LLongMA-2-13b-16k"
+CONFIG_LOCATION = "llama_weights/Llama-2-7b-chat/"
 LOCAL_BASE_WEIGHTS = os.path.join(CONFIG_LOCATION, BASE_WEIGHTS_PATH.split('/')[-1])
 
 

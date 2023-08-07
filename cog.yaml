@@ -29,6 +29,9 @@ build:
     - pip install scipy
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.1/pget" && chmod +x /usr/local/bin/pget
     - pip install -q -U bitsandbytes
+    - pip install fire
+    - pip install py7zr
+    - pip install datasets
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"

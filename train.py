@@ -99,13 +99,14 @@ def train(
         return " "
         
     args = [
-        "/root/.pyenv/shims/deepspeed",
-        num_gpus_flag,
-        "--master_port=9292",
-        "--module",
+        # "/root/.pyenv/shims/deepspeed",
+        "python",
+        # num_gpus_flag,
+        # "--master_port=9292",
+        "-m",
         "training.trainer",
-        "--deepspeed",
-        deepspeed_config,
+        # "--deepspeed",
+        # deepspeed_config,
         f"--train_data={str(train_data)}",
         f"--weights={input_weights}",
         f"--num_train_epochs={num_train_epochs}",
