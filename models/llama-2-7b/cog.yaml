@@ -4,7 +4,7 @@
 build:
   # set to true if your model requires a GPU
   gpu: true
-  cuda: "11.7"
+  cuda: "11.8"
 
   # python version in the form '3.8' or '3.8.12'
   python_version: "3.10"
@@ -29,6 +29,10 @@ build:
     - pip install scipy
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.1/pget" && chmod +x /usr/local/bin/pget
     - pip install -q -U bitsandbytes
+    - pip install fire
+    - pip install py7zr
+    - pip install datasets
+    - pip uninstall -y torch && pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu118
     - pip install python-dotenv
 
 # predict.py defines how predictions are run on your model

@@ -9,53 +9,81 @@ from subprocess import DEVNULL, STDOUT
 from tensorizer import TensorDeserializer
 from tensorizer.utils import no_init_or_tensor
 import os
+from dotenv import load_dotenv
+
+from src.utils import get_env_var_or_default
 
 from subclass import YieldingLlama
 
+# add parent directory to path
+import sys
 
-# - Specify the files you want to download from the remote path.
-# N_SHARDS = 1
-# REMOTE_FILES_TO_DOWNLOAD = [
-#     f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
-#     for i in range(N_SHARDS)
-# ]
+load_dotenv()
 
-# UPDATE THESE VARIABLES FOR YOUR MODEL CONFIGURATION
-#######################################################
-# --------------------Notes---------------------------
-# 1. We currently do not include weights in images, so they need to be downloaded.
-# 2. We are currently serving GPTQ weights, but training with fp16 weights. 
-# 3. We're not currently converting fine-tuned weights to GPTQ, so we need to support prediction with weights taht aren't gptq format. 
-# 4. Accordingly, we need to support both GPTQ and non-GPTQ weights for prediction and non-GPTQ weights for training.
-############################################
-#
-# DO YOU WANT TO USE A SYSTEM PROMPT (E.G. FOR A CHAT MODEL?)
-USE_SYSTEM_PROMPT = False
-# Path to directory where tokenizer is stored. 
-TOKENIZER_NAME = "llama_weights/tokenizer"
-# 
+MODEL_NAME = "llama-2-7b"
+# INFERENCE CONFIGURATION
+#######################################################################
+# --------------------Notes--------------------------------------------
+# We sometimes implement inference differently for models that have not 
+# been trained/fine-tuned vs. those that have been trained/fine-tuned. We refer to the 
+# former as "default" and the latter as "trained". Below, you can
+# set your "default inference configuration" and your "trained
+# inference configuration". 
+
 # DEFAULT INFERENCE CONFIGURATION
 # -------------------------------
 # This section defines the default inference configuration, which may differ from
 # how we implement inference for a trained model.
 # -------------------------------
-# - Specify the local path where your weights are stored. If their not local, they'll be downloaded to this directory.
-#
-DEFAULT_INFERENCE_USE_EXLLAMA = True
-# 
-DEFAULT_LOCAL_INFERENCE_WEIGHTS_PATH = "default_base_weights"
-# Specify the remote path where your GPTQ weights are stored. If they're not local, they'll be downloaded from this path.
-DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH = "https://storage.googleapis.com/replicate-weights/Llama-2-7B-GPTQ"
-DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH = DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH.rstrip("/") if DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH else None
-# - Specify the files that should be downloaded from this remote path.
-REMOTE_FILES_TO_DOWNLOAD = ["gptq_model-4bit-128g.safetensors"]
-# N_SHARDS = 3
-# REMOTE_FILES_TO_DOWNLOAD = [
-#     f"pytorch_model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
-#     for i in range(N_SHARDS)
-# ]
 
-REMOTE_FILES_TO_DOWNLOAD += [
+USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = True
+
+LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
+
+REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = get_env_var_or_default(
+    "REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH", 
+    "remote/path/to/your/weights/here",
+
+)
+
+REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = ["gptq_model-4bit-128g.safetensors"]
+
+REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
+    "config.json",
+    "generation_config.json",
+    "special_tokens_map.json",
+    "tokenizer_config.json",
+    "tokenizer.json",
+    "tokenizer.model",
+    "quantize_config.json",
+]
+
+# TRAINED INFERENCE CONFIGURATION
+# -------------------------------
+# This section defines the inference configuration for fine-tuned models
+# -------------------------------
+
+LOCAL_TRAINING_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/training_weights"
+
+REMOTE_TRAINING_WEIGHTS_PATH = get_env_var_or_default(
+    var_name="REMOTE_TRAINING_WEIGHTS_PATH", 
+    default_value="remote/path/to/your/weights/here"
+)
+
+LOCAL_TRAINING_WEIGHTS_CONFIG_PATH = f"models/{MODEL_NAME}/model_artifacts/training_weights/config.json"
+
+REMOTE_TRAINING_WEIGHTS_CONFIG_PATH = get_env_var_or_default(
+    var_name="REMOTE_TRAINING_WEIGHTS_CONFIG_PATH", 
+    default_value="remote/path/to/your/weights/here"
+)
+
+N_SHARDS = 2
+REMOTE_TRAINING_FILES_TO_DOWNLOAD = [
+    f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
+    for i in range(N_SHARDS)
+]
+
+REMOTE_TRAINING_FILES_TO_DOWNLOAD += [
     "config.json",
     "generation_config.json",
     "model.safetensors.index.json",
@@ -63,30 +91,19 @@ REMOTE_FILES_TO_DOWNLOAD += [
     "tokenizer_config.json",
     "tokenizer.json",
     "tokenizer.model",
-    "quantize_config.json",
 ]
-# --------------------------------
-#
-# Base weights configuration
-#
-# Specify the path to your base weights. The format of this path has implications for model loading:
-#   1. If it's a path to a local directory, we'll attempt to use `.from_pretrained` to load the weights from the provided directory.
-#   2. If it's a local path to a file that ends with `.tensors`, we'll try to load the file with Tensorizer.
-#   3. If it's a remote path to a file that ends with `.tensors`, we'll try to download the file and load it with Tensorizer.
-#   4. If it's something else that won't work under those expectations, it probably won't work.
-BASE_WEIGHTS_PATH = "https://weights.replicate.delivery/default/llama-2-7b"
-# BASE_WEIGHTS_PATH = "llama_weights/llama_weights/llama-2-7b"
-# BASE_WEIGHTS_PATH = "llama_weights/LLongMA-2-13b-16k/llongma-2-13b-16k.tensors"
-# Specify the path to the model config --- this is necessary for loading tensorized weights.
-CONFIG_LOCATION = "llama_weights/test/"
-LOCAL_BASE_WEIGHTS = CONFIG_LOCATION
 
-# LOCAL_BASE_WEIGHTS = os.path.join(CONFIG_LOCATION, BASE_WEIGHTS_PATH.split('/')[-1])
+# GENERAL INFERENCE CONFIGURATION
+# -------------------------------
+# This section defines the general inference configuration,
+# which is used for both trained and untrained models.
+# -------------------------------
 
-
-# - If the Hugging Face loader is used, should the model be loaded in 4bit?
 LOAD_IN_4BIT = False
-############################################
+TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
+USE_SYSTEM_PROMPT = False
+
+# -------------------------------
 
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
@@ -105,7 +122,7 @@ def log_memory_stuff(prompt=None):
 
 def load_tokenizer():
     """Same tokenizer, agnostic from tensorized weights/etc"""
-    tok = LlamaTokenizer.from_pretrained(TOKENIZER_NAME, cache_dir="pretrained_weights", legacy=False)
+    tok = LlamaTokenizer.from_pretrained(TOKENIZER_PATH, cache_dir="pretrained_weights", legacy=False)
     tok.add_special_tokens(
         {
             "eos_token": DEFAULT_EOS_TOKEN,
@@ -117,9 +134,13 @@ def load_tokenizer():
     return tok
  
 def download_file(file, local_filename):
-    print(f"Downloading {file}")
+    print(f"Downloading {file} to {local_filename}")
     if os.path.exists(local_filename):
         os.remove(local_filename)
+    else:
+        if not os.path.exists(os.path.dirname(local_filename)):
+            os.makedirs(os.path.dirname(local_filename), exist_ok=True)
+        
     command = ['pget', file, local_filename]
     subprocess.check_call(command)
     return
@@ -132,11 +153,14 @@ def load_tensorizer(
     weights = str(weights)
 
     if 'http' in weights:
-        if not (os.path.exists(LOCAL_BASE_WEIGHTS)):
-            download_file(weights, LOCAL_BASE_WEIGHTS)
-        weights = LOCAL_BASE_WEIGHTS
+        if not (os.path.exists(LOCAL_TRAINING_WEIGHTS_PATH)):
+            download_file(weights, LOCAL_TRAINING_WEIGHTS_PATH)
+        weights = LOCAL_TRAINING_WEIGHTS_PATH
+    
+    if not os.path.exists(LOCAL_TRAINING_WEIGHTS_CONFIG_PATH):
+        download_file(REMOTE_TRAINING_WEIGHTS_CONFIG_PATH, LOCAL_TRAINING_WEIGHTS_CONFIG_PATH)
 
-    config = AutoConfig.from_pretrained(CONFIG_LOCATION)
+    config = AutoConfig.from_pretrained(LOCAL_TRAINING_WEIGHTS_CONFIG_PATH)
 
     logging.disable(logging.WARN)
     model = no_init_or_tensor(

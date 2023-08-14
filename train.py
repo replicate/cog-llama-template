@@ -13,13 +13,23 @@ from cog import BaseModel, Input, Path
 from tensorizer import TensorSerializer
 from transformers import LlamaForCausalLM
 
-from config import BASE_WEIGHTS_PATH, download_file, LOCAL_BASE_WEIGHTS, log_memory_stuff
-from scripts.utils import maybe_download_with_pget
+from config import (
+    download_file,
+    LOCAL_TRAINING_WEIGHTS_PATH, 
+    REMOTE_TRAINING_WEIGHTS_PATH, 
+    LOCAL_TRAINING_WEIGHTS_CONFIG_PATH,
+    REMOTE_TRAINING_WEIGHTS_CONFIG_PATH,
+    REMOTE_TRAINING_FILES_TO_DOWNLOAD,
+    log_memory_stuff
+)
+
+from src.utils import maybe_download_with_pget
+
 
 MODEL_OUT = "/src/tuned_weights.tensors"
 CHECKPOINT_DIR = "checkpoints"
 SAVE_STRATEGY = "epoch"
-DIST_OUT_DIR = "tmp/model"
+OUTPUT_DIR = "training_output"
 
 
 class TrainingOutput(BaseModel):
@@ -30,48 +40,73 @@ def train(
     train_data: Path = Input(
         description="path to data file to use for fine-tuning your model"
     ),
-    num_epochs: int = Input(
+    eval_data: Path = Input(
+        description="path to optional evaluation data file to use for model eval",
+        default=None,
+    ),
+    weights: Path = Input(
+        description="location of weights that are going to be fine-tuned", default=None
+    ),
+    train_batch_size: int = Input(description="batch size per GPU", default=1, ge=1),
+    gradient_accumulation_steps: int = Input(
+        description="number of training steps to update gradient for before performing a backward pass",
+        default=8,
+    ),
+    learning_rate: float = Input(
+        description="learning rate, for learning!", default=2e-5, ge=0
+    ),
+    warmup_ratio: float = Input(
+        description="pct of steps for a linear learning rate warmup",
+        ge=0,
+        le=0.5,
+        default=0.03,
+    ),
+    num_train_epochs: int = Input(
         description="number of training epochs", ge=1, default=1
     ),
+    max_steps: int = Input(
+        description="number of steps to run training for, supersedes num_train_epochs",
+        default=-1,
+    ),
+    logging_steps: int = Input(
+        description="number of steps between logging epoch & loss", default=1
+    ),
+    lora_rank: int = Input(
+        description="Rank of the lora matrices", default=8, ge=1),
+    lora_alpha: int = Input(description="Alpha parameter for scaling lora weights; weights are scaled by alpha/rank", default=16, ge=1),
+    lora_dropout: float = Input(description="Dropout for lora training", default=0.1, ge=0.0, le=1.0),
+    lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
 ) -> TrainingOutput:
-    # input_weights = BASE_WEIGHTS_PATH
-    # print('*' * 80)
-    # print(f"Input Weights: {input_weights}")
+    
+    if weights:
+        input_weights = weights
+    # elif os.path.exists(LOCAL_TRAINING_WEIGHTS_PATH):
+    #     input_weights = LOCAL_TRAINING_WEIGHTS_PATH
+    else:
+        if 'http' in REMOTE_TRAINING_WEIGHTS_PATH or 'gs' in REMOTE_TRAINING_WEIGHTS_PATH:
+            # doing this once instead of 4x
+            REMOTE_TRAINING_WEIGHTS_PATH = '/'.join(REMOTE_TRAINING_WEIGHTS_PATH.split('/')[:-1])
+            if REMOTE_TRAINING_WEIGHTS_PATH.endswith(".tensors"):
+                pass
+                # LOADING WITH TENSORIZER ISN'T SUPPORTED, SO HACKING THIS IN.
+                # NEED TO HANDLE THIS PROPERLY 
+                # download_file(REMOTE_TRAINING_WEIGHTS_PATH, LOCAL_TRAINING_WEIGHTS_PATH)
+                # model_path = LOCAL_TRAINING_WEIGHTS_PATH
+            
+            else:
+                model_path = maybe_download_with_pget(
+                    LOCAL_TRAINING_WEIGHTS_PATH, 
+                    REMOTE_TRAINING_WEIGHTS_PATH, 
+                    REMOTE_TRAINING_FILES_TO_DOWNLOAD,
+                )
+    
+    if not os.path.exists(LOCAL_TRAINING_WEIGHTS_CONFIG_PATH):
+        download_file(REMOTE_TRAINING_WEIGHTS_CONFIG_PATH, LOCAL_TRAINING_WEIGHTS_CONFIG_PATH)
 
-    # if 'http' in input_weights or 'gs' in input_weights:
-    #     # doing this once instead of 4x
-    #     download_file(input_weights, LOCAL_BASE_WEIGHTS)
-    #     input_weights = LOCAL_BASE_WEIGHTS
-
-
-    print(f"LOCAL_BASE_WEIGHTS: {LOCAL_BASE_WEIGHTS}")
-    print(f"BASE_WEIGHTS_PATH: {BASE_WEIGHTS_PATH}")
-
-    N_SHARDS = 2
-    REMOTE_FILES_TO_DOWNLOAD = [
-        f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
-        for i in range(N_SHARDS)
-    ]
-
-    REMOTE_FILES_TO_DOWNLOAD += [
-        "config.json",
-        "generation_config.json",
-        "model.safetensors.index.json",
-        "special_tokens_map.json",
-        "tokenizer_config.json",
-        "tokenizer.json",
-        "tokenizer.model",
-    ]
-
-    # DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH = "https://storage.googleapis.com/replicate-weights/llama-2-7b"
-
-    weights_path = maybe_download_with_pget(
-        LOCAL_BASE_WEIGHTS, BASE_WEIGHTS_PATH, REMOTE_FILES_TO_DOWNLOAD,
-    )
 
     root_path = os.getcwd()
 
-    output_dir = DIST_OUT_DIR
+    output_dir = OUTPUT_DIR
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
     os.makedirs(output_dir)
@@ -91,10 +126,6 @@ def train(
             return f" --{var_name} {var}"
         return " "
     
-    
-    print(f"weights_path: {weights_path}")
-    output_dir = 'training_output'
-
     args = [
         "torchrun",
         "--nnodes", "1",
@@ -102,7 +133,7 @@ def train(
         "llama_recipes/llama_finetuning.py",
         "--enable_fsdp",
         "--use_peft",
-        "--model_name", weights_path,
+        "--model_name", model_path,
         "--pure_bf16",
         "--output_dir", output_dir,
         "--run_validation", "False",
@@ -110,6 +141,33 @@ def train(
         "--num_epochs", "1",
     ]
         
+    # args = [
+    #     "/root/.pyenv/shims/deepspeed",
+    #     num_gpus_flag,
+    #     "--master_port=9292",
+    #     "--module",
+    #     "training.trainer",
+    #     "--deepspeed",
+    #     deepspeed_config,
+    #     f"--train_data={str(train_data)}",
+    #     f"--weights={input_weights}",
+    #     f"--num_train_epochs={num_train_epochs}",
+    #     f"--max_steps={max_steps}",
+    #     f"--learning_rate={learning_rate}",
+    #     f"--train_batch_size={train_batch_size}",
+    #     f"--gradient_accumulation_steps={gradient_accumulation_steps}",
+    #     f"--logging_steps={logging_steps}",
+    #     f"--warmup_ratio={warmup_ratio}",
+    #     f"--lora_rank={lora_rank}",
+    #     f"--lora_alpha={lora_alpha}",
+    #     f"--lora_dropout={lora_dropout}",
+    #     f"--local_output_dir={output_dir}"
+    # ]
+    if eval_data:
+        args.append(f"--eval_data={eval_data}")
+    if lora_target_modules:
+        args.append(f"--lora_target_modules={lora_target_modules}")
+
     p = None
     try:
         p = subprocess.Popen(args, close_fds=False)

@@ -39,6 +39,10 @@ coverage.xml
 .pytest_cache
 .hypothesis
 /models/*/
-!/models/llama-2-70b-chat/
-/models/llama-2-70b-chat/model_artifacts/**
-!/models/llama-2-70b-chat/model_artifacts/tokenizer/
+!/models/llama-2-7b/
+/models/llama-2-7b/model_artifacts/**
+!/models/llama-2-7b/model_artifacts/tokenizer/
+/models/*/
+!/models//
+/models//model_artifacts/**
+!/models//model_artifacts/tokenizer/
