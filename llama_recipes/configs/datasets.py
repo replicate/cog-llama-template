@@ -38,4 +38,4 @@ class completion:
     dataset: str = "completion"
     train_split: str = "train"
     test_split: str = "val"
-    data_path: str = "/src/datasets/1k_samples.jsonl"
+    data_path: str = None
