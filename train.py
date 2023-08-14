@@ -13,7 +13,14 @@ from cog import BaseModel, Input, Path
 from tensorizer import TensorSerializer
 from transformers import LlamaForCausalLM
 
-from config import BASE_WEIGHTS_PATH, download_file, LOCAL_BASE_WEIGHTS, log_memory_stuff
+from config import (
+    download_file,
+    LOCAL_TRAINING_WEIGHTS_PATH, 
+    REMOTE_TRAINING_WEIGHTS_PATH, 
+    LOCAL_TRAINING_WEIGHTS_CONFIG_PATH,
+    REMOTE_TRAINING_WEIGHTS_CONFIG_PATH,
+    log_memory_stuff
+)
 
 
 MODEL_OUT = "/src/tuned_weights.tensors"
@@ -67,13 +74,21 @@ def train(
     lora_dropout: float = Input(description="Dropout for lora training", default=0.1, ge=0.0, le=1.0),
     lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
 ) -> TrainingOutput:
-    input_weights = weights if weights is not None else BASE_WEIGHTS_PATH
+    
+    if weights:
+        input_weights = weights
+    elif os.path.exists(LOCAL_TRAINING_WEIGHTS_PATH):
+        input_weights = LOCAL_TRAINING_WEIGHTS_PATH
+    else:
+        if 'http' in REMOTE_TRAINING_WEIGHTS_PATH or 'gs' in REMOTE_TRAINING_WEIGHTS_PATH:
+            # doing this once instead of 4x
+            download_file(REMOTE_TRAINING_WEIGHTS_PATH, LOCAL_TRAINING_WEIGHTS_PATH)
+            input_weights = LOCAL_TRAINING_WEIGHTS_PATH
+    
+    if not os.path.exists(LOCAL_TRAINING_WEIGHTS_CONFIG_PATH):
+        download_file(REMOTE_TRAINING_WEIGHTS_CONFIG_PATH, LOCAL_TRAINING_WEIGHTS_CONFIG_PATH)
 
-
-    if 'http' in input_weights or 'gs' in input_weights:
-        # doing this once instead of 4x
-        download_file(input_weights, LOCAL_BASE_WEIGHTS)
-        input_weights = LOCAL_BASE_WEIGHTS
+    
 
     root_path = os.getcwd()
     deepspeed_config = os.path.join(root_path, "ds_config/ds_z3_bf16_config.json")
@@ -131,7 +146,7 @@ def train(
         p.wait()
         return_code = p.poll()
         if return_code != 0:
-            raise Exception(f"Training failed with exit codee {return_code}! Check logs for details")
+            raise Exception(f"Training failed with exit code {return_code}! Check logs for details")
         out_path = "training_output.zip"
 
         directory = Path(output_dir)
