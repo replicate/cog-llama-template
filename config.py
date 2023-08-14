@@ -74,11 +74,14 @@ REMOTE_FILES_TO_DOWNLOAD += [
 #   2. If it's a local path to a file that ends with `.tensors`, we'll try to load the file with Tensorizer.
 #   3. If it's a remote path to a file that ends with `.tensors`, we'll try to download the file and load it with Tensorizer.
 #   4. If it's something else that won't work under those expectations, it probably won't work.
-BASE_WEIGHTS_PATH = "https://weights.replicate.delivery/default/llama-2-7b-chat/Llama-2-7b-chat/llama_7b_fp16.tensors"
+BASE_WEIGHTS_PATH = "https://weights.replicate.delivery/default/llama-2-7b"
+# BASE_WEIGHTS_PATH = "llama_weights/llama_weights/llama-2-7b"
 # BASE_WEIGHTS_PATH = "llama_weights/LLongMA-2-13b-16k/llongma-2-13b-16k.tensors"
 # Specify the path to the model config --- this is necessary for loading tensorized weights.
-CONFIG_LOCATION = "llama_weights/Llama-2-7b-chat/"
-LOCAL_BASE_WEIGHTS = os.path.join(CONFIG_LOCATION, BASE_WEIGHTS_PATH.split('/')[-1])
+CONFIG_LOCATION = "llama_weights/test/"
+LOCAL_BASE_WEIGHTS = CONFIG_LOCATION
+
+# LOCAL_BASE_WEIGHTS = os.path.join(CONFIG_LOCATION, BASE_WEIGHTS_PATH.split('/')[-1])
 
 
 # - If the Hugging Face loader is used, should the model be loaded in 4bit?
