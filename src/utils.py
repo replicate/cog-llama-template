@@ -5,6 +5,26 @@ import time
 import typing as tp
 import asyncio
 
+def get_env_var_or_default(var_name,default_value):
+    """
+    Attempts to load a global variable from an environment variable.
+    
+    Args:
+    - var_name (str): Name of the global variable.
+    - default_value: The default value to use if the environment variable doesn't exist or its length is 0.
+    
+    Returns:
+    - value: The value from the environment variable or the default value.
+    """
+    env_value = os.environ.get(var_name, "")
+
+    # Check if the environment variable exists and is not empty
+    if len(env_value) > 0:
+        return env_value
+    else:
+        return default_value
+
+
 class Logger:
     def __init__(self, marker: str = 'predict-timings'):
         self.marker = marker + "%s" % random.randint(0, 1000000)
@@ -85,6 +105,8 @@ def maybe_download_with_pget(
         )
     """
     if remote_path:
+        remote_path = remote_path.rstrip("/")
+
         if not os.path.exists(path):
             os.makedirs(path, exist_ok=True)
             missing_files = remote_filenames

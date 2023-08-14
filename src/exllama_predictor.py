@@ -94,10 +94,19 @@ class ExllamaGenerator:
         generator.settings.beam_length = beam_length
 
         in_tokens = generator.tokenizer.encode(prompt)
+        n_in_tokens = in_tokens.shape[-1]
+        if n_in_tokens >= generator.model.config.max_input_len:
+            raise ValueError(f"Your input is too long. Max input length is {generator.model.config.max_input_len} tokens, but you supplied {n_in_tokens} tokens.")
+
+        max_new_tokens = min(max_new_tokens, generator.model.config.max_seq_len - n_in_tokens)
+
+    
         num_res_tokens = in_tokens.shape[-1]  # Decode from here
 
         generator.gen_begin(in_tokens)
         generator.begin_beam_search()
+        
+        
 
         for i in range(max_new_tokens):
             
