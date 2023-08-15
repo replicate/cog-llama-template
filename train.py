@@ -7,11 +7,15 @@ import subprocess
 from typing import Optional
 from zipfile import ZipFile
 import psutil
+import typing as tp
+from dataclasses import fields, is_dataclass
+
 
 import torch
 from cog import BaseModel, Input, Path
 from tensorizer import TensorSerializer
 from transformers import LlamaForCausalLM
+from llama_recipes.configs.training import train_config
 
 from config import (
     download_file,
@@ -36,69 +40,107 @@ class TrainingOutput(BaseModel):
     weights: Path
 
 
+def _build_subprocess_command(
+    prefix: str,
+    train_args: tp.Dict[str, tp.Any],
+    arg_mapping: tp.Dict[str, str],
+    train_config: Optional[tp.Type] = None
+) -> list:
+    subprocess_command = prefix
+    
+    for train_arg, subprocess_arg in arg_mapping.items():
+        if train_arg in train_args and subprocess_arg is not None: 
+            # Extract actual value based on the type of input
+            value = train_args[train_arg]
+            
+            if isinstance(value, Path):
+                value = str(value)  # Convert Path object to string   
+
+            if train_config is not None:
+                # If config is provided, validate the argument
+                f = next((field for field in fields(train_config) if field.name == subprocess_arg), None)
+                
+                if f is None:
+                    raise ValueError(f"No field named {subprocess_arg} in config dataclass")
+                
+                if not isinstance(value, f.type):
+                    raise ValueError(f"Invalid type for argument {f.name}: expected {f.type}, but got {type(value)}")
+                
+            subprocess_command.append(f"--{subprocess_arg}")
+            subprocess_command.append(str(value))
+            
+    return subprocess_command
+
+
 def train(
     train_data: Path = Input(
         description="path to data file to use for fine-tuning your model"
+    ),
+    num_train_epochs: int = Input(
+        description="number of training epochs", 
+        ge=1, default=1,
+    ),
+    train_batch_size: int = Input(
+        description="Global batch size. This specifies the batch size that will be used to calculate gradients.",
+        default=4, ge=1,
+    ),
+    micro_batch_size: int = Input(
+        description="Micro batch size. This specifies the on-device batch size, if this is less than `train_batch_size`, gradient accumulation will be activated.", 
+        default=4, ge=1
     ),
     eval_data: Path = Input(
         description="path to optional evaluation data file to use for model eval",
         default=None,
     ),
-    weights: Path = Input(
-        description="location of weights that are going to be fine-tuned", default=None
+    eval_batch_size: int = Input(
+        description="Batch size for evaluation", 
+        default=4, ge=1
     ),
-    train_batch_size: int = Input(description="batch size per GPU", default=1, ge=1),
-    gradient_accumulation_steps: int = Input(
-        description="number of training steps to update gradient for before performing a backward pass",
-        default=8,
+    run_validation: bool = Input(
+        description="Whether to run validation during training.", 
+        default=False
     ),
     learning_rate: float = Input(
-        description="learning rate, for learning!", default=2e-5, ge=0
+        description="learning rate, for learning!", default=1e-4, ge=0
     ),
-    warmup_ratio: float = Input(
-        description="pct of steps for a linear learning rate warmup",
-        ge=0,
-        le=0.5,
-        default=0.03,
+    seed: int = Input(
+        description="random seed to use for training", 
+        default=42
     ),
-    num_train_epochs: int = Input(
-        description="number of training epochs", ge=1, default=1
-    ),
-    max_steps: int = Input(
-        description="number of steps to run training for, supersedes num_train_epochs",
-        default=-1,
-    ),
-    logging_steps: int = Input(
-        description="number of steps between logging epoch & loss", default=1
-    ),
-    lora_rank: int = Input(
-        description="Rank of the lora matrices", default=8, ge=1),
-    lora_alpha: int = Input(description="Alpha parameter for scaling lora weights; weights are scaled by alpha/rank", default=16, ge=1),
-    lora_dropout: float = Input(description="Dropout for lora training", default=0.1, ge=0.0, le=1.0),
-    lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
+    # weights: Path = Input(
+    #     description="location of weights that are going to be fine-tuned", default=None
+    # ),
+    #
+    # warmup_ratio: float = Input(
+    #     description="pct of steps for a linear learning rate warmup",
+    #     ge=0,
+    #     le=0.5,
+    #     default=0.03,
+    # ),
+
+    # max_steps: int = Input(
+    #     description="number of steps to run training for, supersedes num_train_epochs",
+    #     default=-1,
+    # ),
+    # logging_steps: int = Input(
+    #     description="number of steps between logging epoch & loss", default=1
+    # ),
+    # lora_rank: int = Input(
+    #     description="Rank of the lora matrices", default=8, ge=1),
+    # lora_alpha: int = Input(description="Alpha parameter for scaling lora weights; weights are scaled by alpha/rank", default=16, ge=1),
+    # lora_dropout: float = Input(description="Dropout for lora training", default=0.1, ge=0.0, le=1.0),
+    # lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
 ) -> TrainingOutput:
 
     weights = REMOTE_TRAINING_WEIGHTS_PATH
 
     if 'http' in weights:
-        # doing this once instead of 4x
-        weights = '/'.join(weights.split('/')[:-1])
-        if weights.endswith(".tensors"): # this is busted - we're truncating the filename whenever we pass this in, so it'll never end with `.tensors`. I think we should stop truncation and pass in a folder path`
-            pass
-            # LOADING WITH TENSORIZER ISN'T SUPPORTED, SO HACKING THIS IN.
-            # NEED TO HANDLE THIS PROPERLY 
-            # download_file(REMOTE_TRAINING_WEIGHTS_PATH, LOCAL_TRAINING_WEIGHTS_PATH)
-            # model_path = LOCAL_TRAINING_WEIGHTS_PATH
-        
-        else:
-            model_path = maybe_download_with_pget(
-                LOCAL_TRAINING_WEIGHTS_PATH, 
-                weights, 
-                REMOTE_TRAINING_FILES_TO_DOWNLOAD,
-            )
-    
-    if not os.path.exists(LOCAL_TRAINING_WEIGHTS_CONFIG_PATH):
-        download_file(REMOTE_TRAINING_WEIGHTS_CONFIG_PATH, LOCAL_TRAINING_WEIGHTS_CONFIG_PATH)
+       
+        model_path = maybe_download_with_pget(
+            LOCAL_TRAINING_WEIGHTS_PATH, 
+            weights, 
+            REMOTE_TRAINING_FILES_TO_DOWNLOAD,
+        )
 
     root_path = os.getcwd()
 
@@ -108,7 +150,6 @@ def train(
     os.makedirs(output_dir)
 
     num_gpus = torch.cuda.device_count()
-    num_gpus_flag = f"--num_gpus={num_gpus}"
 
     print(f"Local Output Dir: {output_dir}")
     print(f"Number of GPUs: {num_gpus}")
@@ -116,53 +157,39 @@ def train(
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     os.environ["HF_DATASETS_CACHE"] = "/src/.hf-cache"
 
+    arg_mapping = {
+        'train_data': 'data_path',
+        'train_batch_size': 'batch_size_training',
+        'num_train_epochs': 'num_epochs',
+        'micro_batch_size': 'micro_batch_size',
+        'eval_data': None,  # No equivalent in train_config, so set as None
+        'eval_batch_size': 'val_batch_size',
+        'run_validation': 'run_validation',
+        'seed': 'seed',
+        'weights': None,  # No equivalent in train_config, so set as None
+        'learning_rate': 'lr',
+        'warmup_ratio': None,  # No equivalent in train_config, so set as None
+        'max_steps': None,  # No equivalent in train_config, so set as None
+        'logging_steps': None,  # No equivalent in train_config, so set as None
+        'lora_rank': None,  # No equivalent in train_config, so set as None
+        'lora_alpha': None,  # No equivalent in train_config, so set as None
+        'lora_dropout': None,  # No equivalent in train_config, so set as None
+        'lora_target_modules': None  # No equivalent in train_config, so set as None
+    }
+
+    command_prefix = f"torchrun --nnodes=1 --nproc_per_node={num_gpus} llama_recipes/llama_finetuning.py "
+    command_prefix += f"--enable_fsdp --use_peft --pure_bf16 --model_name {model_path} --output_dir {output_dir} "
+    command_prefix = command_prefix.split(" ")
+    train_args = locals()
+    args = _build_subprocess_command(command_prefix, train_args, arg_mapping, train_config)
+    print("Training args: ",  ' '.join(args))
+
     def _arg_if_present(var, var_name):
         """Need to wrap any arguments whose default value in train() is `None`"""
         if var:
             return f" --{var_name} {var}"
         return " "
     
-    args = [
-        "torchrun",
-        "--nnodes", "1",
-        "--nproc_per_node", str(num_gpus),
-        "llama_recipes/llama_finetuning.py",
-        "--enable_fsdp",
-        "--use_peft",
-        "--model_name", model_path,
-        "--pure_bf16",
-        "--output_dir", output_dir,
-        "--run_validation", "False",
-        "--data_path", train_data,
-        "--num_epochs", "1",
-    ]
-        
-    # args = [
-    #     "/root/.pyenv/shims/deepspeed",
-    #     num_gpus_flag,
-    #     "--master_port=9292",
-    #     "--module",
-    #     "training.trainer",
-    #     "--deepspeed",
-    #     deepspeed_config,
-    #     f"--train_data={str(train_data)}",
-    #     f"--weights={input_weights}",
-    #     f"--num_train_epochs={num_train_epochs}",
-    #     f"--max_steps={max_steps}",
-    #     f"--learning_rate={learning_rate}",
-    #     f"--train_batch_size={train_batch_size}",
-    #     f"--gradient_accumulation_steps={gradient_accumulation_steps}",
-    #     f"--logging_steps={logging_steps}",
-    #     f"--warmup_ratio={warmup_ratio}",
-    #     f"--lora_rank={lora_rank}",
-    #     f"--lora_alpha={lora_alpha}",
-    #     f"--lora_dropout={lora_dropout}",
-    #     f"--local_output_dir={output_dir}"
-    # ]
-    if eval_data:
-        args.append(f"--eval_data={eval_data}")
-    if lora_target_modules:
-        args.append(f"--lora_target_modules={lora_target_modules}")
 
     p = None
     try:
