@@ -77,32 +77,28 @@ def train(
     lora_dropout: float = Input(description="Dropout for lora training", default=0.1, ge=0.0, le=1.0),
     lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
 ) -> TrainingOutput:
-    
-    if weights:
-        input_weights = weights
-    # elif os.path.exists(LOCAL_TRAINING_WEIGHTS_PATH):
-    #     input_weights = LOCAL_TRAINING_WEIGHTS_PATH
-    else:
-        if 'http' in REMOTE_TRAINING_WEIGHTS_PATH or 'gs' in REMOTE_TRAINING_WEIGHTS_PATH:
-            # doing this once instead of 4x
-            REMOTE_TRAINING_WEIGHTS_PATH = '/'.join(REMOTE_TRAINING_WEIGHTS_PATH.split('/')[:-1])
-            if REMOTE_TRAINING_WEIGHTS_PATH.endswith(".tensors"):
-                pass
-                # LOADING WITH TENSORIZER ISN'T SUPPORTED, SO HACKING THIS IN.
-                # NEED TO HANDLE THIS PROPERLY 
-                # download_file(REMOTE_TRAINING_WEIGHTS_PATH, LOCAL_TRAINING_WEIGHTS_PATH)
-                # model_path = LOCAL_TRAINING_WEIGHTS_PATH
-            
-            else:
-                model_path = maybe_download_with_pget(
-                    LOCAL_TRAINING_WEIGHTS_PATH, 
-                    REMOTE_TRAINING_WEIGHTS_PATH, 
-                    REMOTE_TRAINING_FILES_TO_DOWNLOAD,
-                )
+
+    weights = REMOTE_TRAINING_WEIGHTS_PATH
+
+    if 'http' in weights:
+        # doing this once instead of 4x
+        weights = '/'.join(weights.split('/')[:-1])
+        if weights.endswith(".tensors"): # this is busted - we're truncating the filename whenever we pass this in, so it'll never end with `.tensors`. I think we should stop truncation and pass in a folder path`
+            pass
+            # LOADING WITH TENSORIZER ISN'T SUPPORTED, SO HACKING THIS IN.
+            # NEED TO HANDLE THIS PROPERLY 
+            # download_file(REMOTE_TRAINING_WEIGHTS_PATH, LOCAL_TRAINING_WEIGHTS_PATH)
+            # model_path = LOCAL_TRAINING_WEIGHTS_PATH
+        
+        else:
+            model_path = maybe_download_with_pget(
+                LOCAL_TRAINING_WEIGHTS_PATH, 
+                weights, 
+                REMOTE_TRAINING_FILES_TO_DOWNLOAD,
+            )
     
     if not os.path.exists(LOCAL_TRAINING_WEIGHTS_CONFIG_PATH):
         download_file(REMOTE_TRAINING_WEIGHTS_CONFIG_PATH, LOCAL_TRAINING_WEIGHTS_CONFIG_PATH)
-
 
     root_path = os.getcwd()
 
@@ -129,7 +125,7 @@ def train(
     args = [
         "torchrun",
         "--nnodes", "1",
-        "--nproc_per_node", "4",
+        "--nproc_per_node", str(num_gpus),
         "llama_recipes/llama_finetuning.py",
         "--enable_fsdp",
         "--use_peft",
