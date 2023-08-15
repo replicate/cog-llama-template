@@ -42,7 +42,3 @@ coverage.xml
 !/models/llama-2-7b/
 /models/llama-2-7b/model_artifacts/**
 !/models/llama-2-7b/model_artifacts/tokenizer/
-/models/*/
-!/models//
-/models//model_artifacts/**
-!/models//model_artifacts/tokenizer/

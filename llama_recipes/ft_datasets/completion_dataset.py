@@ -17,10 +17,19 @@ def get_completion_dataset(config: str, tokenizer, split: str = "train"):
         key: [item[key] for item in data] for key in data[0]},
     )
 
-    def apply_prompt_template(sample):
+    def apply_text_template(sample):
         return {"text": sample["text"] + tokenizer.eos_token}
-
-    dataset = dataset.map(apply_prompt_template, remove_columns=list(dataset.features))
+    
+    def apply_prompt_template(sample):
+        return {"text": sample["prompt"] + "\n" + sample["completion"]}
+    
+    # Assume - all "text" or all "prompt/completion"
+    if "text" in data[0]:
+        dataset = dataset.map(apply_text_template, remove_columns=list(dataset.features))
+    elif "prompt" in data[0] and "completion" in data[0]:
+        dataset = dataset.map(apply_prompt_template, remove_columns=list(dataset.features))
+    else:
+        raise Exception("Dataset did not contain `text` or `prompt` and `completion` inputs. Example row:", data[0])
     
     # does this truncate by default?
     dataset = dataset.map(
