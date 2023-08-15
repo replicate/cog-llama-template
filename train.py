@@ -39,39 +39,6 @@ OUTPUT_DIR = "training_output"
 class TrainingOutput(BaseModel):
     weights: Path
 
-
-def _build_subprocess_command(
-    prefix: str,
-    train_args: tp.Dict[str, tp.Any],
-    arg_mapping: tp.Dict[str, str],
-    train_config: Optional[tp.Type] = None
-) -> list:
-    subprocess_command = prefix
-    
-    for train_arg, subprocess_arg in arg_mapping.items():
-        if train_arg in train_args and subprocess_arg is not None: 
-            # Extract actual value based on the type of input
-            value = train_args[train_arg]
-            
-            if isinstance(value, Path):
-                value = str(value)  # Convert Path object to string   
-
-            if train_config is not None:
-                # If config is provided, validate the argument
-                f = next((field for field in fields(train_config) if field.name == subprocess_arg), None)
-                
-                if f is None:
-                    raise ValueError(f"No field named {subprocess_arg} in config dataclass")
-                
-                if not isinstance(value, f.type):
-                    raise ValueError(f"Invalid type for argument {f.name}: expected {f.type}, but got {type(value)}")
-                
-            subprocess_command.append(f"--{subprocess_arg}")
-            subprocess_command.append(str(value))
-            
-    return subprocess_command
-
-
 def train(
     train_data: Path = Input(
         description="path to data file to use for fine-tuning your model"
@@ -157,39 +124,35 @@ def train(
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     os.environ["HF_DATASETS_CACHE"] = "/src/.hf-cache"
 
-    arg_mapping = {
-        'train_data': 'data_path',
-        'train_batch_size': 'batch_size_training',
-        'num_train_epochs': 'num_epochs',
-        'micro_batch_size': 'micro_batch_size',
-        'eval_data': None,  # No equivalent in train_config, so set as None
-        'eval_batch_size': 'val_batch_size',
-        'run_validation': 'run_validation',
-        'seed': 'seed',
-        'weights': None,  # No equivalent in train_config, so set as None
-        'learning_rate': 'lr',
-        'warmup_ratio': None,  # No equivalent in train_config, so set as None
-        'max_steps': None,  # No equivalent in train_config, so set as None
-        'logging_steps': None,  # No equivalent in train_config, so set as None
-        'lora_rank': None,  # No equivalent in train_config, so set as None
-        'lora_alpha': None,  # No equivalent in train_config, so set as None
-        'lora_dropout': None,  # No equivalent in train_config, so set as None
-        'lora_target_modules': None  # No equivalent in train_config, so set as None
-    }
 
-    command_prefix = f"torchrun --nnodes=1 --nproc_per_node={num_gpus} llama_recipes/llama_finetuning.py "
-    command_prefix += f"--enable_fsdp --use_peft --pure_bf16 --model_name {model_path} --output_dir {output_dir} "
-    command_prefix = command_prefix.split(" ")
-    train_args = locals()
-    args = _build_subprocess_command(command_prefix, train_args, arg_mapping, train_config)
-    print("Training args: ",  ' '.join(args))
+    args = [
+        # Hard coded for now
+        "torchrun",
+        f"--nnodes=1",
+        f"--nproc_per_node={num_gpus}",
+        f"llama_recipes/llama_finetuning.py",
+        f"--enable_fsdp",
+        f"--use_peft",
+        f"--model_name={model_path}",
+        f"--pure_bf16",
+        f"--output_dir={output_dir}",
 
-    def _arg_if_present(var, var_name):
-        """Need to wrap any arguments whose default value in train() is `None`"""
-        if var:
-            return f" --{var_name} {var}"
-        return " "
-    
+        # User specified arguments -----
+        # Train arguments
+        f"--data_path={train_data}",
+        f"--num_epochs={num_train_epochs}",
+        f"--batch_size_training={train_batch_size}",
+        f"--micro_batch_size={micro_batch_size}",
+        f"--lr={learning_rate}",
+
+        # Validation arguments
+        f"--run_validation={'False' if not run_validation else 'True'}",
+        # f"--val_data={eval_data}",
+        f"--val_batch_size={eval_batch_size}",
+
+        # Other arguments
+        f"--seed={seed}",
+    ]
 
     p = None
     try:

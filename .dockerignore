@@ -38,7 +38,3 @@ coverage.xml
 .mypy_cache
 .pytest_cache
 .hypothesis
-/models/*/
-!/models/llama-2-7b/
-/models/llama-2-7b/model_artifacts/**
-!/models/llama-2-7b/model_artifacts/tokenizer/
