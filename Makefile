@@ -6,7 +6,6 @@
 .PHONY: clean
 
 CURRENT_DIR := $(shell basename $(PWD))
-HOST_NAME := $(shell hostname)
 
 ifeq ($(findstring cog,$(CURRENT_DIR)),cog)
 IMAGE_NAME := $(CURRENT_DIR)
@@ -33,6 +32,11 @@ init:
 	mkdir -p models/$(model)/model_artifacts/tokenizer
 	cp -r llama_weights/tokenizer/* models/$(model)/model_artifacts/tokenizer
 
+update:
+	cp -r model_templates/*  models/$(model)
+
+
+
 select:
 	if [ -z "$(model)" ]; then \
 		echo "Error: 'model' argument must be specified. E.g., make select model=your_model_name"; \
@@ -41,6 +45,7 @@ select:
 	rsync -av --exclude 'model_artifacts/' models/$(model)/ .
 	if [ -e models/$(model)/.env ]; then cp models/$(model)/.env . ; fi
 	if [ -e models/$(model)/.dockerignore ]; then cp models/$(model)/.dockerignore . ; fi
+	cog build
 	@echo "#########Selected model: $(model)########"
 
 clean: select
@@ -63,17 +68,35 @@ serve: build-local
 
 
 
-test-local-predict: select build-local
-	pytest ./tests/test_predict.py -s
+test-local-predict: 
+	cog build
+	if [ "$(verbose)" = "true" ]; then \
+		pytest ./tests/test_predict.py -s; \
+	else \
+		pytest ./tests/test_predict.py; \
+	fi
 
-test-local-train: select build-local
+test-local-train: 
+	cog build
 	rm -rf training_output.zip
-	pytest ./tests/test_train.py -s
+	if [ "$(verbose)" = "true" ]; then \
+		pytest ./tests/test_train.py -s; \
+	else \
+		pytest ./tests/test_train.py; \
+	fi
 
-test-local-train-predict: select build-local
-	pytest ./tests/test_train_predict.py -s 
+test-local-train-predict: 
+	cog build
+	if [ "$(verbose)" = "true" ]; then \
+		pytest ./tests/test_train_predict.py -s; \
+	else \
+		pytest ./tests/test_train_predict.py; \
+	fi
 
-test-local: test-local-predict test-local-train test-local-train-predict
+test-local: select test-local-predict test-local-train test-local-train-predict
+
+stage:
+	cog push r8.im/replicate/staging-$(model)
 
 push: select
 	cog push r8.im/$(destination)
