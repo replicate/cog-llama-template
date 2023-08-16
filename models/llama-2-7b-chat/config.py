@@ -146,7 +146,7 @@ def download_file(file, local_filename):
     print(f"Downloading {file} to {local_filename}")
     if os.path.exists(local_filename):
         os.remove(local_filename)
-    else:
+    if '/' in local_filename:
         if not os.path.exists(os.path.dirname(local_filename)):
             os.makedirs(os.path.dirname(local_filename), exist_ok=True)
         

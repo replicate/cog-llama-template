@@ -11,6 +11,7 @@ from cog import BasePredictor, ConcatenateIterator, Input, Path
 from config import (
     LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH, 
     REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
+    REMOTE_TRAINING_FILES_TO_DOWNLOAD,
     USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS,
     REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD, 
     LOCAL_TRAINING_WEIGHTS_PATH, 
@@ -83,10 +84,14 @@ class Predictor(BasePredictor):
 
     def load_peft(self, weights):
         st = time.time()
-        if 'tensors' in LOCAL_TRAINING_WEIGHTS_PATH:
-            model = load_tensorizer(REMOTE_TRAINING_WEIGHTS_PATH, plaid_mode=False, cls=YieldingLlama)
-        else:
-            model = self.load_huggingface_model(REMOTE_TRAINING_WEIGHTS_PATH, load_in_4bit=LOAD_IN_4BIT)
+
+        model_path = maybe_download_with_pget(
+            LOCAL_TRAINING_WEIGHTS_PATH, 
+            REMOTE_TRAINING_WEIGHTS_PATH, 
+            REMOTE_TRAINING_FILES_TO_DOWNLOAD,
+        )
+
+        model = self.load_huggingface_model(model_path, load_in_4bit=LOAD_IN_4BIT)
         if 'http' in weights: # weights are in the cloud
             local_weights = 'local_weights.zip'
             if not os.path.exists(local_weights):
@@ -102,9 +107,6 @@ class Predictor(BasePredictor):
         return model.to('cuda')
 
     def load_huggingface_model(self, weights=None, load_in_4bit=False):
-        # We don't use this in production, but it's useful for testing
-        # If we want to use it in production, we need to add support for
-        # downloading artifacts.
         st = time.time()
         print(f"loading weights from {weights} w/o tensorizer")
         if LOAD_IN_4BIT:

@@ -20,7 +20,7 @@ import sys
 
 load_dotenv()
 
-MODEL_NAME = 
+MODEL_NAME = "llama-2-13b"
 # INFERENCE CONFIGURATION
 #######################################################################
 # --------------------Notes--------------------------------------------
@@ -38,8 +38,8 @@ MODEL_NAME =
 
 LOAD_IN_4BIT = False
 TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
-USE_SYSTEM_PROMPT = 
-USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = 
+USE_SYSTEM_PROMPT = False
+USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = True
 
 
 # DEFAULT INFERENCE CONFIGURATION
@@ -63,7 +63,7 @@ REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = get_env_var_or_default(
 #     for i in range(N_SHARDS)
 # ]
 
-REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = #["gptq_model-4bit-128g.safetensors"]
+REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = ["gptq_model-4bit-32g.safetensors"]
 
 REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
     "config.json",
@@ -94,7 +94,7 @@ REMOTE_TRAINING_WEIGHTS_CONFIG_PATH = get_env_var_or_default(
     default_value="remote/path/to/your/weights/here"
 )
 
-N_SHARDS = 2
+N_SHARDS = 3
 REMOTE_TRAINING_FILES_TO_DOWNLOAD = [
     f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
     for i in range(N_SHARDS)
