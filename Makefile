@@ -13,7 +13,13 @@ else
 IMAGE_NAME := cog-$(CURRENT_DIR)
 endif
 
+model ?= $(SELECTED_MODEL)
+
 init:
+	@if [ -z "$(model)" ]; then \
+		echo "Error: 'model' argument must be specified or 'MODEL_ENV' environment variable must be set. E.g., make select model=your_model_name or export MODEL_ENV=your_model_name"; \
+		exit 1; \
+	fi
 	# Initialize directory for model
 	mkdir -p models/$(model)
 	cp -r model_templates/*  models/$(model)
@@ -33,13 +39,15 @@ init:
 	cp -r llama_weights/tokenizer/* models/$(model)/model_artifacts/tokenizer
 
 update:
+	@if [ -z "$(model)" ]; then \
+		echo "Error: 'model' argument must be specified or 'MODEL_ENV' environment variable must be set. E.g., make select model=your_model_name or export MODEL_ENV=your_model_name"; \
+		exit 1; \
+	fi
 	cp -r model_templates/*  models/$(model)
 
-
-
 select:
-	if [ -z "$(model)" ]; then \
-		echo "Error: 'model' argument must be specified. E.g., make select model=your_model_name"; \
+	@if [ -z "$(model)" ]; then \
+		echo "Error: 'model' argument must be specified or 'MODEL_ENV' environment variable must be set. E.g., make select model=your_model_name or export MODEL_ENV=your_model_name"; \
 		exit 1; \
 	fi
 	rsync -av --exclude 'model_artifacts/' models/$(model)/ .
@@ -66,11 +74,9 @@ serve: build-local
 	# -e COG_WEIGHTS=http://$(HOST_NAME):8000/training_output.zip \
 	# -v `pwd`/training_output.zip:/src/local_weights.zip \
 
-
-
 test-local-predict: 
 	cog build
-	if [ "$(verbose)" = "true" ]; then \
+	@if [ "$(verbose)" = "true" ]; then \
 		pytest ./tests/test_predict.py -s; \
 	else \
 		pytest ./tests/test_predict.py; \
@@ -79,7 +85,7 @@ test-local-predict:
 test-local-train: 
 	cog build
 	rm -rf training_output.zip
-	if [ "$(verbose)" = "true" ]; then \
+	@if [ "$(verbose)" = "true" ]; then \
 		pytest ./tests/test_train.py -s; \
 	else \
 		pytest ./tests/test_train.py; \
@@ -87,7 +93,7 @@ test-local-train:
 
 test-local-train-predict: 
 	cog build
-	if [ "$(verbose)" = "true" ]; then \
+	@if [ "$(verbose)" = "true" ]; then \
 		pytest ./tests/test_train_predict.py -s; \
 	else \
 		pytest ./tests/test_train_predict.py; \
@@ -96,8 +102,30 @@ test-local-train-predict:
 test-local: select test-local-predict test-local-train test-local-train-predict
 
 stage:
-	cog push r8.im/replicate/staging-$(model)
+	@echo "Pushing $(model) to r8.im/replicate-internal/staging-$(model)..."
+	cog push r8.im/replicate-internal/staging-$(model)
 
+test-stage-predict:
+	@if [ "$(verbose)" = "true" ]; then \
+		pytest tests/test_remote_predict.py -s --model replicate-internal/staging-$(model); \
+	else \
+		pytest tests/test_remote_predict.py --model replicate-internal/staging-$(model); \
+	fi
+
+test-stage-train:
+	@if [ "$(verbose)" = "true" ]; then \
+		pytest tests/test_remote_train.py -s --model replicate-internal/staging-$(model); \
+	else \
+		pytest tests/test_remote_train.py --model replicate-internal/staging-$(model); \
+	fi
+
+test-stage-train-predict:
+	@if [ "$(verbose)" = "true" ]; then \
+		pytest tests/test_predict_with_trained_weights.py -s --model replicate-internal/staging-$(model); \
+	else \
+		pytest tests/test_predict_with_trained_weights.py --model replicate-internal/staging-$(model); \
+	fi
+	
 push: select
 	cog push r8.im/$(destination)
 
