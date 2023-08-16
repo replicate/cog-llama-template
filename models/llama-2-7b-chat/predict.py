@@ -84,6 +84,8 @@ class Predictor(BasePredictor):
 
     def load_peft(self, weights):
         st = time.time()
+        base_model_weights_folder = '/'.join(REMOTE_TRAINING_WEIGHTS_PATH.split('/')[:-1])
+
 
         model_path = maybe_download_with_pget(
             LOCAL_TRAINING_WEIGHTS_PATH, 
