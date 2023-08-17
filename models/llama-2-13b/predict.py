@@ -127,10 +127,6 @@ class Predictor(BasePredictor):
     def predict(
         self,
         prompt: str = Input(description=f"Prompt to send to Llama v2."),
-        system_prompt: str = Input(
-            description="System prompt to send to Llama v2. This is prepended to the prompt and helps guide system behavior.", 
-            default=DEFAULT_SYSTEM_PROMPT,
-        ),
         max_new_tokens: int = Input(
             description="Maximum number of tokens to generate. A word is generally 2-3 tokens",
             ge=1,
