@@ -13,6 +13,8 @@ else
 IMAGE_NAME := cog-$(CURRENT_DIR)
 endif
 
+REPLICATE_USER ?= replicate-internal
+
 model ?= $(SELECTED_MODEL)
 
 init:
@@ -102,29 +104,25 @@ test-local-train-predict:
 test-local: select test-local-predict test-local-train test-local-train-predict
 
 stage:
-	@echo "Pushing $(model) to r8.im/replicate-internal/staging-$(model)..."
-	cog push r8.im/replicate-internal/staging-$(model)
+	@echo "Pushing $(model) to r8.im/$(REPLICATE_USER)/staging-$(model)..."
+	cog push r8.im/$(REPLICATE_USER)/staging-$(model)
 
 test-stage-predict:
 	@if [ "$(verbose)" = "true" ]; then \
-		pytest tests/test_remote_predict.py -s --model replicate-internal/staging-$(model); \
+		pytest tests/test_remote_predict.py -s --model $(REPLICATE_USER)/staging-$(model); \
 	else \
-		pytest tests/test_remote_predict.py --model replicate-internal/staging-$(model); \
-	fi
-
-test-stage-train:
-	@if [ "$(verbose)" = "true" ]; then \
-		pytest tests/test_remote_train.py -s --model replicate-internal/staging-$(model); \
-	else \
-		pytest tests/test_remote_train.py --model replicate-internal/staging-$(model); \
+		pytest tests/test_remote_predict.py --model $(REPLICATE_USER)/staging-$(model); \
 	fi
 
 test-stage-train-predict:
 	@if [ "$(verbose)" = "true" ]; then \
-		pytest tests/test_predict_with_trained_weights.py -s --model replicate-internal/staging-$(model); \
+		pytest tests/test_remote_train.py -s --model $(REPLICATE_USER)/staging-$(model); \
 	else \
-		pytest tests/test_predict_with_trained_weights.py --model replicate-internal/staging-$(model); \
+		pytest tests/test_remote_train.py --model $(REPLICATE_USER)/staging-$(model); \
 	fi
+
+make test-stage: test-stage-predict test-stage-train-predict
+
 	
 push: select
 	cog push r8.im/$(destination)
