@@ -87,7 +87,7 @@ def main(**kwargs):
         setup_environ_flags(rank)
 
     # Load the tokenizer and add special tokens
-    tokenizer = LlamaTokenizer.from_pretrained(train_config.model_name)
+    tokenizer = LlamaTokenizer.from_pretrained(train_config.model_name, legacy=False)
     tokenizer.add_special_tokens(
             {
             
@@ -96,7 +96,11 @@ def main(**kwargs):
         )
 
     dataset_config = generate_dataset_config(train_config, kwargs)
-    update_config(dataset_config, **{"data_path": train_config.data_path})
+    update_config(dataset_config, **{
+        "data_path": train_config.data_path,
+        "num_validation_samples": train_config.num_validation_samples,
+        "run_validation": train_config.run_validation,
+        })
     
      # Load and preprocess the dataset for training and validation
     dataset_train = get_preprocessed_dataset(
@@ -107,10 +111,61 @@ def main(**kwargs):
     
     if not train_config.enable_fsdp or rank == 0:
         print(f"--> Training Set Length = {len(dataset_train)}")
+
+    if train_config.run_validation:
+        dataset_val = get_preprocessed_dataset(
+            tokenizer,
+            dataset_config,
+            split="val",
+        )
+        if not train_config.enable_fsdp or rank == 0:
+            print(f"--> Validation Set Length = {len(dataset_val)}")
+    else:
+        dataset_val = None
     
+    train_sampler = None
+    val_sampler = None
+    if train_config.enable_fsdp:
+        train_sampler = DistributedSampler(
+            dataset_train,
+            rank=dist.get_rank(),
+            num_replicas=dist.get_world_size(),
+            shuffle=True,
+        )
+        if train_config.run_validation:
+            val_sampler = DistributedSampler(
+                dataset_val,
+                rank=dist.get_rank(),
+                num_replicas=dist.get_world_size(),
+            )
+        
+    # Create DataLoaders for the training and validation dataset
+    train_dataloader = torch.utils.data.DataLoader(
+        dataset_train,
+        batch_size=train_config.batch_size_training,
+        num_workers=train_config.num_workers_dataloader,
+        pin_memory=True,
+        sampler=train_sampler if train_sampler else None,
+        drop_last=True,
+        collate_fn=default_data_collator,
+    )
+
+    if train_config.run_validation:
+        eval_dataloader = torch.utils.data.DataLoader(
+            dataset_val,
+            batch_size=train_config.val_batch_size,
+            num_workers=train_config.num_workers_dataloader,
+            pin_memory=True,
+            sampler=val_sampler if val_sampler else None,
+            drop_last=True,
+            collate_fn=default_data_collator,
+        )
+    else:
+        eval_dataloader = None
+    
+            
     # Calculate gradient accumulation steps
     gradient_accumulation_steps = train_config.batch_size_training // train_config.micro_batch_size
-     
     # Load the pre-trained model and setup its configuration
     model = LlamaForCausalLM.from_pretrained(
         train_config.model_name,
@@ -155,55 +210,6 @@ def main(**kwargs):
     elif not train_config.quantization and not train_config.enable_fsdp:
         model.to("cuda")
 
-    
-
-    # dataset_val = get_preprocessed_dataset(
-    #     tokenizer,
-    #     dataset_config,
-    #     split="test",
-    # )
-    # if not train_config.enable_fsdp or rank == 0:
-    #         print(f"--> Validation Set Length = {len(dataset_val)}")
-
-    train_sampler = None
-    val_sampler = None
-    if train_config.enable_fsdp:
-        train_sampler = DistributedSampler(
-            dataset_train,
-            rank=dist.get_rank(),
-            num_replicas=dist.get_world_size(),
-            shuffle=True,
-        )
-        if train_config.run_validation:
-            val_sampler = DistributedSampler(
-                dataset_val,
-                rank=dist.get_rank(),
-                num_replicas=dist.get_world_size(),
-            )
-        
-    # Create DataLoaders for the training and validation dataset
-    train_dataloader = torch.utils.data.DataLoader(
-        dataset_train,
-        batch_size=train_config.batch_size_training,
-        num_workers=train_config.num_workers_dataloader,
-        pin_memory=True,
-        sampler=train_sampler if train_sampler else None,
-        drop_last=True,
-        collate_fn=default_data_collator,
-    )
-
-    if train_config.run_validation:
-        eval_dataloader = torch.utils.data.DataLoader(
-            dataset_val,
-            batch_size=train_config.val_batch_size,
-            num_workers=train_config.num_workers_dataloader,
-            pin_memory=True,
-            sampler=val_sampler if val_sampler else None,
-            drop_last=True,
-            collate_fn=default_data_collator,
-        )
-    else:
-        eval_dataloader = None
         
     # Initialize the optimizer and learning rate scheduler
     if fsdp_config.pure_bf16 and fsdp_config.optimizer == "anyprecision":
@@ -221,6 +227,7 @@ def main(**kwargs):
             weight_decay=0.0,
         )
     scheduler = StepLR(optimizer, step_size=1, gamma=train_config.gamma)
+
 
     # Start the training process
     results = train(

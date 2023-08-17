@@ -32,10 +32,18 @@ class completion:
     """
     A generic class for completion format datasets. Format is expected
     to be JSONL like: 
-       {"text": "..."}\n
-       {"text": "..."}
+        ```
+        {"text": "..."}
+        ```
+    or 
+        ```
+        {"text": "prompt ...", "completion": "..."}
+        ```
     """
     dataset: str = "completion"
     train_split: str = "train"
     test_split: str = "val"
     data_path: str = None
+    num_validation_samples: int = 100
+    run_validation: bool = True
+    validation_data_path: str = None
