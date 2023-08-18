@@ -55,7 +55,7 @@ def get_completion_dataset(
         return {"text": sample["text"] + tokenizer.eos_token}
     
     def apply_prompt_template(sample):
-        return {"text": sample["prompt"] + "\n" + sample["completion"]}
+        return {"text": sample["prompt"] + "\n" + sample["completion"] + tokenizer.eos_token}
     
     # Assume - all "text" or all "prompt/completion"
     if "text" in dataset[0]:
