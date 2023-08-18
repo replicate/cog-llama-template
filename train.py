@@ -91,11 +91,11 @@ def train(
     # ),
     # logging_steps: int = Input(
     #     description="number of steps between logging epoch & loss", default=1
-    # ),
-    # lora_rank: int = Input(
-    #     description="Rank of the lora matrices", default=8, ge=1),
-    # lora_alpha: int = Input(description="Alpha parameter for scaling lora weights; weights are scaled by alpha/rank", default=16, ge=1),
-    # lora_dropout: float = Input(description="Dropout for lora training", default=0.1, ge=0.0, le=1.0),
+    #),
+    lora_rank: int = Input(
+        description="Rank of the lora matrices", default=8, ge=1),
+    lora_alpha: int = Input(description="Alpha parameter for scaling lora weights; weights are scaled by alpha/rank", default=16, ge=1),
+    lora_dropout: float = Input(description="Dropout for lora training", default=0.05, ge=0.0, le=1.0),
     # lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
 ) -> TrainingOutput:
 
@@ -144,6 +144,9 @@ def train(
         f"--batch_size_training={train_batch_size}",
         f"--micro_batch_size={micro_batch_size}",
         f"--lr={learning_rate}",
+        f"--lora_rank={lora_rank}",
+        f"--lora_alpha={lora_alpha}",
+        f"--lora_dropout={lora_dropout}",
 
         # Validation arguments
         f"--run_validation={'False' if not run_validation else 'True'}",
