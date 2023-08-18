@@ -121,8 +121,15 @@ test-stage-train-predict:
 		pytest tests/test_remote_train.py --model $(REPLICATE_USER)/staging-$(model); \
 	fi
 
-make test-stage: test-stage-predict test-stage-train-predict
+test-stage: test-stage-predict test-stage-train-predict
 
+
+stage-and-test-models:
+	$(foreach model, $(subst ,, $(models)), \
+		$(MAKE) select model=$(model); \
+		$(MAKE) stage model=$(model); \
+		$(MAKE) test-stage model=$(model); \
+	)
 	
 push: select
 	cog push r8.im/$(destination)
