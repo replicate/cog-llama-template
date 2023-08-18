@@ -184,6 +184,7 @@ def main(**kwargs):
         model.to(torch.bfloat16)
 
     if train_config.use_peft:
+        kwargs['r'] = kwargs['lora_rank'] # can't pass --r to the script, torchrun won't have it
         peft_config = generate_peft_config(train_config, kwargs)
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()

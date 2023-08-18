@@ -7,7 +7,7 @@ from typing import ClassVar, List
 @dataclass
 class lora_config:
      r: int=8
-     lora_alpha: int=32
+     lora_alpha: int=16
      target_modules: ClassVar[List[str]]= ["q_proj", "v_proj"]
      bias= "none"
      task_type: str= "CAUSAL_LM"
