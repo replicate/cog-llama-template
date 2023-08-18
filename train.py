@@ -55,17 +55,25 @@ def train(
         description="Micro batch size. This specifies the on-device batch size, if this is less than `train_batch_size`, gradient accumulation will be activated.", 
         default=4, ge=1
     ),
-    eval_data: Path = Input(
+    num_validation_samples: int = Input(
+        description=("Number of samples to use for validation." \
+                     "If `run_validation` is `True` and `validation_data` is not specified, this number of samples" \
+                     "will be selected from the tail of the training data. If `validation_data` is specified, this" \
+                     "number of samples will be selected from the head of the validation data, up to the size of the validation data."
+        ),
+        default=100, ge=1
+    ),
+    validation_data: Path = Input(
         description="path to optional evaluation data file to use for model eval",
         default=None,
     ),
-    eval_batch_size: int = Input(
+    validation_batch_size: int = Input(
         description="Batch size for evaluation", 
-        default=4, ge=1
+        default=1, ge=1
     ),
     run_validation: bool = Input(
         description="Whether to run validation during training.", 
-        default=False
+        default=True
     ),
     learning_rate: float = Input(
         description="learning rate, for learning!", default=1e-4, ge=0
@@ -133,6 +141,7 @@ def train(
         f"llama_recipes/llama_finetuning.py",
         f"--enable_fsdp",
         f"--use_peft",
+        f"--peft_method=lora",
         f"--model_name={model_path}",
         f"--pure_bf16",
         f"--output_dir={output_dir}",
@@ -147,8 +156,10 @@ def train(
 
         # Validation arguments
         f"--run_validation={'False' if not run_validation else 'True'}",
+        f"--num_validation_samples={num_validation_samples}",
+        f"--validation_data_path={validation_data}",
         # f"--val_data={eval_data}",
-        f"--val_batch_size={eval_batch_size}",
+        f"--val_batch_size={validation_batch_size}",
 
         # Other arguments
         f"--seed={seed}",
