@@ -224,7 +224,7 @@ def train(model, train_dataloader,eval_dataloader, tokenizer, optimizer, lr_sche
         
     return results
 
-def evaluation(model,train_config, eval_dataloader, local_rank, tokenizer):
+def evaluation(model,train_config, eval_dataloader, local_rank, tokenizer, prompt=None):
     """
     Evaluates the model on the given dataloader
     
@@ -241,6 +241,7 @@ def evaluation(model,train_config, eval_dataloader, local_rank, tokenizer):
     model.eval()
     eval_preds = []
     eval_loss = 0.0  # Initialize evaluation loss
+    
     with MemoryTrace() as memtrace:
         for step, batch in enumerate(tqdm(eval_dataloader,colour="green", desc="evaluating Epoch")):
             for key in batch.keys():
@@ -254,13 +255,23 @@ def evaluation(model,train_config, eval_dataloader, local_rank, tokenizer):
                 outputs = model(**batch)
                 loss = outputs.loss
                 eval_loss += loss.detach().float()
+
             # Decode predictions and add to evaluation predictions list
             preds = torch.argmax(outputs.logits, -1)
             eval_preds.extend(
                 tokenizer.batch_decode(preds.detach().cpu().numpy(), skip_special_tokens=True)
             )
+
+            if step == 0 and local_rank == 0:
+                    characters_to_show = 100
+                    decoded_input = tokenizer.batch_decode(batch['input_ids'].detach().cpu().numpy(), skip_special_tokens=True)
+                    decoded_input = decoded_input[0][0:characters_to_show]
+                    decoded_prediction = eval_preds[0][0:characters_to_show]
+
+
     
     # If there's more than one CUDA device, reduce evaluation loss across all devices
+
     if torch.cuda.device_count() > 1 and train_config.enable_fsdp:
         dist.all_reduce(eval_loss, op=dist.ReduceOp.SUM)
     
@@ -271,10 +282,31 @@ def evaluation(model,train_config, eval_dataloader, local_rank, tokenizer):
     eval_ppl = torch.exp(eval_epoch_loss)
     
     # Print evaluation metrics
+    if train_config.validation_prompt:
+        input_ids = tokenizer(train_config.validation_prompt, return_tensors="pt")["input_ids"].to(local_rank)
+
+        output_ids = model.generate(
+            inputs=input_ids, 
+            max_length=50, 
+            do_sample=True,
+            top_k=250,
+            top_p=.8,
+            temperature=.75,
+        )
+
+        generated_text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+
     if train_config.enable_fsdp:
         if local_rank==0:
             print(f" {eval_ppl=} {eval_epoch_loss=}")
+            if train_config.validation_prompt:
+                print(f"\n\n---- Generated Response ----\n\n{generated_text}\n----------\n")
+
     else:
+        print('-------> Observed Validation Example')
+        print(decoded_input)
+        print('\n-------> Predicted Validation Example')
+        print(decoded_prediction)
         print(f" {eval_ppl=} {eval_epoch_loss=}")
         
     return eval_ppl, eval_epoch_loss
