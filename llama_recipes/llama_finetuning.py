@@ -20,7 +20,7 @@ from transformers import (
     AutoModelForCausalLM,
     AutoModelForSeq2SeqLM,
     AutoTokenizer,
-    default_data_collator,
+    DataCollatorForTokenClassification,
     BitsAndBytesConfig
 )
 import torch.distributed as dist
@@ -140,6 +140,11 @@ def main(**kwargs):
             )
         
     # Create DataLoaders for the training and validation dataset
+    data_collator = DataCollatorForTokenClassification(
+        tokenizer=tokenizer,
+        padding='longest'
+    )
+
     train_dataloader = torch.utils.data.DataLoader(
         dataset_train,
         batch_size=train_config.batch_size_training,
@@ -147,7 +152,7 @@ def main(**kwargs):
         pin_memory=True,
         sampler=train_sampler if train_sampler else None,
         drop_last=True,
-        collate_fn=default_data_collator,
+        collate_fn=data_collator,
     )
 
     if train_config.run_validation:
@@ -158,7 +163,7 @@ def main(**kwargs):
             pin_memory=True,
             sampler=val_sampler if val_sampler else None,
             drop_last=True,
-            collate_fn=default_data_collator,
+            collate_fn=data_collator,
         )
     else:
         eval_dataloader = None
@@ -172,6 +177,8 @@ def main(**kwargs):
         load_in_8bit=True if train_config.quantization else None,
         device_map="auto" if train_config.quantization else None,
     )
+
+    model.resize_token_embeddings(model.config.vocab_size + 1)
     
     print_model_size(model, train_config, rank if train_config.enable_fsdp else 0)
     
@@ -184,7 +191,7 @@ def main(**kwargs):
         model.to(torch.bfloat16)
 
     if train_config.use_peft:
-        kwargs['r'] = kwargs['lora_rank'] # can't pass --r to the script, torchrun won't have it
+        # kwargs['r'] = kwargs['lora_rank'] # can't pass --r to the script, torchrun won't have it
         peft_config = generate_peft_config(train_config, kwargs)
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
