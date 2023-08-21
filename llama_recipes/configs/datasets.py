@@ -47,3 +47,7 @@ class completion:
     num_validation_samples: int = 100
     run_validation: bool = True
     validation_data_path: str = None
+    pack_sequences: bool = True
+    wrap_packed_sequences: bool = False
+    chunk_size: int = 2048
+    max_seq_length: int = 4096
