@@ -26,6 +26,7 @@ def dataset_config():
         run_validation: bool = True
         validation_data_path: str = None
         pack: bool = True
+        wrap_packed_sequences: bool = True
     
     return completion
 
@@ -69,28 +70,43 @@ def dataset(dataset_config):
 def test_format_data(dataset, tokenizer):
     formatted_data = format_data(dataset, tokenizer, dataset_config)
     assert formatted_data[0]['text'].endswith(tokenizer.eos_token)
-    for example in formatted_data:
-        assert len(formatted_data == 1)
 
 @pytest.fixture(scope="session")
 def formatted_dataset(dataset, tokenizer):
     return format_data(dataset, tokenizer, dataset_config)
 
-def test_tokenize_data(formatted_dataset, tokenizer, dataset_config):
-    dataset_config.pack = True
+def test_tokenize_data_with_wrapped_packing(formatted_dataset, tokenizer, dataset_config):
+    dataset_config.pack_sequences = True
+    dataset_config.wrap_packed_sequences = False
+
     tokenized_data = tokenize_data(formatted_dataset, tokenizer, dataset_config)
-    print(type(tokenized_data))
-    print(len(tokenized_data))
 
     decoded_data = tokenizer.batch_decode(tokenized_data['input_ids'], skip_special_tokens=True)
-    print(decoded_data[0])
-    print('-----')
-    print(decoded_data[1])
+    for example in decoded_data:
+        assert example.endswith(tokenizer.eos_token)
+
+def test_tokenize_data_without_wrapped_packing(formatted_dataset, tokenizer, dataset_config):
+    dataset_config.pack_sequences = True
+    dataset_config.wrap_packed_sequences = False
+    tokenized_data = tokenize_data(formatted_dataset, tokenizer, dataset_config)
+
+    decoded_data = tokenizer.batch_decode(tokenized_data['input_ids'], skip_special_tokens=True)
     for example in decoded_data:
         assert example.endswith(tokenizer.eos_token)
         assert example.startswith("Write a response to the following message")
-    # assert tokenized_data['input_ids'].shape[0] == 1000
   
+def test_tokenize_data_without_packing(formatted_dataset, tokenizer, dataset_config):
+    dataset_config.pack_sequences = False
+    tokenized_data = tokenize_data(formatted_dataset, tokenizer, dataset_config)
+
+    decoded_data = tokenizer.batch_decode(tokenized_data['input_ids'], skip_special_tokens=True)
+    for example in decoded_data:
+        assert example.endswith(tokenizer.eos_token)
+        assert example.startswith("Write a response to the following message")
+  
+
+
+
 
 
 

@@ -72,16 +72,26 @@ def format_data(dataset, tokenizer, config = None):
     return dataset 
 
 def tokenize_data(dataset, tokenizer, config = None):
-    
+
+    try:
+        max_length = config.max_seq_length
+    except:
+        max_length = tokenizer.model_max_length
 
     dataset = dataset.map(
-        lambda sample: tokenizer(sample["text"]),
+        lambda sample: tokenizer(sample["text"], max_length=max_length, truncation=True),
         batched=True,
         remove_columns=list(dataset.features),
     )
     
-    if config.pack:
-        dataset = dataset.map(Concatenator(), batched=True)
+    if config.pack_sequences:
+        dataset = dataset.map(
+            Concatenator(
+                chunk_size=2048,
+                wrap_samples=config.wrap_packed_sequences,
+            ), 
+            batched=True
+        )
 
     return dataset
 
