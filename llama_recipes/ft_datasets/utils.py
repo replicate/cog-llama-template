@@ -85,6 +85,8 @@ class Concatenator(object):
         # Store unappended sequences as residual
         self.residual = current_sequences
 
+        results["labels"] = results["input_ids"].copy()
+
         return results
 
         # if len_of_current_seq + len_of_new_seq < self.chunk_size:
