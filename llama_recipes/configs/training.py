@@ -36,6 +36,7 @@ class train_config:
     num_validation_samples: int = 100
     validation_data_path: str = None
     validation_prompt: str = None
+    wrap_packed_sequences: bool = False
 
     
     

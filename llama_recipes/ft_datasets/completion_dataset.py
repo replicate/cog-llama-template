@@ -85,6 +85,9 @@ def tokenize_data(dataset, tokenizer, config = None):
     )
     
     if config.pack_sequences:
+        if config.wrap_packed_sequences:
+            print('Wrapping packed sequences...')
+            
         dataset = dataset.map(
             Concatenator(
                 chunk_size=2048,

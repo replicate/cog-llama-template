@@ -75,8 +75,16 @@ def train(
         description="Whether to run validation during training.", 
         default=True
     ),
+    validation_prompt: str = Input(
+        description="Prompt to use for generation during validation. If provided, a response to this prompt will be sampled and logged during validation.",
+        default=None,
+    ),
     learning_rate: float = Input(
         description="learning rate, for learning!", default=1e-4, ge=0
+    ),
+    wrap_packed_sequences: bool = Input(
+        description="This is hard to describe succinctly. Maybe we don't need to expose this.",
+        default=False
     ),
     seed: int = Input(
         description="random seed to use for training", 
@@ -133,6 +141,7 @@ def train(
     os.environ["HF_DATASETS_CACHE"] = "/src/.hf-cache"
 
 
+
     args = [
         # Hard coded for now
         "torchrun",
@@ -147,6 +156,10 @@ def train(
         f"--output_dir={output_dir}",
 
         # User specified arguments -----
+
+        # Preprocessing arguments
+        f"--wrap_packed_sequences={wrap_packed_sequences}",
+
         # Train arguments
         f"--data_path={train_data}",
         f"--num_epochs={num_train_epochs}",
@@ -161,9 +174,8 @@ def train(
         f"--run_validation={'False' if not run_validation else 'True'}",
         f"--num_validation_samples={num_validation_samples}",
         f"--validation_data_path={validation_data}",
-        # f"--val_data={eval_data}",
         f"--val_batch_size={validation_batch_size}",
-
+        f"--validation_prompt={validation_prompt}",
         # Other arguments
         f"--seed={seed}",
     ]

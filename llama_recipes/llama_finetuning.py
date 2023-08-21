@@ -88,6 +88,7 @@ def main(**kwargs):
 
     # Load the tokenizer and add special tokens
     tokenizer = LlamaTokenizer.from_pretrained(train_config.model_name, legacy=False)
+
     tokenizer.add_special_tokens(
             {
             
@@ -178,6 +179,7 @@ def main(**kwargs):
         device_map="auto" if train_config.quantization else None,
     )
 
+    # We added a special token for padding, so we need to resize the token embeddings
     model.resize_token_embeddings(model.config.vocab_size + 1)
     
     print_model_size(model, train_config, rank if train_config.enable_fsdp else 0)
@@ -191,7 +193,7 @@ def main(**kwargs):
         model.to(torch.bfloat16)
 
     if train_config.use_peft:
-        # kwargs['r'] = kwargs['lora_rank'] # can't pass --r to the script, torchrun won't have it
+        kwargs['r'] = kwargs['lora_rank'] # can't pass --r to the script, torchrun won't have it
         peft_config = generate_peft_config(train_config, kwargs)
         model = get_peft_model(model, peft_config)
         model.print_trainable_parameters()
