@@ -20,7 +20,7 @@ from transformers import (
     AutoModelForCausalLM,
     AutoModelForSeq2SeqLM,
     AutoTokenizer,
-    default_data_collator,
+    DataCollatorForTokenClassification,
     BitsAndBytesConfig
 )
 import torch.distributed as dist
@@ -88,6 +88,7 @@ def main(**kwargs):
 
     # Load the tokenizer and add special tokens
     tokenizer = LlamaTokenizer.from_pretrained(train_config.model_name, legacy=False)
+
     tokenizer.add_special_tokens(
             {
             
@@ -99,8 +100,12 @@ def main(**kwargs):
     update_config(dataset_config, **{
         "data_path": train_config.data_path,
         "num_validation_samples": train_config.num_validation_samples,
+        "validation_data_path": train_config.validation_data_path,
         "run_validation": train_config.run_validation,
-        })
+        "pack_sequences": train_config.pack_sequences,
+        "wrap_packed_sequences": train_config.wrap_packed_sequences,
+        "chunk_size": train_config.chunk_size,
+    })
     
      # Load and preprocess the dataset for training and validation
     dataset_train = get_preprocessed_dataset(
@@ -140,6 +145,11 @@ def main(**kwargs):
             )
         
     # Create DataLoaders for the training and validation dataset
+    data_collator = DataCollatorForTokenClassification(
+        tokenizer=tokenizer,
+        padding='longest'
+    )
+
     train_dataloader = torch.utils.data.DataLoader(
         dataset_train,
         batch_size=train_config.batch_size_training,
@@ -147,7 +157,7 @@ def main(**kwargs):
         pin_memory=True,
         sampler=train_sampler if train_sampler else None,
         drop_last=True,
-        collate_fn=default_data_collator,
+        collate_fn=data_collator,
     )
 
     if train_config.run_validation:
@@ -158,7 +168,7 @@ def main(**kwargs):
             pin_memory=True,
             sampler=val_sampler if val_sampler else None,
             drop_last=True,
-            collate_fn=default_data_collator,
+            collate_fn=data_collator,
         )
     else:
         eval_dataloader = None
@@ -172,6 +182,9 @@ def main(**kwargs):
         load_in_8bit=True if train_config.quantization else None,
         device_map="auto" if train_config.quantization else None,
     )
+
+    # We added a special token for padding, so we need to resize the token embeddings
+    model.resize_token_embeddings(model.config.vocab_size + 1)
     
     print_model_size(model, train_config, rank if train_config.enable_fsdp else 0)
     

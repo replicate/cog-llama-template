@@ -84,7 +84,8 @@ def train(model, train_dataloader,eval_dataloader, tokenizer, optimizer, lr_sche
                     if train_config.enable_fsdp:
                         batch[key] = batch[key].to(local_rank)
                     else:
-                        batch[key] = batch[key].to('cuda:0')              
+                        batch[key] = batch[key].to('cuda:0')   
+
                 loss = model(**batch).loss
                 loss = loss / gradient_accumulation_steps
                 total_loss += loss.detach().float()
@@ -262,12 +263,6 @@ def evaluation(model,train_config, eval_dataloader, local_rank, tokenizer, promp
                 tokenizer.batch_decode(preds.detach().cpu().numpy(), skip_special_tokens=True)
             )
 
-            if step == 0 and local_rank == 0:
-                    characters_to_show = 100
-                    decoded_input = tokenizer.batch_decode(batch['input_ids'].detach().cpu().numpy(), skip_special_tokens=True)
-                    decoded_input = decoded_input[0][0:characters_to_show]
-                    decoded_prediction = eval_preds[0][0:characters_to_show]
-
 
     
     # If there's more than one CUDA device, reduce evaluation loss across all devices
@@ -303,10 +298,8 @@ def evaluation(model,train_config, eval_dataloader, local_rank, tokenizer, promp
                 print(f"\n\n---- Generated Response ----\n\n{generated_text}\n----------\n")
 
     else:
-        print('-------> Observed Validation Example')
-        print(decoded_input)
-        print('\n-------> Predicted Validation Example')
-        print(decoded_prediction)
+        if train_config.validation_prompt:
+            print(f"\n\n---- Generated Response ----\n\n{generated_text}\n----------\n")
         print(f" {eval_ppl=} {eval_epoch_loss=}")
         
     return eval_ppl, eval_epoch_loss
