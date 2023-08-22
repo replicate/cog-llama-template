@@ -42,7 +42,7 @@ class Concatenator(object):
             result = concatenated_samples
             self.residual = {k: [] for k in concatenated_samples.keys()}
 
-        result["labels"] = result["input_ids"].copy()
+        # result["labels"] = result["input_ids"].copy()
 
         return result
     
@@ -91,7 +91,7 @@ class Concatenator(object):
         # Store unappended sequences as residual
         self.residual = current_sequences
 
-        results["labels"] = results["input_ids"].copy()
+        # results["labels"] = results["input_ids"].copy()
 
         return results        
 

@@ -82,7 +82,8 @@ def tokenize_data(dataset, tokenizer, config = None):
         lambda sample: tokenizer(sample["text"], max_length=max_length, truncation=True),
         batched=True,
         remove_columns=list(dataset.features),
-    )
+        ).map(lambda sample: {"labels": sample["input_ids"]},batched=True)
+
     
     if config.pack_sequences:
             

@@ -85,6 +85,13 @@ def test_tokenize_data_with_wrapped_packing(formatted_dataset, tokenizer, datase
 
     tokenized_data = tokenize_data(formatted_dataset, tokenizer, dataset_config)
 
+
+    for tokenized_example in tokenized_data:
+        assert 'labels' in tokenized_example
+
+    decoded_data = tokenizer.batch_decode(tokenized_data['input_ids'], skip_special_tokens=False)
+
+
     decoded_data = tokenizer.batch_decode(tokenized_data['input_ids'], skip_special_tokens=True)
     
     at_least_one_wrapped = False
@@ -103,11 +110,13 @@ def test_tokenize_data_without_wrapped_packing_small_chunk(formatted_dataset, to
     dataset_config.chunk_size: int = 100
 
     tokenized_data = tokenize_data(formatted_dataset, tokenizer, dataset_config)
-    
+
+    for tokenized_example in tokenized_data:
+        assert tokenized_example['input_ids'][-1] == tokenizer.eos_token_id
+        assert 'labels' in tokenized_example
+
     decoded_data = tokenizer.batch_decode(tokenized_data['input_ids'], skip_special_tokens=False)
 
-    for i, tokenized_example in enumerate(tokenized_data['input_ids']):
-        assert tokenized_example[-1] == tokenizer.eos_token_id
 
     for example in decoded_data:
         prefix = ' '.join([tokenizer.bos_token,"Write a response to the following message"])
@@ -131,10 +140,11 @@ def test_tokenize_data_without_wrapped_packing_large_chunk(formatted_dataset, to
 
     tokenized_data = tokenize_data(formatted_dataset, tokenizer, dataset_config)
 
-    decoded_data = tokenizer.batch_decode(tokenized_data['input_ids'], skip_special_tokens=False)
+    for tokenized_example in tokenized_data:
+        assert tokenized_example['input_ids'][-1] == tokenizer.eos_token_id
+        assert 'labels' in tokenized_example
 
-    for tokenized_example in tokenized_data['input_ids']:
-        assert tokenized_example[-1] == tokenizer.eos_token_id
+    decoded_data = tokenizer.batch_decode(tokenized_data['input_ids'], skip_special_tokens=False)
 
     for example in decoded_data:
         prefix = ' '.join([tokenizer.bos_token,"Write a response to the following message"])
@@ -159,8 +169,9 @@ def test_tokenize_data_without_packing(formatted_dataset, tokenizer, dataset_con
         assert tokenized_example[-1] == tokenizer.eos_token_id
 
     decoded_data = tokenizer.batch_decode(tokenized_data['input_ids'], skip_special_tokens=True)
-    for example in decoded_data:
+    for i, example in enumerate(decoded_data):
         assert example.startswith("Write a response to the following message")
+        assert example + tokenizer.eos_token == formatted_dataset[i]['text']
   
 
 
