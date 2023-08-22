@@ -37,6 +37,8 @@ class train_config:
     validation_data_path: str = None
     validation_prompt: str = None
     wrap_packed_sequences: bool = False
+    pack_sequences: bool = True
+    chunk_size: int = 2048
 
     
     

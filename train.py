@@ -82,9 +82,17 @@ def train(
     learning_rate: float = Input(
         description="learning rate, for learning!", default=1e-4, ge=0
     ),
+    pack_sequences: bool = Input(
+        description="If 'True', sequences will be packed into a single sequences up to a given length. This improves computational efficiency.",
+        default=True
+    ),
     wrap_packed_sequences: bool = Input(
-        description="This is hard to describe succinctly. Maybe we don't need to expose this.",
+        description="If 'pack_sequences' is 'True', this will wrap packed sequences across examples, ensuring a constant sequence length but breaking prompt formatting.",
         default=False
+    ),
+    chunk_size: int = Input(
+        description="If 'pack_sequences' is 'True', this will chunk sequences into chunks of this size.",
+        default=2048, ge=1
     ),
     seed: int = Input(
         description="random seed to use for training", 
@@ -158,7 +166,9 @@ def train(
         # User specified arguments -----
 
         # Preprocessing arguments
+        f"--pack_sequences={pack_sequences}",
         f"--wrap_packed_sequences={wrap_packed_sequences}",
+        f"--chunk_size={chunk_size}",
 
         # Train arguments
         f"--data_path={train_data}",

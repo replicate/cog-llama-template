@@ -100,8 +100,12 @@ def main(**kwargs):
     update_config(dataset_config, **{
         "data_path": train_config.data_path,
         "num_validation_samples": train_config.num_validation_samples,
+        "validation_data_path": train_config.validation_data_path,
         "run_validation": train_config.run_validation,
-        })
+        "pack_sequences": train_config.pack_sequences,
+        "wrap_packed_sequences": train_config.wrap_packed_sequences,
+        "chunk_size": train_config.chunk_size,
+    })
     
      # Load and preprocess the dataset for training and validation
     dataset_train = get_preprocessed_dataset(

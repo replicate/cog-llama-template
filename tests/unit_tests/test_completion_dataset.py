@@ -5,7 +5,6 @@ import sys
 sys.path.append('.')
 
 from llama_recipes.ft_datasets.completion_dataset import (
-    get_completion_dataset, 
     load_data,
     format_data,
     tokenize_data
@@ -25,8 +24,9 @@ def dataset_config():
         num_validation_samples: int = 100
         run_validation: bool = True
         validation_data_path: str = None
-        pack: bool = True
+        pack_sequences: bool = True
         wrap_packed_sequences: bool = True
+        chunk_size: int = 100
     
     return completion
 
@@ -37,6 +37,8 @@ def tokenizer():
     tokenizer.add_special_tokens(
             {
                 "pad_token": "<PAD>",
+                "eos_token": "</s>",
+                "bos_token": "<s>",
             }
         )
     return tokenizer
@@ -69,7 +71,9 @@ def dataset(dataset_config):
 
 def test_format_data(dataset, tokenizer):
     formatted_data = format_data(dataset, tokenizer, dataset_config)
-    assert formatted_data[0]['text'].endswith(tokenizer.eos_token)
+    for example in formatted_data:
+        assert example['text'].startswith("Write a response to the following message")
+        assert example['text'].endswith(tokenizer.eos_token)
 
 @pytest.fixture(scope="session")
 def formatted_dataset(dataset, tokenizer):
@@ -77,31 +81,85 @@ def formatted_dataset(dataset, tokenizer):
 
 def test_tokenize_data_with_wrapped_packing(formatted_dataset, tokenizer, dataset_config):
     dataset_config.pack_sequences = True
-    dataset_config.wrap_packed_sequences = False
+    dataset_config.wrap_packed_sequences = True
 
     tokenized_data = tokenize_data(formatted_dataset, tokenizer, dataset_config)
 
     decoded_data = tokenizer.batch_decode(tokenized_data['input_ids'], skip_special_tokens=True)
+    
+    at_least_one_wrapped = False
     for example in decoded_data:
-        assert example.endswith(tokenizer.eos_token)
+        if not example.startswith("Write a response to the following message"):
+            at_least_one_wrapped = True
 
-def test_tokenize_data_without_wrapped_packing(formatted_dataset, tokenizer, dataset_config):
+    assert at_least_one_wrapped
+
+    for tokenized_example in tokenized_data['input_ids']:
+        assert len(tokenized_example) == dataset_config.chunk_size
+
+def test_tokenize_data_without_wrapped_packing_small_chunk(formatted_dataset, tokenizer, dataset_config):
     dataset_config.pack_sequences = True
     dataset_config.wrap_packed_sequences = False
+    dataset_config.chunk_size: int = 100
+
+    tokenized_data = tokenize_data(formatted_dataset, tokenizer, dataset_config)
+    
+    decoded_data = tokenizer.batch_decode(tokenized_data['input_ids'], skip_special_tokens=False)
+
+    for i, tokenized_example in enumerate(tokenized_data['input_ids']):
+        assert tokenized_example[-1] == tokenizer.eos_token_id
+
+    for example in decoded_data:
+        prefix = ' '.join([tokenizer.bos_token,"Write a response to the following message"])
+        assert example.startswith(prefix)
+    
+    recovered_data = []
+    for decoded_sequence in decoded_data:
+        for decoded_example in decoded_sequence.split(tokenizer.eos_token)[:-1]:
+            decoded_example = decoded_example.removeprefix(tokenizer.bos_token + ' ')
+            decoded_example += tokenizer.eos_token
+            recovered_data.append(decoded_example)
+
+    for i in range(len(recovered_data)):
+        assert recovered_data[i] == formatted_dataset[i]['text']
+
+def test_tokenize_data_without_wrapped_packing_large_chunk(formatted_dataset, tokenizer, dataset_config):
+    dataset_config.pack_sequences = True
+    dataset_config.wrap_packed_sequences = False
+    dataset_config.chunk_size: int = 2048
+
+
     tokenized_data = tokenize_data(formatted_dataset, tokenizer, dataset_config)
 
-    decoded_data = tokenizer.batch_decode(tokenized_data['input_ids'], skip_special_tokens=True)
+    decoded_data = tokenizer.batch_decode(tokenized_data['input_ids'], skip_special_tokens=False)
+
+    for tokenized_example in tokenized_data['input_ids']:
+        assert tokenized_example[-1] == tokenizer.eos_token_id
+
     for example in decoded_data:
-        assert example.endswith(tokenizer.eos_token)
-        assert example.startswith("Write a response to the following message")
-  
+        prefix = ' '.join([tokenizer.bos_token,"Write a response to the following message"])
+        assert example.startswith(prefix)
+    
+    recovered_data = []
+    for decoded_sequence in decoded_data:
+        for decoded_example in decoded_sequence.split(tokenizer.eos_token)[:-1]:
+            decoded_example = decoded_example.removeprefix(tokenizer.bos_token + ' ')
+            decoded_example += tokenizer.eos_token
+            recovered_data.append(decoded_example)
+
+    for i in range(len(recovered_data)):
+        assert recovered_data[i] == formatted_dataset[i]['text']
+    
+
 def test_tokenize_data_without_packing(formatted_dataset, tokenizer, dataset_config):
     dataset_config.pack_sequences = False
     tokenized_data = tokenize_data(formatted_dataset, tokenizer, dataset_config)
 
+    for tokenized_example in tokenized_data['input_ids']:
+        assert tokenized_example[-1] == tokenizer.eos_token_id
+
     decoded_data = tokenizer.batch_decode(tokenized_data['input_ids'], skip_special_tokens=True)
     for example in decoded_data:
-        assert example.endswith(tokenizer.eos_token)
         assert example.startswith("Write a response to the following message")
   
 

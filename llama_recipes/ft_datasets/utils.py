@@ -6,10 +6,10 @@ from itertools import chain
 from torch.utils.data import Dataset
 
 class Concatenator(object):
-    def __init__(self, chunk_size=2096, wrap_samples=False):
+    def __init__(self, chunk_size=2048, wrap_packed_sequences=False):
         self.chunk_size=chunk_size
         self.residual = {"input_ids": [], "attention_mask": []}
-        self.wrap_samples = False
+        self.wrap_packed_sequences = wrap_packed_sequences
 
     def _wrap_concat(self, batch):
         """
@@ -69,12 +69,18 @@ class Concatenator(object):
 
         for idx in range(num_samples):
             # Check if adding next sample will exceed the chunk size for any key
-            will_exceed = len(current_sequences[list(keys)[0]]) + len(batch[list(keys)[0]][idx]) > self.chunk_size
+            len_current_sequences = len(current_sequences[list(keys)[0]])
+            len_batch_sequence = len(batch[list(keys)[0]][idx])
+
+            will_exceed = len_current_sequences + len_batch_sequence > self.chunk_size
 
             if will_exceed:
-                for key in keys:
-                    results[key].append(current_sequences[key])
-                    current_sequences[key] = []
+                
+                if len_current_sequences > 0:
+                    for key in keys:
+                        results[key].append(current_sequences[key])
+                        current_sequences[key] = []
+            
                 # After appending to results, extend current_sequences with the sample for all keys
                 for key in keys:
                     current_sequences[key].extend(batch[key][idx])
@@ -87,31 +93,11 @@ class Concatenator(object):
 
         results["labels"] = results["input_ids"].copy()
 
-        return results
-
-        # if len_of_current_seq + len_of_new_seq < self.chunk_size:
-        #     # Add new sequences to current sequences
-        #     for key in keys:
-        #         current_sequences[key] += batch[key]
-        #         len_of_current_seq = len(current_sequences[list(current_sequences.keys())[0]])
-
-        # elif len_of_current_seq + len_of_new_seq == self.chunk_size:
-        #     for key in keys:
-        #         current_sequences[key] += batch[key]
-        #         len_of_current_seq = len(current_sequences[list(current_sequences.keys())[0]])
-        #         return current_sequences
-        
-        # else:
-
-        #     pass
-
-  
-
-        
+        return results        
 
     def __call__(self, batch):
         
-        if self.wrap_samples:
+        if self.wrap_packed_sequences:
             return self._wrap_concat(batch)
         else:
             return self._concat(batch)
