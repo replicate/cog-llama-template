@@ -102,11 +102,13 @@ class Predictor(BasePredictor):
             shutil.rmtree(out)
         with zipfile.ZipFile(weights, 'r') as zip_ref:
             zip_ref.extractall(out)
+        # this bit with peft will be tricky
         model = PeftModel.from_pretrained(model, out)
         print(f"peft model loaded in {time.time() - st}")
         return model.to('cuda')
 
     def load_huggingface_model(self, weights=None, load_in_4bit=False):
+        # nyacomp.load_compressed(...)
         st = time.time()
         print(f"loading weights from {weights} w/o tensorizer")
         if LOAD_IN_4BIT:
@@ -122,6 +124,7 @@ class Predictor(BasePredictor):
             ).to(self.device)
 
         print(f"weights loaded in {time.time() - st}")
+
         return model
 
     def predict(
