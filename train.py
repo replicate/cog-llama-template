@@ -45,7 +45,7 @@ def train(
     ),
     num_train_epochs: int = Input(
         description="number of training epochs", 
-        ge=1, default=1,
+        ge=1, default=3,
     ),
     train_batch_size: int = Input(
         description="Global batch size. This specifies the batch size that will be used to calculate gradients.",
@@ -61,7 +61,7 @@ def train(
                      "will be selected from the tail of the training data. If `validation_data` is specified, this" \
                      "number of samples will be selected from the head of the validation data, up to the size of the validation data."
         ),
-        default=100, ge=1
+        default=50, ge=1
     ),
     validation_data: Path = Input(
         description="path to optional evaluation data file to use for model eval",
@@ -84,7 +84,7 @@ def train(
     ),
     pack_sequences: bool = Input(
         description="If 'True', sequences will be packed into a single sequences up to a given length. This improves computational efficiency.",
-        default=True
+        default=False,
     ),
     wrap_packed_sequences: bool = Input(
         description="If 'pack_sequences' is 'True', this will wrap packed sequences across examples, ensuring a constant sequence length but breaking prompt formatting.",
