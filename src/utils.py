@@ -277,20 +277,3 @@ class StreamingTextStopSequenceHandler:
             self.cache.clear()
 
    
-    
-
-
-# class StopSequenceChecker:
-#     def __init__(self, stop_sequences):
-#         self.stop_sequences = stop_sequences
-
-#     def matches_start_of_stop_sequence(self, text):
-#         """
-#         Checks if the end of the provided text matches the beginning of any stop sequence.
-#         """
-#         for stop_sequence in self.stop_sequences:
-#             for i in range(1, len(stop_sequence) + 1):
-#                 # Check if the end of the text matches the start of the stop_sequence
-#                 if text.endswith(stop_sequence[:i]):
-#                     return True
-#         return False

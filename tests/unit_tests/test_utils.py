@@ -203,25 +203,26 @@ def test_adjacent_stop_sequences(tokenizer):
     assert ''.join(output) == " how are <end" # All tokens are yielded since no stop sequence was provided
 
 
-
-def test_overlapping_stop_sequence(tokenizer):
-    stop_sequences = ["<end>", "<end |STOP|"]
+def test_wtf(tokenizer):
+    stop_sequences = ["John"]
     stop_sequence_handler = StreamingTextStopSequenceHandler(
         stop_sequences, 
         eos_token=tokenizer.eos_token
     )
     
-    prompt = "Hello world"
-    prompt_tokens = tokenizer.encode(prompt)
+    prompt = "My name is John Michael. My name is John Michael. My"
+    prompt_tokens = tokenizer(prompt, return_tensors="pt").input_ids
 
-    response = "how are <end |STOP| today?"
+    response = "name is John Michael."
     response_tokens = tokenizer.encode(response, add_special_tokens=False)
 
-    old_text = tokenizer.decode(prompt_tokens)
+    old_tokens = prompt_tokens.tolist()[0]
+    old_text = tokenizer.bos_token + prompt
+    print('old text', old_text)
     output = []
     for token in response_tokens:
-        prompt_tokens.append(token)
-        text = tokenizer.decode(prompt_tokens)
+        old_tokens.append(token)
+        text = tokenizer.decode(old_tokens)
         new_text = text[len(old_text):]
         old_text = text
 
@@ -237,182 +238,5 @@ def test_overlapping_stop_sequence(tokenizer):
     for yielded_text in stop_sequence_handler.finalize():
         output.append(yielded_text) 
     
-    assert ''.join(output) == " how are" # All tokens are yielded since no stop sequence was provided
-   
-    
+    assert ''.join(output) == " name is" # All tokens are yielded since no stop sequence was provided
 
-#     assert output == expected_output 
-
-
-# def test_uncompleted_stop_tokens(tokenizer):
-#     stop_sequences = ["<end>"]
-#     stop_sequences_token_ids = [tokenizer.encode(seq, add_special_tokens=False) for seq in stop_sequences]
-#     stop_sequence_handler = StreamingStopSequenceHandler(stop_sequences_token_ids, eos_token_id=tokenizer.eos_token_id)
-    
-#     prompt = "Hello world how are you <end"
-#     token_ids = tokenizer.encode(prompt, add_special_tokens=False)
-#     expected_output = tokenizer.encode("Hello world how are you <end", add_special_tokens=False)
-#     output = []
-#     for token_id in token_ids:
-#         for yielded_token_id in stop_sequence_handler(token_id):
-#             if yielded_token_id == stop_sequence_handler.eos_token_id:
-#                 break
-#             test_uncompleted_stop_tokens
-#             output.append(yielded_token_id)
-
-#         if yielded_token_id == stop_sequence_handler.eos_token_id:
-#             break
-    
-#     for yielded_token_id in stop_sequence_handler.finalize():
-#         output.append(yielded_token_id) 
-    
-
-#     assert output == expected_output 
-
-##############
-
-# def test_no_stop_sequences(tokenizer):
-#     stop_sequence_handler = StreamingStopSequenceHandler(stop_sequences_token_ids=None)
-#     prompt = "Hello world <end>"
-#     token_ids = tokenizer.encode(prompt, add_special_tokens=False)
-#     output = []
-#     for token_id in token_ids:
-#         for yielded_token_id in stop_sequence_handler(token_id):
-#             output.append(yielded_token_id)
-
-#     assert output == token_ids # All tokens are yielded since no stop sequence was provided
-
-
-
-# def test_single_stop_sequence(tokenizer):
-#     stop_sequences = ["<end>"]
-#     stop_sequences_token_ids = [tokenizer.encode(seq, add_special_tokens=False) for seq in stop_sequences]
-#     stop_sequence_handler = StreamingStopSequenceHandler(stop_sequences_token_ids, eos_token_id=tokenizer.eos_token_id)
-    
-#     prompt = "Hello world <end> how are you?"
-#     token_ids = tokenizer.encode(prompt, add_special_tokens=False)
-#     expected_output = tokenizer.encode("Hello world", add_special_tokens=False)
-#     output = []
-#     for token_id in token_ids:
-#         for yielded_token_id in stop_sequence_handler(token_id):
-#             if yielded_token_id == stop_sequence_handler.eos_token_id:
-#                 break
-            
-#             output.append(yielded_token_id)
-
-#         if yielded_token_id == stop_sequence_handler.eos_token_id:
-#             break
-    
-#     for yielded_token_id in stop_sequence_handler.finalize():
-#         output.append(yielded_token_id) 
-    
-    
-
-#     assert output == expected_output # All tokens are yielded since no stop sequence was provided
-
-
-# def test_multiple_stop_sequence(tokenizer):
-#     stop_sequences = ["<end>", "how are"]
-#     stop_sequences_token_ids = [tokenizer.encode(seq, add_special_tokens=False) for seq in stop_sequences]
-#     stop_sequence_handler = StreamingStopSequenceHandler(stop_sequences_token_ids, eos_token_id=tokenizer.eos_token_id)
-    
-#     prompt = "Hello world <end! how are you?"
-#     token_ids = tokenizer.encode(prompt, add_special_tokens=False)
-#     expected_output = tokenizer.encode("Hello world <end!", add_special_tokens=False)
-#     output = []
-#     import time
-#     st = time.time()
-#     for token_id in token_ids:
-#         for yielded_token_id in stop_sequence_handler(token_id):
-#             if yielded_token_id == stop_sequence_handler.eos_token_id:
-#                 break
-            
-#             output.append(yielded_token_id)
-
-#         if yielded_token_id == stop_sequence_handler.eos_token_id:
-#             break
-    
-#     for yielded_token_id in stop_sequence_handler.finalize():
-#         output.append(yielded_token_id) 
-    
-    
-#     assert output == expected_output # All tokens are yielded since no stop sequence was provided
-
-# def test_multiple_overlapping_stop_sequence_1(tokenizer):
-#     stop_sequences = ["<end>", "how are"]
-#     stop_sequences_token_ids = [tokenizer.encode(seq, add_special_tokens=False) for seq in stop_sequences]
-#     stop_sequence_handler = StreamingStopSequenceHandler(stop_sequences_token_ids, eos_token_id=tokenizer.eos_token_id)
-    
-#     prompt = "Hello world <end how are you?"
-#     token_ids = tokenizer.encode(prompt, add_special_tokens=False)
-#     expected_output = tokenizer.encode("Hello world <end", add_special_tokens=False)
-#     output = []
-#     for token_id in token_ids:
-#         for yielded_token_id in stop_sequence_handler(token_id):
-#             if yielded_token_id == stop_sequence_handler.eos_token_id:
-#                 break
-            
-#             output.append(yielded_token_id)
-
-#         if yielded_token_id == stop_sequence_handler.eos_token_id:
-#             break
-    
-#     for yielded_token_id in stop_sequence_handler.finalize():
-#         output.append(yielded_token_id) 
-    
-    
-
-#     assert output == expected_output 
-
-
-# def test_multiple_overlapping_stop_sequence_2(tokenizer):
-#     stop_sequences = ["<end>", "<end how"]
-#     stop_sequences_token_ids = [tokenizer.encode(seq, add_special_tokens=False) for seq in stop_sequences]
-#     stop_sequence_handler = StreamingStopSequenceHandler(stop_sequences_token_ids, eos_token_id=tokenizer.eos_token_id)
-    
-#     prompt = "Hello world <end how are you?"
-#     token_ids = tokenizer.encode(prompt, add_special_tokens=False)
-#     expected_output = tokenizer.encode("Hello world", add_special_tokens=False)
-#     output = []
-#     for token_id in token_ids:
-#         for yielded_token_id in stop_sequence_handler(token_id):
-#             if yielded_token_id == stop_sequence_handler.eos_token_id:
-#                 break
-            
-#             output.append(yielded_token_id)
-
-#         if yielded_token_id == stop_sequence_handler.eos_token_id:
-#             break
-    
-#     for yielded_token_id in stop_sequence_handler.finalize():
-#         output.append(yielded_token_id) 
-    
-    
-
-#     assert output == expected_output 
-
-
-# def test_uncompleted_stop_tokens(tokenizer):
-#     stop_sequences = ["<end>"]
-#     stop_sequences_token_ids = [tokenizer.encode(seq, add_special_tokens=False) for seq in stop_sequences]
-#     stop_sequence_handler = StreamingStopSequenceHandler(stop_sequences_token_ids, eos_token_id=tokenizer.eos_token_id)
-    
-#     prompt = "Hello world how are you <end"
-#     token_ids = tokenizer.encode(prompt, add_special_tokens=False)
-#     expected_output = tokenizer.encode("Hello world how are you <end", add_special_tokens=False)
-#     output = []
-#     for token_id in token_ids:
-#         for yielded_token_id in stop_sequence_handler(token_id):
-#             if yielded_token_id == stop_sequence_handler.eos_token_id:
-#                 break
-#             test_uncompleted_stop_tokens
-#             output.append(yielded_token_id)
-
-#         if yielded_token_id == stop_sequence_handler.eos_token_id:
-#             break
-    
-#     for yielded_token_id in stop_sequence_handler.finalize():
-#         output.append(yielded_token_id) 
-    
-
-#     assert output == expected_output 
