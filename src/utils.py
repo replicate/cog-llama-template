@@ -128,7 +128,7 @@ def maybe_download_with_pget(
     return path
 #  [self.tokenizer.encode(seq, add_special_tokens=False) for seq in stop_sequences]
 
-class StreamingStopSequenceHandler:
+class StreamingTokenStopSequenceHandler:
     def __init__(self, stop_sequences_token_ids: tp.List[str] = None, eos_token_id: int = None):
         self.stop_sequences_token_ids = stop_sequences_token_ids
         self.eos_token_id = eos_token_id
@@ -137,7 +137,6 @@ class StreamingStopSequenceHandler:
             self.stop_sequences_token_ids = stop_sequences_token_ids
             self.stop_sequence_tracker = [0] * len(self.stop_sequences_token_ids)
             self.cache = []
-        print('stop sequences', self.stop_sequences_token_ids)
 
     def process(self, token_id):
             token_in_stop_sequence = False
@@ -146,8 +145,6 @@ class StreamingStopSequenceHandler:
             # Iterate through each stop sequence
             for idx, stop_sequence in enumerate(self.stop_sequences_token_ids):
                     # If token matches the next token in the stop sequence
-                    print('stop sequence ', stop_sequence)
-                    print('stop sequence tracker ', stop_sequence_tracker[idx])
                     if token_id == stop_sequence[stop_sequence_tracker[idx]]:
                         token_in_stop_sequence = True
                         stop_sequence_tracker[idx] += 1
@@ -195,3 +192,105 @@ class StreamingStopSequenceHandler:
             yield from self.cache
             self.cache.clear()
 
+
+
+
+class StreamingTextStopSequenceHandler:
+    def __init__(self, stop_sequences: tp.List[str] = None, eos_token: str = None):
+        self.stop_sequences = stop_sequences
+        self.eos_token = eos_token
+        self.cache = []
+
+        if stop_sequences:
+            self.stop_sequence_tracker = [0] * len(self.stop_sequences)
+            self.stop_sequence_lens = [len(seq) for seq in self.stop_sequences]
+
+    def get_match_length(self, text: str, stop_sequence: str):
+            """
+            Checks if the end of the provided text matches the beginning of any stop sequence.
+            Returns the length of the matched stop sequence if it exists, otherwise returns 0.
+            """
+            matched_len = 0
+            for i in range(1, len(stop_sequence) + 1):
+                # Check if the end of the text matches the start of the stop_sequence
+                if text.endswith(stop_sequence[:i]):
+                    matched_len = i
+            if matched_len:
+                return matched_len
+            return 0
+
+    def process(self, token):
+            partial_match = False
+            stop_sequence_tracker = self.stop_sequence_tracker.copy()
+
+            # Iterate through each stop sequence
+            text = ''.join(self.cache) + token
+            for idx, stop_sequence in enumerate(self.stop_sequences):
+                    # If token matches the next token in the stop sequence
+                    match_length = self.get_match_length(text, stop_sequence)
+                    if match_length:
+                        # If we've completed the stop sequence
+                        if match_length == self.stop_sequence_lens[idx]:
+                            self.cache.clear()
+                            stop_sequence_tracker = [0] * len(self.stop_sequences)
+                            yield self.eos_token
+                        else:
+                            partial_match = True
+                            # If we've matched more characters than before, update the tracker
+                            if match_length > stop_sequence_tracker[idx]:
+                                stop_sequence_tracker[idx] = match_length
+                            else:
+                                # Reset the tracker for that sequence
+                                stop_sequence_tracker[idx] = 0
+                            
+                    # If token doesn't match the next token in the stop sequence
+                    else:
+                        # Reset the tracker for that stop token sequence
+                        stop_sequence_tracker[idx] = 0    
+
+            if not partial_match:
+                # If token doesn't match a stop sequence, yield all cached tokens and the current token
+                self.cache.clear()
+                yield text
+
+            else:
+                # If we've reset a stop token counter, we need to yield cached tokens and then clear the cache
+                for i,j in zip(stop_sequence_tracker, self.stop_sequence_tracker):
+                    if i < j:
+                        yield ''.join(self.cache)
+                        self.cache.clear()
+
+                # Then we need to update the tracker and cache the current token
+                self.stop_sequence_tracker = stop_sequence_tracker
+                self.cache.append(token)    
+
+    def __call__(self, token):
+        if self.stop_sequences:
+            yield from self.process(token)
+
+        else:
+            yield token
+
+    def finalize(self):
+        if self.cache:
+            yield from self.cache
+            self.cache.clear()
+
+   
+    
+
+
+# class StopSequenceChecker:
+#     def __init__(self, stop_sequences):
+#         self.stop_sequences = stop_sequences
+
+#     def matches_start_of_stop_sequence(self, text):
+#         """
+#         Checks if the end of the provided text matches the beginning of any stop sequence.
+#         """
+#         for stop_sequence in self.stop_sequences:
+#             for i in range(1, len(stop_sequence) + 1):
+#                 # Check if the end of the text matches the start of the stop_sequence
+#                 if text.endswith(stop_sequence[:i]):
+#                     return True
+#         return False
