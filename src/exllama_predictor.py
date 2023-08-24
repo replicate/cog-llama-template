@@ -3,6 +3,7 @@ import sys
 import glob 
 import torch 
 import time
+import typing as tp 
 
 exllama_path = os.path.abspath('exllama')
 sys.path.insert(0, exllama_path)
@@ -10,6 +11,8 @@ sys.path.insert(0, exllama_path)
 from exllama.model import ExLlama, ExLlamaCache, ExLlamaConfig
 from exllama.tokenizer import ExLlamaTokenizer
 from exllama.generator import ExLlamaGenerator
+
+from .utils import maybe_download_with_pget, StreamingStopSequenceHandler
 
 torch.cuda._lazy_init()
 torch.set_printoptions(precision = 10)
@@ -53,6 +56,7 @@ class ExllamaGenerator:
         model = ExLlama(config)                                 # create ExLlama instance and load the weights
         tokenizer = ExLlamaTokenizer(tokenizer_path)            # create tokenizer from tokenizer model file
 
+
         cache = ExLlamaCache(model)                             # create cache for inference
         generator = ExLlamaGenerator(model, tokenizer, cache)   # create generator
 
@@ -66,6 +70,7 @@ class ExllamaGenerator:
             logits = timer("Warmup", lambda: next_logits(generator, warmup_ids, None))
 
         self.generator = begin(generator)
+    
 
     
     def __call__(
@@ -81,6 +86,7 @@ class ExllamaGenerator:
         min_new_tokens: int = 0,
         beams: int = 1,
         beam_length: int = 1,
+        stop_sequences: tp.List[tp.List[int]] = None,
     ):
 
         generator = begin(self.generator)
@@ -105,9 +111,18 @@ class ExllamaGenerator:
 
         generator.gen_begin(in_tokens)
         generator.begin_beam_search()
-        
-        
 
+
+        if stop_sequences:
+            stop_sequences_token_ids = generator.tokenizer.encode(stop_sequences).numpy().tolist()
+        else:
+            stop_sequences_token_ids = []
+
+        stop_sequence_handler = StreamingStopSequenceHandler(
+            stop_sequences_token_ids=stop_sequences_token_ids,
+            eos_token_id=generator.tokenizer.eos_token_id,
+        )
+                   
         for i in range(max_new_tokens):
             
             if i < min_new_tokens:
@@ -119,6 +134,13 @@ class ExllamaGenerator:
             if gen_token.item() == generator.tokenizer.eos_token_id:
                 break
 
+            for yielded_token_id in stop_sequence_handler(gen_token.item()):
+                if yielded_token_id == stop_sequence_handler.eos_token_id:
+                    break
+
+            if yielded_token_id == stop_sequence_handler.eos_token_id:
+                break
+    
             if gen_token.item() == generator.tokenizer.eos_token_id:
                 generator.replace_last_token(generator.tokenizer.newline_token_id)
 

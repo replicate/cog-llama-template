@@ -126,6 +126,72 @@ def maybe_download_with_pget(
 
 
     return path
+#  [self.tokenizer.encode(seq, add_special_tokens=False) for seq in stop_sequences]
 
+class StreamingStopSequenceHandler:
+    def __init__(self, stop_sequences_token_ids: tp.List[str] = None, eos_token_id: int = None):
+        self.stop_sequences_token_ids = stop_sequences_token_ids
+        self.eos_token_id = eos_token_id
 
+        if stop_sequences_token_ids:
+            self.stop_sequences_token_ids = stop_sequences_token_ids
+            self.stop_sequence_tracker = [0] * len(self.stop_sequences_token_ids)
+            self.cache = []
+        print('stop sequences', self.stop_sequences_token_ids)
+
+    def process(self, token_id):
+            token_in_stop_sequence = False
+            stop_sequence_tracker = self.stop_sequence_tracker.copy()
+
+            # Iterate through each stop sequence
+            for idx, stop_sequence in enumerate(self.stop_sequences_token_ids):
+                    # If token matches the next token in the stop sequence
+                    print('stop sequence ', stop_sequence)
+                    print('stop sequence tracker ', stop_sequence_tracker[idx])
+                    if token_id == stop_sequence[stop_sequence_tracker[idx]]:
+                        token_in_stop_sequence = True
+                        stop_sequence_tracker[idx] += 1
+
+                        # If we completed a stop sequence
+                        if stop_sequence_tracker[idx] == len(stop_sequence):
+                            # Clear the cache and reset all trackers
+                            self.cache.clear()
+                            stop_sequence_tracker = [0] * len(self.stop_sequences_token_ids)
+                            yield self.eos_token_id
+
+                    # If token doesn't match the next token in the stop sequence
+                    else:
+                        # Reset the tracker for that stop token sequence
+                        stop_sequence_tracker[idx] = 0    
+
+            if not token_in_stop_sequence:
+                # If token doesn't continue a stop sequence, yield all cached tokens and the current token
+
+                tokens_to_yield = self.cache + [token_id]
+                self.cache.clear()
+                for token in tokens_to_yield:
+                    yield token
+            else:
+                # If we've reset a stop token counter, we need to yield cached tokens and then clear the cache
+                for i,j in zip(stop_sequence_tracker, self.stop_sequence_tracker):
+                    if i < j:
+                        for token in self.cache:
+                            yield token
+                        self.cache.clear()
+                
+                # Then we need to update the tracker and cache the current token
+                self.stop_sequence_tracker = stop_sequence_tracker
+                self.cache.append(token_id)    
+
+    def __call__(self, token_id):
+        if self.stop_sequences_token_ids:
+            yield from self.process(token_id)
+
+        else:
+            yield token_id
+
+    def finalize(self):
+        if self.cache:
+            yield from self.cache
+            self.cache.clear()
 

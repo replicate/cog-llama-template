@@ -24,7 +24,7 @@ from config import (
 )
 
 from subclass import YieldingLlama
-from src.utils import maybe_download_with_pget
+from src.utils import maybe_download_with_pget, StreamingStopSequenceHandler
 
 from peft import PeftModel
 import os
@@ -48,6 +48,7 @@ class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
         print('starting setup')
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        
         
         if weights is not None and weights.name == "weights":
             # bugfix
@@ -154,6 +155,10 @@ class Predictor(BasePredictor):
             ge=0,
             default=250,
         ),
+        stop_sequences: str = Input(
+            description="A comma-separated list of sequences to stop generation at. For example, '<end>,<stop>' will stop generation at the first instance of 'end' or '<stop>'.",
+            default=None,
+        ),
         repetition_penalty: float = Input(
             description="Penalty for repeated words in generated text; 1 is no penalty, values greater than 1 discourage repetition, less than 1 encourage it.",
             ge=0.01,
@@ -175,6 +180,9 @@ class Predictor(BasePredictor):
         ),
     ) -> ConcatenateIterator: 
         
+        if stop_sequences:
+            stop_sequences = stop_sequences.split(",")
+        
         if USE_SYSTEM_PROMPT:
             prompt = prompt.strip('\n').lstrip(B_INST).rstrip(E_INST).strip()
             prompt_templated = PROMPT_TEMPLATE.format(system_prompt=system_prompt.strip(), instruction=prompt.strip())
@@ -184,6 +192,7 @@ class Predictor(BasePredictor):
         if self.use_exllama:
             n_tokens = 0
             st = time.time()
+
             for decoded_token in self.generator(
                 prompt_templated,
                 repetition_penalty=repetition_penalty,
@@ -194,6 +203,7 @@ class Predictor(BasePredictor):
                 top_k=top_k,
                 max_new_tokens=max_new_tokens,
                 min_new_tokens=min_new_tokens,
+                stop_sequences=stop_sequences,
             ):
                 n_tokens += 1
                 yield decoded_token
@@ -202,6 +212,16 @@ class Predictor(BasePredictor):
         
         # This is our original generation code
         else:
+            
+            if stop_sequences:
+                stop_sequences_token_ids = [self.tokenizer.encode(seq, add_special_tokens=False) for seq in stop_sequences]
+            else:
+                stop_sequences_token_ids = []
+
+            stop_sequence_handler = StreamingStopSequenceHandler(
+                stop_sequences_token_ids=stop_sequences_token_ids,
+                eos_token_id=self.tokenizer.eos_token_id,
+            )
 
             input = self.tokenizer(prompt_templated, return_tensors="pt").input_ids.to(self.device)
             n_in_tokens = input.shape[-1]
@@ -223,6 +243,13 @@ class Predictor(BasePredictor):
                     repetition_penalty=repetition_penalty,
                 ):
                     cur_id = output.item()
+
+                    for yielded_token_id in stop_sequence_handler(cur_id):
+                        if yielded_token_id == stop_sequence_handler.eos_token_id:
+                            break
+
+                    if yielded_token_id == stop_sequence_handler.eos_token_id:
+                        break
 
 
                     # in order to properly handle spaces, we need to do our own tokenizing. Fun!
