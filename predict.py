@@ -9,13 +9,11 @@ import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
 from config import (
-    LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH, 
-    REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
-    REMOTE_TRAINING_FILES_TO_DOWNLOAD,
-    USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS,
-    REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD, 
-    LOCAL_TRAINING_WEIGHTS_PATH, 
-    REMOTE_TRAINING_WEIGHTS_PATH,
+    DEFAULT_LOCAL_INFERENCE_WEIGHTS_PATH, 
+    DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH,
+    DEFAULT_INFERENCE_USE_EXLLAMA,
+    REMOTE_FILES_TO_DOWNLOAD, 
+    BASE_WEIGHTS_PATH, 
     LOAD_IN_4BIT,
     load_tokenizer, 
     load_tensorizer, 
@@ -24,7 +22,7 @@ from config import (
 )
 
 from subclass import YieldingLlama
-from src.utils import maybe_download_with_pget
+from scripts.utils import maybe_download_with_pget
 
 from peft import PeftModel
 import os
@@ -54,12 +52,12 @@ class Predictor(BasePredictor):
             weights = None
         # If weights aren't passed in, we'll use the default weights configuration
         if not weights:
-            weights = LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH
+            weights = DEFAULT_LOCAL_INFERENCE_WEIGHTS_PATH
             weights = maybe_download_with_pget(
-                weights, REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH, REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
+                weights, DEFAULT_REMOTE_INFERENCE_WEIGHTS_PATH, REMOTE_FILES_TO_DOWNLOAD,
             )
 
-            if USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS:
+            if DEFAULT_INFERENCE_USE_EXLLAMA:
                 from src.exllama_predictor import ExllamaGenerator
                 self.generator = ExllamaGenerator(weights)
                 self.use_exllama = True
@@ -84,18 +82,13 @@ class Predictor(BasePredictor):
 
     def load_peft(self, weights):
         st = time.time()
-
-        model_path = maybe_download_with_pget(
-            LOCAL_TRAINING_WEIGHTS_PATH, 
-            REMOTE_TRAINING_WEIGHTS_PATH, 
-            REMOTE_TRAINING_FILES_TO_DOWNLOAD,
-        )
-
-        model = self.load_huggingface_model(model_path, load_in_4bit=LOAD_IN_4BIT)
-        if 'http' in weights: # weights are in the cloud
+        if 'tensors' in BASE_WEIGHTS_PATH:
+            model = load_tensorizer(BASE_WEIGHTS_PATH, plaid_mode=False, cls=YieldingLlama)
+        else:
+            model = self.load_huggingface_model(BASE_WEIGHTS_PATH, load_in_4bit=LOAD_IN_4BIT)
+        if 'https' in weights: # weights are in the cloud
             local_weights = 'local_weights.zip'
-            if not os.path.exists(local_weights):
-                download_file(weights, local_weights)
+            download_file(weights, local_weights)
             weights = local_weights
         out = '/src/peft_dir'
         if os.path.exists(out):
@@ -127,6 +120,10 @@ class Predictor(BasePredictor):
     def predict(
         self,
         prompt: str = Input(description=f"Prompt to send to Llama v2."),
+        system_prompt: str = Input(
+            description="System prompt to send to Llama v2. This is prepended to the prompt and helps guide system behavior.", 
+            default=DEFAULT_SYSTEM_PROMPT,
+        ),
         max_new_tokens: int = Input(
             description="Maximum number of tokens to generate. A word is generally 2-3 tokens",
             ge=1,
@@ -204,11 +201,6 @@ class Predictor(BasePredictor):
         else:
 
             input = self.tokenizer(prompt_templated, return_tensors="pt").input_ids.to(self.device)
-            n_in_tokens = input.shape[-1]
-            if n_in_tokens >= self.model.config.max_position_embeddings:
-                raise ValueError(f"Your input is too long. Max input length is {self.model.config.max_position_embeddings} tokens, but you supplied {n_in_tokens} tokens.")
-
-            max_new_tokens = min(max_new_tokens, self.model.config.max_position_embeddings - n_in_tokens)
 
             with torch.inference_mode() and torch.autocast("cuda"):
                 first_token_yielded = False

@@ -10,9 +10,3 @@ weights/
 *.safetensors
 .cog/
 llama_weights/
-.env
-exllama/
-llama-recipes/
-orig-llama-recipes/
-vllm/
-.pytest_cache

@@ -7,140 +7,84 @@ import subprocess
 from typing import Optional
 from zipfile import ZipFile
 import psutil
-import typing as tp
-from dataclasses import fields, is_dataclass
-
 
 import torch
 from cog import BaseModel, Input, Path
 from tensorizer import TensorSerializer
 from transformers import LlamaForCausalLM
-from llama_recipes.configs.training import train_config
 
-from config import (
-    download_file,
-    LOCAL_TRAINING_WEIGHTS_PATH, 
-    REMOTE_TRAINING_WEIGHTS_PATH, 
-    LOCAL_TRAINING_WEIGHTS_CONFIG_PATH,
-    REMOTE_TRAINING_WEIGHTS_CONFIG_PATH,
-    REMOTE_TRAINING_FILES_TO_DOWNLOAD,
-    log_memory_stuff
-)
-
-from src.utils import maybe_download_with_pget
+from config import BASE_WEIGHTS_PATH, download_file, LOCAL_BASE_WEIGHTS, log_memory_stuff
 
 
 MODEL_OUT = "/src/tuned_weights.tensors"
 CHECKPOINT_DIR = "checkpoints"
 SAVE_STRATEGY = "epoch"
-OUTPUT_DIR = "training_output"
+DIST_OUT_DIR = "tmp/model"
 
 
 class TrainingOutput(BaseModel):
     weights: Path
 
+
 def train(
     train_data: Path = Input(
         description="path to data file to use for fine-tuning your model"
     ),
-    num_train_epochs: int = Input(
-        description="number of training epochs", 
-        ge=1, default=1,
-    ),
-    train_batch_size: int = Input(
-        description="Global batch size. This specifies the batch size that will be used to calculate gradients.",
-        default=4, ge=1,
-    ),
-    micro_batch_size: int = Input(
-        description="Micro batch size. This specifies the on-device batch size, if this is less than `train_batch_size`, gradient accumulation will be activated.", 
-        default=4, ge=1
-    ),
-    num_validation_samples: int = Input(
-        description=("Number of samples to use for validation." \
-                     "If `run_validation` is `True` and `validation_data` is not specified, this number of samples" \
-                     "will be selected from the tail of the training data. If `validation_data` is specified, this" \
-                     "number of samples will be selected from the head of the validation data, up to the size of the validation data."
-        ),
-        default=100, ge=1
-    ),
-    validation_data: Path = Input(
+    eval_data: Path = Input(
         description="path to optional evaluation data file to use for model eval",
         default=None,
     ),
-    validation_batch_size: int = Input(
-        description="Batch size for evaluation", 
-        default=1, ge=1
+    weights: Path = Input(
+        description="location of weights that are going to be fine-tuned", default=None
     ),
-    run_validation: bool = Input(
-        description="Whether to run validation during training.", 
-        default=True
-    ),
-    validation_prompt: str = Input(
-        description="Prompt to use for generation during validation. If provided, a response to this prompt will be sampled and logged during validation.",
-        default=None,
+    train_batch_size: int = Input(description="batch size per GPU", default=1, ge=1),
+    gradient_accumulation_steps: int = Input(
+        description="number of training steps to update gradient for before performing a backward pass",
+        default=8,
     ),
     learning_rate: float = Input(
-        description="learning rate, for learning!", default=1e-4, ge=0
+        description="learning rate, for learning!", default=2e-5, ge=0
     ),
-    pack_sequences: bool = Input(
-        description="If 'True', sequences will be packed into a single sequences up to a given length. This improves computational efficiency.",
-        default=True
+    warmup_ratio: float = Input(
+        description="pct of steps for a linear learning rate warmup",
+        ge=0,
+        le=0.5,
+        default=0.03,
     ),
-    wrap_packed_sequences: bool = Input(
-        description="If 'pack_sequences' is 'True', this will wrap packed sequences across examples, ensuring a constant sequence length but breaking prompt formatting.",
-        default=False
+    num_train_epochs: int = Input(
+        description="number of training epochs", ge=1, default=1
     ),
-    chunk_size: int = Input(
-        description="If 'pack_sequences' is 'True', this will chunk sequences into chunks of this size.",
-        default=2048, ge=1
+    max_steps: int = Input(
+        description="number of steps to run training for, supersedes num_train_epochs",
+        default=-1,
     ),
-    seed: int = Input(
-        description="random seed to use for training", 
-        default=42
+    logging_steps: int = Input(
+        description="number of steps between logging epoch & loss", default=1
     ),
-    # weights: Path = Input(
-    #     description="location of weights that are going to be fine-tuned", default=None
-    # ),
-    #
-    # warmup_ratio: float = Input(
-    #     description="pct of steps for a linear learning rate warmup",
-    #     ge=0,
-    #     le=0.5,
-    #     default=0.03,
-    # ),
-
-    # max_steps: int = Input(
-    #     description="number of steps to run training for, supersedes num_train_epochs",
-    #     default=-1,
-    # ),
-    # logging_steps: int = Input(
-    #     description="number of steps between logging epoch & loss", default=1
-    #),
     lora_rank: int = Input(
         description="Rank of the lora matrices", default=8, ge=1),
     lora_alpha: int = Input(description="Alpha parameter for scaling lora weights; weights are scaled by alpha/rank", default=16, ge=1),
-    lora_dropout: float = Input(description="Dropout for lora training", default=0.05, ge=0.0, le=1.0),
-    # lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
+    lora_dropout: float = Input(description="Dropout for lora training", default=0.1, ge=0.0, le=1.0),
+    lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
 ) -> TrainingOutput:
+    input_weights = weights if weights is not None else BASE_WEIGHTS_PATH
 
-    weights = REMOTE_TRAINING_WEIGHTS_PATH
 
-    if 'http' in weights:
-       
-        model_path = maybe_download_with_pget(
-            LOCAL_TRAINING_WEIGHTS_PATH, 
-            weights, 
-            REMOTE_TRAINING_FILES_TO_DOWNLOAD,
-        )
+    if 'http' in input_weights or 'gs' in input_weights:
+        # doing this once instead of 4x
+        download_file(input_weights, LOCAL_BASE_WEIGHTS)
+        input_weights = LOCAL_BASE_WEIGHTS
 
     root_path = os.getcwd()
+    deepspeed_config = os.path.join(root_path, "ds_config/ds_z3_bf16_config.json")
 
-    output_dir = OUTPUT_DIR
+    output_dir = DIST_OUT_DIR
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
     os.makedirs(output_dir)
 
     num_gpus = torch.cuda.device_count()
+    num_gpus_flag = f"--num_gpus={num_gpus}"
 
     print(f"Local Output Dir: {output_dir}")
     print(f"Number of GPUs: {num_gpus}")
@@ -148,47 +92,38 @@ def train(
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     os.environ["HF_DATASETS_CACHE"] = "/src/.hf-cache"
 
-
-
+    def _arg_if_present(var, var_name):
+        """Need to wrap any arguments whose default value in train() is `None`"""
+        if var:
+            return f" --{var_name} {var}"
+        return " "
+        
     args = [
-        # Hard coded for now
-        "torchrun",
-        f"--nnodes=1",
-        f"--nproc_per_node={num_gpus}",
-        f"llama_recipes/llama_finetuning.py",
-        f"--enable_fsdp",
-        f"--use_peft",
-        f"--peft_method=lora",
-        f"--model_name={model_path}",
-        f"--pure_bf16",
-        f"--output_dir={output_dir}",
-
-        # User specified arguments -----
-
-        # Preprocessing arguments
-        f"--pack_sequences={pack_sequences}",
-        f"--wrap_packed_sequences={wrap_packed_sequences}",
-        f"--chunk_size={chunk_size}",
-
-        # Train arguments
-        f"--data_path={train_data}",
-        f"--num_epochs={num_train_epochs}",
-        f"--batch_size_training={train_batch_size}",
-        f"--micro_batch_size={micro_batch_size}",
-        f"--lr={learning_rate}",
+        "/root/.pyenv/shims/deepspeed",
+        num_gpus_flag,
+        "--master_port=9292",
+        "--module",
+        "training.trainer",
+        "--deepspeed",
+        deepspeed_config,
+        f"--train_data={str(train_data)}",
+        f"--weights={input_weights}",
+        f"--num_train_epochs={num_train_epochs}",
+        f"--max_steps={max_steps}",
+        f"--learning_rate={learning_rate}",
+        f"--train_batch_size={train_batch_size}",
+        f"--gradient_accumulation_steps={gradient_accumulation_steps}",
+        f"--logging_steps={logging_steps}",
+        f"--warmup_ratio={warmup_ratio}",
         f"--lora_rank={lora_rank}",
         f"--lora_alpha={lora_alpha}",
         f"--lora_dropout={lora_dropout}",
-
-        # Validation arguments
-        f"--run_validation={'False' if not run_validation else 'True'}",
-        f"--num_validation_samples={num_validation_samples}",
-        f"--validation_data_path={validation_data}",
-        f"--val_batch_size={validation_batch_size}",
-        f"--validation_prompt={validation_prompt}",
-        # Other arguments
-        f"--seed={seed}",
+        f"--local_output_dir={output_dir}"
     ]
+    if eval_data:
+        args.append(f"--eval_data={eval_data}")
+    if lora_target_modules:
+        args.append(f"--lora_target_modules={lora_target_modules}")
 
     p = None
     try:
@@ -196,7 +131,7 @@ def train(
         p.wait()
         return_code = p.poll()
         if return_code != 0:
-            raise Exception(f"Training failed with exit code {return_code}! Check logs for details")
+            raise Exception(f"Training failed with exit codee {return_code}! Check logs for details")
         out_path = "training_output.zip"
 
         directory = Path(output_dir)
