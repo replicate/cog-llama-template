@@ -12,7 +12,7 @@ from exllama.model import ExLlama, ExLlamaCache, ExLlamaConfig
 from exllama.tokenizer import ExLlamaTokenizer
 from exllama.generator import ExLlamaGenerator
 
-from .utils import maybe_download_with_pget, StreamingStopSequenceHandler
+from .utils import maybe_download_with_pget, StreamingTextStopSequenceHandler
 
 torch.cuda._lazy_init()
 torch.set_printoptions(precision = 10)
@@ -86,7 +86,7 @@ class ExllamaGenerator:
         min_new_tokens: int = 0,
         beams: int = 1,
         beam_length: int = 1,
-        stop_sequences: tp.List[tp.List[int]] = None,
+        stop_sequences: tp.List[str] = None,
     ):
 
         generator = begin(self.generator)
@@ -106,21 +106,15 @@ class ExllamaGenerator:
 
         max_new_tokens = min(max_new_tokens, generator.model.config.max_seq_len - n_in_tokens)
 
-    
         num_res_tokens = in_tokens.shape[-1]  # Decode from here
 
         generator.gen_begin(in_tokens)
         generator.begin_beam_search()
 
 
-        if stop_sequences:
-            stop_sequences_token_ids = generator.tokenizer.encode(stop_sequences).numpy().tolist()
-        else:
-            stop_sequences_token_ids = []
-
-        stop_sequence_handler = StreamingStopSequenceHandler(
-            stop_sequences_token_ids=stop_sequences_token_ids,
-            eos_token_id=generator.tokenizer.eos_token_id,
+        stop_sequence_handler = StreamingTextStopSequenceHandler(
+            stop_sequences=stop_sequences,
+            eos_token=generator.tokenizer.eos_token,
         )
                    
         for i in range(max_new_tokens):
@@ -132,13 +126,6 @@ class ExllamaGenerator:
             
             gen_token = generator.beam_search()
             if gen_token.item() == generator.tokenizer.eos_token_id:
-                break
-
-            for yielded_token_id in stop_sequence_handler(gen_token.item()):
-                if yielded_token_id == stop_sequence_handler.eos_token_id:
-                    break
-
-            if yielded_token_id == stop_sequence_handler.eos_token_id:
                 break
     
             if gen_token.item() == generator.tokenizer.eos_token_id:
@@ -153,4 +140,14 @@ class ExllamaGenerator:
             # Why are we decoding to "�" so frequently? Need to compare to our original code.
             new_text = "" if new_text == "�" else new_text
 
-            yield new_text
+            for yielded_text in stop_sequence_handler(new_text):
+                if yielded_text == stop_sequence_handler.eos_token:
+                    break
+                yield yielded_text
+
+            if yielded_text == stop_sequence_handler.eos_token:
+                break
+
+        for yielded_text in stop_sequence_handler.finalize():
+            yield yielded_text
+
