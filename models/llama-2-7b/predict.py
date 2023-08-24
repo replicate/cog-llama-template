@@ -173,7 +173,6 @@ class Predictor(BasePredictor):
             n_tokens = 0
             st = time.time()
 
-
             for decoded_token in self.generator(
                 prompt,
                 repetition_penalty=1.15,
@@ -191,6 +190,11 @@ class Predictor(BasePredictor):
             t = time.time() - st
         
         else:
+            
+            if stop_sequences:
+                stop_sequences_token_ids = [self.tokenizer.encode(seq, add_special_tokens=False) for seq in stop_sequences]
+            else:
+                stop_sequences_token_ids = []
 
             stop_sequence_handler = StreamingTextStopSequenceHandler(
                 stop_sequences=stop_sequences,
