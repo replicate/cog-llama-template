@@ -126,7 +126,7 @@ class Predictor(BasePredictor):
         self,
         prompt: str = Input(description=f"Prompt to send to the model."),
         system_prompt: str = Input(
-            description="System prompt to send to Llama v2. This is prepended to the prompt and helps guide system behavior.", 
+            description="System prompt to send to Llama. This is prepended to the prompt and helps guide system behavior.", 
             default=DEFAULT_SYSTEM_PROMPT,
         ),
         max_new_tokens: int = Input(
