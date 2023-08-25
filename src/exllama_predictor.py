@@ -11,6 +11,7 @@ sys.path.insert(0, exllama_path)
 from exllama.model import ExLlama, ExLlamaCache, ExLlamaConfig
 from exllama.tokenizer import ExLlamaTokenizer
 from exllama.generator import ExLlamaGenerator
+import json
 
 from .utils import maybe_download_with_pget, StreamingTextStopSequenceHandler
 
@@ -43,16 +44,23 @@ class ExllamaGenerator:
         model_config_path = os.path.join(model_directory, "config.json")
         st_pattern = os.path.join(model_directory, "*.safetensors")
         model_path = glob.glob(st_pattern)[0]
+
+        with open(model_config_path, 'r') as f:
+            base_model_config = json.load(f)
+            if "max_position_embeddings" in base_model_config:
+                max_seq_len = base_model_config["max_position_embeddings"]
+            else:
+                max_seq_len = 4096
         
 
         config = ExLlamaConfig(model_config_path)               # create config from config.json
         config.model_path = model_path                          # supply path to model weights file
 
         # Override exllam's default settings to use full llama v2 context
-        config.max_seq_len = 2*2048
-        config.max_input_len = 2*2048
-        config.max_attention_size = 2*2048**2
-
+        config.max_seq_len = max_seq_len
+        config.max_input_len = max_seq_len
+        config.max_attention_size = max_seq_len**2
+        
         model = ExLlama(config)                                 # create ExLlama instance and load the weights
         tokenizer = ExLlamaTokenizer(tokenizer_path)            # create tokenizer from tokenizer model file
 
