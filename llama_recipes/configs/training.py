@@ -40,6 +40,22 @@ class train_config:
     pack_sequences: bool = True
     chunk_size: int = 2048
 
+
     
+
+    # optim: Optional[str] = field(
+    #     default="paged_adamw_32bit",
+    #     metadata={"help": "The optimizer to use."},
+    # )
+    # lr_scheduler_type: str = field(
+    #     default="constant",
+    #     metadata={"help": "Learning rate schedule. Constant a bit better than cosine, and has advantage for analysis"},
+    # )
+    # max_steps: int = field(default=10000, metadata={"help": "How many optimizer update steps to take"})
+    # warmup_ratio
     
+    # save_steps: int = field(default=100, metadata={"help": "Save checkpoint every X updates steps."})
+    # logging_steps: int = field(default=10, metadata={"help": "Log every X updates steps."})
+    # eval_steps: int = field(default=None, metadata={"help": "Run evaluation every X steps"})
+    # evaluation_strateg
     
