@@ -39,7 +39,7 @@ MODEL_NAME = "codellama-7b-instruct"
 LOAD_IN_4BIT = False
 TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
 USE_SYSTEM_PROMPT = True
-USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = True
+USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = False
 
 
 # DEFAULT INFERENCE CONFIGURATION
@@ -63,7 +63,12 @@ REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = get_env_var_or_default(
 #     for i in range(N_SHARDS)
 # ]
 
-REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = ["model.safetensors"]
+# REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = ["model.safetensors"]
+N_SHARDS=2
+REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = [
+    f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
+    for i in range(N_SHARDS)
+]
 
 REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
     "config.json",
@@ -73,6 +78,7 @@ REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
     "tokenizer.json",
     "tokenizer.model",
     "quantize_config.json",
+    "model.safetensors.index.json"
 ]
 
 # TRAINED INFERENCE CONFIGURATION
