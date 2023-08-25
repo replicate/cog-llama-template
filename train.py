@@ -24,6 +24,7 @@ from config import (
     LOCAL_TRAINING_WEIGHTS_CONFIG_PATH,
     REMOTE_TRAINING_WEIGHTS_CONFIG_PATH,
     REMOTE_TRAINING_FILES_TO_DOWNLOAD,
+    MODEL_NAME,
     log_memory_stuff
 )
 
@@ -94,9 +95,18 @@ def train(
         description="If 'pack_sequences' is 'True', this will chunk sequences into chunks of this size.",
         default=2048, ge=1
     ),
+    peft_method: str = Input(
+        description="Training method to use. Currently, 'lora' and 'qlora'.",
+        default="lora",
+        choices=["lora", "qlora"]
+    ),
     seed: int = Input(
         description="random seed to use for training", 
         default=42
+    ),
+    local_model_path: str = Input(
+        description="Path to local model to use for training. If not specified, will download a model based on `REMOTE_TRAINING_WEIGHTS_PATH`.",
+        default=None,
     ),
     # weights: Path = Input(
     #     description="location of weights that are going to be fine-tuned", default=None
@@ -122,16 +132,25 @@ def train(
     lora_dropout: float = Input(description="Dropout for lora training", default=0.05, ge=0.0, le=1.0),
     # lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
 ) -> TrainingOutput:
+    
+    # Hardcode QLoRA for 70B models for now
+    if '70' in MODEL_NAME and peft_method != "qlora":
+        print('Using 70B model, setting peft_method to qlora')
+        peft_method = "qlora"
 
-    weights = REMOTE_TRAINING_WEIGHTS_PATH
+    if not local_model_path:
+        weights = REMOTE_TRAINING_WEIGHTS_PATH
 
-    if 'http' in weights:
-       
-        model_path = maybe_download_with_pget(
-            LOCAL_TRAINING_WEIGHTS_PATH, 
-            weights, 
-            REMOTE_TRAINING_FILES_TO_DOWNLOAD,
-        )
+        if 'http' in weights:
+            print(f"Downloading weights to {LOCAL_TRAINING_WEIGHTS_PATH}...")
+            model_path = maybe_download_with_pget(
+                LOCAL_TRAINING_WEIGHTS_PATH, 
+                weights, 
+                REMOTE_TRAINING_FILES_TO_DOWNLOAD,
+            )
+
+    else:
+        model_path = local_model_path
 
     root_path = os.getcwd()
 
@@ -148,17 +167,25 @@ def train(
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     os.environ["HF_DATASETS_CACHE"] = "/src/.hf-cache"
 
+    args = []
 
-
-    args = [
-        # Hard coded for now
-        "torchrun",
-        f"--nnodes=1",
-        f"--nproc_per_node={num_gpus}",
+    if peft_method != "qlora":
+        args.extend(["torchrun", "--nnodes=1", f"--nproc_per_node={num_gpus}"])
+    else:
+        args.append("python")
+    
+    args.append(
         f"llama_recipes/llama_finetuning.py",
-        f"--enable_fsdp",
+    )
+    
+    if peft_method != "qlora":
+        args.append(
+            f"--enable_fsdp",
+        )
+
+    args.extend([
+        # Hard coded for now
         f"--use_peft",
-        f"--peft_method=lora",
         f"--model_name={model_path}",
         f"--pure_bf16",
         f"--output_dir={output_dir}",
@@ -179,6 +206,7 @@ def train(
         f"--lora_rank={lora_rank}",
         f"--lora_alpha={lora_alpha}",
         f"--lora_dropout={lora_dropout}",
+        f"--peft_method={peft_method}",
 
         # Validation arguments
         f"--run_validation={'False' if not run_validation else 'True'}",
@@ -188,7 +216,9 @@ def train(
         f"--validation_prompt={validation_prompt}",
         # Other arguments
         f"--seed={seed}",
-    ]
+    ])
+
+    print(f"Train.py Arguments: \n{args}")
 
     p = None
     try:
