@@ -38,7 +38,7 @@ MODEL_NAME = "codellama-7b-python"
 
 LOAD_IN_4BIT = False
 TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
-USE_SYSTEM_PROMPT = True
+USE_SYSTEM_PROMPT = False
 USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = True
 
 
