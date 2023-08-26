@@ -100,7 +100,7 @@ REMOTE_TRAINING_WEIGHTS_CONFIG_PATH = get_env_var_or_default(
     default_value="remote/path/to/your/weights/here"
 )
 
-N_SHARDS = 3
+N_SHARDS = 7
 REMOTE_TRAINING_FILES_TO_DOWNLOAD = [
     f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
     for i in range(N_SHARDS)
