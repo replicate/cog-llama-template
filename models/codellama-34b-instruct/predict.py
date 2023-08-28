@@ -35,10 +35,11 @@ import os
 # These are components of the prompt that should not be changed by the users
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
-PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_INST}"
+PROMPT_TEMPLATE = f"<s>{B_INST} {{instruction}} {E_INST}</s>"
+PROMPT_TEMPLATE_WITH_SYSTEM_PROMPT = f"<s>{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_INST}</s>"
 
 # Users may want to change the system prompt, but we use the recommended system prompt by default
-DEFAULT_SYSTEM_PROMPT = """"""
+DEFAULT_SYSTEM_PROMPT = ''
 
 
 class Predictor(BasePredictor):
@@ -167,17 +168,20 @@ class Predictor(BasePredictor):
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
         
-        if USE_SYSTEM_PROMPT:
-            prompt = prompt.strip('\n').lstrip(B_INST).rstrip(E_INST).strip()
-            prompt = PROMPT_TEMPLATE.format(system_prompt=system_prompt.strip(), instruction=prompt.strip())
+        user_prompt = prompt.strip('\n').lstrip(B_INST).rstrip(E_INST).strip()
+        prompt_templated = PROMPT_TEMPLATE.format(instruction=user_prompt)
 
-        print(f"Your formatted prompt is: \n{prompt}")
+        # If USE_SYSTEM_PROMPT is True, and the user has supplied some sort of system prompt, we add it to the prompt.
+        if USE_SYSTEM_PROMPT and system_prompt != '':
+            prompt_templated = PROMPT_TEMPLATE_WITH_SYSTEM_PROMPT.format(system_prompt=system_prompt.strip(), instruction=user_prompt)
+
+        print(f"Prompt: \n{prompt_templated}")
         if self.use_exllama:
             n_tokens = 0
             st = time.time()
 
             for decoded_token in self.generator(
-                prompt,
+                prompt_templated,
                 repetition_penalty=1.15,
                 repetition_penalty_sustain=256,
                 token_repetition_penalty_decay=128,
@@ -204,7 +208,7 @@ class Predictor(BasePredictor):
                 eos_token=self.tokenizer.eos_token,
             )
 
-            prompt_tokens = self.tokenizer(prompt, return_tensors="pt").input_ids.to(self.device)
+            prompt_tokens = self.tokenizer(prompt_templated, return_tensors="pt").input_ids.to(self.device)
             n_in_tokens = prompt_tokens.shape[-1]
             if n_in_tokens >= self.model.config.max_position_embeddings:
                 raise ValueError(f"Your input is too long. Max input length is {self.model.config.max_position_embeddings} tokens, but you supplied {n_in_tokens} tokens.")
@@ -246,6 +250,3 @@ class Predictor(BasePredictor):
             print(f"cur memory: {torch.cuda.memory_allocated()}")
             print(f"max allocated: {torch.cuda.max_memory_allocated()}")
             print(f"peak memory: {torch.cuda.max_memory_reserved()}")
-
-
-
