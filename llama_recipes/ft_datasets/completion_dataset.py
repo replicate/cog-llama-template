@@ -45,12 +45,8 @@ def load_data(
         if split == "train":
             dataset = _load_data(data_path)
         elif split == "val":
-            print(f"Selecting observations {len(dataset)-num_validation_samples} through {len(dataset)} from validation dataset for validation...")
             dataset = _load_data(validation_data_path)
-            end_index = min(len(dataset) - num_validation_samples, len(dataset))
-            indices = list(range(end_index))
-            dataset = dataset.select(indices)
-
+            
     return dataset
 
 

@@ -66,15 +66,16 @@ clean: select
 build-local: select
 	cog build
 
-serve: build-local
+serve: select
 	docker run \
 	-ti \
 	-p 5000:5000 \
 	--gpus=all \
+	-e COG_WEIGHTS=http://$(HOST_NAME):8000/training_output.zip \
+	-v `pwd`/training_output.zip:/src/local_weights.zip \
 	$(IMAGE_NAME)
 
-	# -e COG_WEIGHTS=http://$(HOST_NAME):8000/training_output.zip \
-	# -v `pwd`/training_output.zip:/src/local_weights.zip \
+
 
 test-local-predict: 
 	cog build

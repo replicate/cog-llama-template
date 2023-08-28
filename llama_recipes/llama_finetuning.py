@@ -172,8 +172,14 @@ def main(**kwargs):
         )
     else:
         eval_dataloader = None
+
+    if len(train_dataloader) == 0:
+        raise ValueError("Training dataloader is empty! This happens when your dataset is too small, relative to your batch size. " \
+                         "If `pack_sequences` is `True`, you're more likely to run into this issue, particularly with small datasets that " \
+                         "consist of short examples. Try setting `pack_sequences` to `False` and/or reducing your batch size."
+                        )
+                    
     
-            
     # Calculate gradient accumulation steps
     gradient_accumulation_steps = train_config.batch_size_training // train_config.micro_batch_size
     # Load the pre-trained model and setup its configuration
