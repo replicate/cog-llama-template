@@ -9,6 +9,7 @@ exllama_path = os.path.abspath('exllama')
 sys.path.insert(0, exllama_path)
 
 from exllama.model import ExLlama, ExLlamaCache, ExLlamaConfig
+from exllama.lora import ExLlamaLora
 from exllama.tokenizer import ExLlamaTokenizer
 from exllama.generator import ExLlamaGenerator
 
@@ -53,7 +54,7 @@ class ExllamaGenerator:
         config.max_input_len = 2*2048
         config.max_attention_size = 2*2048**2
 
-        model = ExLlama(config)                                 # create ExLlama instance and load the weights
+        self.model = model = ExLlama(config)                                 # create ExLlama instance and load the weights
         tokenizer = ExLlamaTokenizer(tokenizer_path)            # create tokenizer from tokenizer model file
 
 
@@ -72,6 +73,10 @@ class ExllamaGenerator:
         self.generator = begin(generator)
     
 
+    def load_lora(self, lora_path: str) -> None:
+        # add a cache here 
+        lora = ExLlamaLora(self.model, f"{lora_path}/adapter_config.json", f"{lora_path}/adapter_model.bin")
+        self.generator.lora = lora
     
     def __call__(
         self,

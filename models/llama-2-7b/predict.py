@@ -2,7 +2,6 @@ import shutil
 import time
 from typing import Optional
 import zipfile
-import glob
 import time 
 
 import torch
@@ -26,18 +25,7 @@ from config import (
 from subclass import YieldingLlama
 from src.utils import maybe_download_with_pget, StreamingTextStopSequenceHandler
 
-from peft import PeftModel
 import os
-
-from torch import Tensor
-def kaiming_uniform_(
-    tensor: Tensor, a: float = 0, mode: str = 'fan_in', nonlinearity: str = 'leaky_relu'
-):
-    return tensor
-
-import torch.nn.init
-torch.nn.init.kaiming_uniform_ = lambda x, *args, **kwargs: x
-torch.nn.init.uniform_ = lambda x, *args, **kwargs: x
 
 
 # This prompt formatting was copied from the original Llama v2 repo:
@@ -83,15 +71,15 @@ class Predictor(BasePredictor):
         # If weights are passed in, they are LoRa weights
         # so we need to download the fp16 weights and load with peft
         elif '.zip' in str(weights):
-            weights = str(weights)
-            self.model = self.load_peft(weights)
-            self.tokenizer = load_tokenizer()
-            self.use_exllama = False
+            from src.exllama_predictor import ExllamaGenerator
+            self.generator = ExllamaGenerator(weights)
+            self.initialize_peft(weights)
+            self.use_exllama = True
         else:
             raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
 
 
-    def initialize_peft(self, model, replicate_weights):
+    def initialize_peft(self, replicate_weights):
         if 'http' in replicate_weights: # weights are in the cloud
             print("Downloading peft weights")
             st = time.time()
@@ -112,11 +100,10 @@ class Predictor(BasePredictor):
 
         print("Initializing peft model")
         st = time.time()
-        peft_model = PeftModel.from_pretrained(model, peft_path)
+        self.generator.load_lora(peft_path)
         print(f"Initialized peft model initialized in {time.time() - st}")
         # remove file
         os.remove(local_peft_weights)
-        return peft_model
 
     def load_peft(self, weights):
         st = time.time()
@@ -227,7 +214,7 @@ class Predictor(BasePredictor):
         else:
             
             if replicate_weights:
-                model = self.initialize_peft(self.model, replicate_weights)
+                self.initialize_peft(self.model, replicate_weights)
 
             stop_sequence_handler = StreamingTextStopSequenceHandler(
                 stop_sequences=stop_sequences,
