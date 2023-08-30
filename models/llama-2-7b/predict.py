@@ -92,19 +92,30 @@ class Predictor(BasePredictor):
 
 
     def initialize_peft(self, model, replicate_weights):
-        print("Unziping peft")
+        if 'http' in replicate_weights: # weights are in the cloud
+            print("Downloading peft weights")
+            st = time.time()
+            local_peft_weights = 'local_weights.zip'
+            download_file(replicate_weights, local_peft_weights)
+            print(f"downloaded peft weights in {time.time() - st}")
+        else:
+            local_peft_weights = replicate_weights
+
+        print("Unziping peft weights")
         st = time.time()
         peft_path = '/src/peft_dir'
         if os.path.exists(peft_path):
             shutil.rmtree(peft_path)
-        with zipfile.ZipFile(replicate_weights, 'r') as zip_ref:
+        with zipfile.ZipFile(local_peft_weights, 'r') as zip_ref:
             zip_ref.extractall(peft_path)
-        print(f"unzipped peft in {time.time() - st}")
+        print(f"Unzipped peft weights in {time.time() - st}")
 
-        print("initializing peft")
+        print("Initializing peft model")
         st = time.time()
         peft_model = PeftModel.from_pretrained(model, peft_path)
-        print(f"peft initialized in {time.time() - st}")
+        print(f"Initialized peft model initialized in {time.time() - st}")
+        # remove file
+        os.remove(local_peft_weights)
         return peft_model
 
     def load_peft(self, weights):
@@ -116,18 +127,12 @@ class Predictor(BasePredictor):
             REMOTE_TRAINING_FILES_TO_DOWNLOAD,
         )
 
-        model = self.load_huggingface_model(model_path, load_in_4bit=LOAD_IN_4BIT)
+        model = self.load_huggingface_model(model_path, load_in_4bit=LOAD_IN_4BIT).to('cuda')
         print(f"Loaded base weights in {time.time() - st}")
-
-        if 'http' in weights: # weights are in the cloud
-            local_weights = 'local_weights.zip'
-            if not os.path.exists(local_weights):
-                download_file(weights, local_weights)
-            weights = local_weights
 
         model = self.initialize_peft(model, weights)
 
-        return model.to('cuda')
+        return model
 
     def load_huggingface_model(self, weights=None, load_in_4bit=False):
         st = time.time()
@@ -150,7 +155,7 @@ class Predictor(BasePredictor):
 
     def predict(
         self,
-        replicate_weights: Path = Input(
+        replicate_weights: str = Input(
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
             default=None,
         ),
@@ -221,8 +226,8 @@ class Predictor(BasePredictor):
         
         else:
             
-            # if replicate_weights:
-            #     model = self.initialize_peft(self.model, replicate_weights)
+            if replicate_weights:
+                model = self.initialize_peft(self.model, replicate_weights)
 
             stop_sequence_handler = StreamingTextStopSequenceHandler(
                 stop_sequences=stop_sequences,
