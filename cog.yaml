@@ -40,7 +40,6 @@ build:
     # - pip install accelerate
     # - pip install scipy
     # - pip install -q -U bitsandbytes
-
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
 train: "train.py:train"

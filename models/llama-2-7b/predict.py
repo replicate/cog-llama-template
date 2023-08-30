@@ -2,7 +2,6 @@ import shutil
 import time
 from typing import Optional
 import zipfile
-import glob
 import time 
 
 import torch
@@ -26,8 +25,8 @@ from config import (
 from subclass import YieldingLlama
 from src.utils import maybe_download_with_pget, StreamingTextStopSequenceHandler
 
-from peft import PeftModel
 import os
+
 
 # This prompt formatting was copied from the original Llama v2 repo:
 # https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44
@@ -72,13 +71,39 @@ class Predictor(BasePredictor):
         # If weights are passed in, they are LoRa weights
         # so we need to download the fp16 weights and load with peft
         elif '.zip' in str(weights):
-            weights = str(weights)
-            self.model = self.load_peft(weights)
-            self.tokenizer = load_tokenizer()
-            self.use_exllama = False
+            from src.exllama_predictor import ExllamaGenerator
+            self.generator = ExllamaGenerator(weights)
+            self.initialize_peft(weights)
+            self.use_exllama = True
         else:
             raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
 
+
+    def initialize_peft(self, replicate_weights):
+        if 'http' in replicate_weights: # weights are in the cloud
+            print("Downloading peft weights")
+            st = time.time()
+            local_peft_weights = 'local_weights.zip'
+            download_file(replicate_weights, local_peft_weights)
+            print(f"downloaded peft weights in {time.time() - st}")
+        else:
+            local_peft_weights = replicate_weights
+
+        print("Unziping peft weights")
+        st = time.time()
+        peft_path = '/src/peft_dir'
+        if os.path.exists(peft_path):
+            shutil.rmtree(peft_path)
+        with zipfile.ZipFile(local_peft_weights, 'r') as zip_ref:
+            zip_ref.extractall(peft_path)
+        print(f"Unzipped peft weights in {time.time() - st}")
+
+        print("Initializing peft model")
+        st = time.time()
+        self.generator.load_lora(peft_path)
+        print(f"Initialized peft model initialized in {time.time() - st}")
+        # remove file
+        os.remove(local_peft_weights)
 
     def load_peft(self, weights):
         st = time.time()
@@ -89,20 +114,12 @@ class Predictor(BasePredictor):
             REMOTE_TRAINING_FILES_TO_DOWNLOAD,
         )
 
-        model = self.load_huggingface_model(model_path, load_in_4bit=LOAD_IN_4BIT)
-        if 'http' in weights: # weights are in the cloud
-            local_weights = 'local_weights.zip'
-            if not os.path.exists(local_weights):
-                download_file(weights, local_weights)
-            weights = local_weights
-        out = '/src/peft_dir'
-        if os.path.exists(out):
-            shutil.rmtree(out)
-        with zipfile.ZipFile(weights, 'r') as zip_ref:
-            zip_ref.extractall(out)
-        model = PeftModel.from_pretrained(model, out)
-        print(f"peft model loaded in {time.time() - st}")
-        return model.to('cuda')
+        model = self.load_huggingface_model(model_path, load_in_4bit=LOAD_IN_4BIT).to('cuda')
+        print(f"Loaded base weights in {time.time() - st}")
+
+        model = self.initialize_peft(model, weights)
+
+        return model
 
     def load_huggingface_model(self, weights=None, load_in_4bit=False):
         st = time.time()
@@ -113,6 +130,7 @@ class Predictor(BasePredictor):
                 cache_dir="pretrained_weights", 
                 device_map='auto',
                 load_in_4bit=LOAD_IN_4BIT,
+                low_cpu_mem_usage=True,
             )
         else:
             model = YieldingLlama.from_pretrained(
@@ -124,6 +142,10 @@ class Predictor(BasePredictor):
 
     def predict(
         self,
+        replicate_weights: str = Input(
+            description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
+            default=None,
+        ),
         prompt: str = Input(description=f"Prompt to send to the model."),
         max_new_tokens: int = Input(
             description="Maximum number of tokens to generate. A word is generally 2-3 tokens",
@@ -159,7 +181,7 @@ class Predictor(BasePredictor):
         debug: bool = Input(
             description="provide debugging output in logs", default=False
         ),
-    ) -> ConcatenateIterator: 
+    ) -> ConcatenateIterator:
         
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
@@ -191,10 +213,8 @@ class Predictor(BasePredictor):
         
         else:
             
-            if stop_sequences:
-                stop_sequences_token_ids = [self.tokenizer.encode(seq, add_special_tokens=False) for seq in stop_sequences]
-            else:
-                stop_sequences_token_ids = []
+            if replicate_weights:
+                self.initialize_peft(self.model, replicate_weights)
 
             stop_sequence_handler = StreamingTextStopSequenceHandler(
                 stop_sequences=stop_sequences,
