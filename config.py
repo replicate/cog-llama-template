@@ -76,7 +76,6 @@ REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = [
     f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
     for i in range(N_SHARDS)
 ]
->>>>>>> exllama-lora
 
 REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
     "config.json",

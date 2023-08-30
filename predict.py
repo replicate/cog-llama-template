@@ -117,7 +117,7 @@ class Predictor(BasePredictor):
         model = self.load_huggingface_model(model_path, load_in_4bit=LOAD_IN_4BIT).to('cuda')
         print(f"Loaded base weights in {time.time() - st}")
 
-        model = self.initialize_peft(model, weights)
+        model = self.initialize_peft(weights)
 
         return model
 
@@ -217,7 +217,7 @@ class Predictor(BasePredictor):
         else:
             
             if replicate_weights:
-                self.initialize_peft(self.model, replicate_weights)
+                self.initialize_peft(replicate_weights)
 
             stop_sequence_handler = StreamingTextStopSequenceHandler(
                 stop_sequences=stop_sequences,
