@@ -62,8 +62,8 @@ class Predictor(BasePredictor):
             # If weights are passed in, they are LoRa weights
             # so we need to download the fp16 weights and load with peft
             self.initialize_peft(weights)
-        else:
-            raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
+        # else:
+        #     raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
 
     def initialize_peft(self, replicate_weights):
         if "http" in replicate_weights:  # weights are in the cloud
