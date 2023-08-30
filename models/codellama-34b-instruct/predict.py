@@ -35,8 +35,8 @@ import os
 # These are components of the prompt that should not be changed by the users
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
-PROMPT_TEMPLATE = f"<s>{B_INST} {{instruction}} {E_INST}</s>"
-PROMPT_TEMPLATE_WITH_SYSTEM_PROMPT = f"<s>{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_INST}</s>"
+PROMPT_TEMPLATE = f"{B_INST} {{instruction}} {E_INST}"
+PROMPT_TEMPLATE_WITH_SYSTEM_PROMPT = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_INST}"
 
 # Users may want to change the system prompt, but we use the recommended system prompt by default
 DEFAULT_SYSTEM_PROMPT = ''
@@ -173,7 +173,7 @@ class Predictor(BasePredictor):
 
         # If USE_SYSTEM_PROMPT is True, and the user has supplied some sort of system prompt, we add it to the prompt.
         if USE_SYSTEM_PROMPT and system_prompt != '':
-            prompt_templated = PROMPT_TEMPLATE_WITH_SYSTEM_PROMPT.format(system_prompt=system_prompt.strip(), instruction=user_prompt)
+            prompt_templated = PROMPT_TEMPLATE_WITH_SYSTEM_PROMPT.format(system_prompt=system_prompt, instruction=user_prompt)
 
         print(f"Prompt: \n{prompt_templated}")
         if self.use_exllama:
@@ -215,7 +215,7 @@ class Predictor(BasePredictor):
 
             max_new_tokens = min(max_new_tokens, self.model.config.max_position_embeddings - n_in_tokens)
             old_tokens = prompt_tokens.tolist()[0]
-            old_text = self.tokenizer.bos_token + prompt
+            old_text = self.tokenizer.bos_token + prompt_templated
             with torch.inference_mode() and torch.autocast("cuda"):
 
                 for token in self.model.generate(
