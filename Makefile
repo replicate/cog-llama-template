@@ -55,7 +55,7 @@ select:
 	rsync -av --exclude 'model_artifacts/' models/$(model)/ .
 	if [ -e models/$(model)/.env ]; then cp models/$(model)/.env . ; fi
 	if [ -e models/$(model)/.dockerignore ]; then cp models/$(model)/.dockerignore . ; fi
-	cog build
+	#cog build
 	@echo "#########Selected model: $(model)########"
 
 clean: select
@@ -106,7 +106,8 @@ test-local: select test-local-predict test-local-train test-local-train-predict
 
 stage:
 	@echo "Pushing $(model) to r8.im/$(REPLICATE_USER)/staging-$(model)..."
-	cog push r8.im/$(REPLICATE_USER)/staging-$(model)
+	cog push --use-cuda-base-image=false r8.im/$(REPLICATE_USER)/staging-$(model)
+	#cog push r8.im/$(REPLICATE_USER)/staging-$(model)
 
 test-stage-predict:
 	@if [ "$(verbose)" = "true" ]; then \
