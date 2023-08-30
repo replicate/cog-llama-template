@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import os
 import shutil
 from subprocess import call
@@ -125,7 +126,7 @@ def train(
 ) -> TrainingOutput:
     if fake_output:
         out_path = f"/tmp/{os.path.basename(fake_output)}"
-        download_file_with_pget(fake_output, out_path)
+        asyncio.run(download_file_with_pget(fake_output, out_path))
         return TrainingOutput(weights=Path(out_path))
 
     weights = REMOTE_TRAINING_WEIGHTS_PATH
@@ -155,7 +156,7 @@ def train(
 
     args = [
         # Hard coded for now
-        "python3", "-m", "torch.distributed.run"
+        "python3", "-m", "torch.distributed.run",
         f"--nnodes=1",
         f"--nproc_per_node={num_gpus}",
         f"llama_recipes/llama_finetuning.py",
