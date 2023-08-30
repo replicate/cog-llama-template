@@ -2,22 +2,22 @@ import shutil
 import time
 from typing import Optional
 import zipfile
-import time 
+import time
 
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
 from config import (
-    LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH, 
+    LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
     REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
     REMOTE_TRAINING_FILES_TO_DOWNLOAD,
     USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS,
-    REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD, 
-    LOCAL_TRAINING_WEIGHTS_PATH, 
+    REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
+    LOCAL_TRAINING_WEIGHTS_PATH,
     REMOTE_TRAINING_WEIGHTS_PATH,
     LOAD_IN_4BIT,
-    load_tokenizer, 
-    load_tensorizer, 
+    load_tokenizer,
+    load_tensorizer,
     download_file,
     USE_SYSTEM_PROMPT
 )
@@ -43,9 +43,12 @@ DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
         print('starting setup')
+        print("!" * 100)
+        print("Weights directory is:", weights)
+        print("!" * 100)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        
-        
+
+
         if weights is not None and weights.name == "weights":
             # bugfix
             weights = None
@@ -60,19 +63,22 @@ class Predictor(BasePredictor):
                 from src.exllama_predictor import ExllamaGenerator
                 self.generator = ExllamaGenerator(weights)
                 self.use_exllama = True
-            
+
             else:
                 if os.path.isdir(weights):
                     self.model = self.load_huggingface_model(weights, load_in_4bit=LOAD_IN_4BIT)
                     self.tokenizer = load_tokenizer()
                     self.use_exllama = False
 
-        
+
         # If weights are passed in, they are LoRa weights
         # so we need to download the fp16 weights and load with peft
         elif '.zip' in str(weights):
             from src.exllama_predictor import ExllamaGenerator
-            self.generator = ExllamaGenerator(weights)
+            base_weights = maybe_download_with_pget(
+                LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH, REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH, REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
+            )
+            self.generator = ExllamaGenerator(base_weights)
             self.initialize_peft(weights)
             self.use_exllama = True
         else:
@@ -109,8 +115,8 @@ class Predictor(BasePredictor):
         st = time.time()
 
         model_path = maybe_download_with_pget(
-            LOCAL_TRAINING_WEIGHTS_PATH, 
-            REMOTE_TRAINING_WEIGHTS_PATH, 
+            LOCAL_TRAINING_WEIGHTS_PATH,
+            REMOTE_TRAINING_WEIGHTS_PATH,
             REMOTE_TRAINING_FILES_TO_DOWNLOAD,
         )
 
@@ -126,8 +132,8 @@ class Predictor(BasePredictor):
         print(f"loading weights from {weights} w/o tensorizer")
         if LOAD_IN_4BIT:
             model = YieldingLlama.from_pretrained(
-                weights, 
-                cache_dir="pretrained_weights", 
+                weights,
+                cache_dir="pretrained_weights",
                 device_map='auto',
                 load_in_4bit=LOAD_IN_4BIT,
                 low_cpu_mem_usage=True,
@@ -182,10 +188,10 @@ class Predictor(BasePredictor):
             description="provide debugging output in logs", default=False
         ),
     ) -> ConcatenateIterator:
-        
+
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
-        
+
         if USE_SYSTEM_PROMPT:
             prompt = prompt.strip('\n').lstrip(B_INST).rstrip(E_INST).strip()
             prompt = PROMPT_TEMPLATE.format(system_prompt=system_prompt.strip(), instruction=prompt.strip())
@@ -210,11 +216,11 @@ class Predictor(BasePredictor):
                 n_tokens += 1
                 yield decoded_token
             t = time.time() - st
-        
+
         else:
-            
+
             if replicate_weights:
-                self.initialize_peft(self.model, replicate_weights)
+                self.initialize_peft(replicate_weights)
 
             stop_sequence_handler = StreamingTextStopSequenceHandler(
                 stop_sequences=stop_sequences,
@@ -241,7 +247,7 @@ class Predictor(BasePredictor):
                     top_k=top_k,
                     repetition_penalty=1,
                 ):
-                    
+
                     old_tokens.append(token.item())
                     text = self.tokenizer.decode(old_tokens)
                     new_text = text[len(old_text):]
@@ -251,18 +257,15 @@ class Predictor(BasePredictor):
                         if yielded_text == stop_sequence_handler.eos_token:
                             break
                         yield yielded_text
-                    
+
                     if yielded_text == stop_sequence_handler.eos_token:
                         break
 
                 for yielded_text in stop_sequence_handler.finalize():
-                    yield yielded_text    
+                    yield yielded_text
 
 
         if debug:
             print(f"cur memory: {torch.cuda.memory_allocated()}")
             print(f"max allocated: {torch.cuda.max_memory_allocated()}")
             print(f"peak memory: {torch.cuda.max_memory_reserved()}")
-
-
-

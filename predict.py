@@ -58,18 +58,9 @@ class Predictor(BasePredictor):
             weights = maybe_download_with_pget(
                 weights, REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH, REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
             )
-
-            if USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS:
-                from src.exllama_predictor import ExllamaGenerator
-                self.generator = ExllamaGenerator(weights)
-                self.use_exllama = True
-
-            else:
-                if os.path.isdir(weights):
-                    self.model = self.load_huggingface_model(weights, load_in_4bit=LOAD_IN_4BIT)
-                    self.tokenizer = load_tokenizer()
-                    self.use_exllama = False
-
+            from src.exllama_predictor import ExllamaGenerator
+            self.generator = ExllamaGenerator(weights)
+            self.use_exllama = True
 
         # If weights are passed in, they are LoRa weights
         # so we need to download the fp16 weights and load with peft
