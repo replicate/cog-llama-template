@@ -57,7 +57,6 @@ REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = get_env_var_or_default(
     "remote/path/to/your/weights/here",
 )
 
-
 # REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = ["gptq_model-4bit-128g.safetensors"]
 
 # REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
