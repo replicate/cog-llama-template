@@ -36,27 +36,45 @@ MODEL_NAME = "llama-2-7b"
 # how we implement inference for a trained model.
 # -------------------------------
 
-USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = True
+USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = False
 
+# LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 
 REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = get_env_var_or_default(
-    "REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH", 
+    "REMOTE_TRAINING_WEIGHTS_PATH", 
     "remote/path/to/your/weights/here",
-
 )
 
-REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = ["gptq_model-4bit-128g.safetensors"]
+# REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = ["gptq_model-4bit-128g.safetensors"]
+
+# REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
+#     "config.json",
+#     "generation_config.json",
+#     "special_tokens_map.json",
+#     "tokenizer_config.json",
+#     "tokenizer.json",
+#     "tokenizer.model",
+#     "quantize_config.json",
+# ]
+
+
+N_SHARDS = 2
+REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = [
+    f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
+    for i in range(N_SHARDS)
+]
 
 REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
     "config.json",
     "generation_config.json",
+    "model.safetensors.index.json",
     "special_tokens_map.json",
     "tokenizer_config.json",
     "tokenizer.json",
     "tokenizer.model",
-    "quantize_config.json",
 ]
+
 
 # TRAINED INFERENCE CONFIGURATION
 # -------------------------------
