@@ -152,7 +152,7 @@ def train(
 
     args = [
         # Hard coded for now
-        "torchrun",
+        "python3", "-m", "torch.distributed.run"
         f"--nnodes=1",
         f"--nproc_per_node={num_gpus}",
         f"llama_recipes/llama_finetuning.py",

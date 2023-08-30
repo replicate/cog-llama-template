@@ -29,7 +29,7 @@ build:
     - "accelerate"
     - "scipy"
     - "bitsandbytes" # force upgrade afterwards?
-    - "https://r2.drysys.workers.dev/torch/torch-2.1.0a0+git3af011b-cp310-cp310-linux_x86_64.whl"
+    - "https://r2.drysys.workers.dev/torch/torch-2.1.0a0+git3af011b-cp310-cp310-linux_x86_64.whl#1"
   run:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.1/pget" && chmod +x /usr/local/bin/pget
     # TODO: small torch
