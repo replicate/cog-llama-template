@@ -42,7 +42,7 @@ DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
-        print("starting setup")
+        print("Starting setup")
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         from src.exllama_predictor import ExllamaGenerator
@@ -65,12 +65,12 @@ class Predictor(BasePredictor):
         #     raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
 
     def initialize_peft(self, replicate_weights):
-        if "http" in replicate_weights:  # weights are in the cloud
+        if "http" in str(replicate_weights):  # weights are in the cloud
             print("Downloading peft weights")
             st = time.time()
             local_peft_weights = "local_weights.zip"
-            download_file(replicate_weights, local_peft_weights)
-            print(f"downloaded peft weights in {time.time() - st}")
+            download_file(str(replicate_weights), local_peft_weights)
+            print(f"Downloaded peft weights in {time.time() - st}")
         else:
             local_peft_weights = replicate_weights
 
@@ -86,7 +86,7 @@ class Predictor(BasePredictor):
         print("Initializing peft model")
         st = time.time()
         self.generator.load_lora(peft_path)
-        print(f"Initialized peft model initialized in {time.time() - st}")
+        print(f"Initialized peft model in {time.time() - st}")
         # remove file
         # os.remove(local_peft_weights)
 
@@ -132,7 +132,6 @@ class Predictor(BasePredictor):
             description="provide debugging output in logs", default=False
         ),
     ) -> ConcatenateIterator:
-
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
 
@@ -145,7 +144,11 @@ class Predictor(BasePredictor):
         print(f"Your formatted prompt is: \n{prompt}")
 
         if replicate_weights:
+            start = time.time()
             self.initialize_peft(replicate_weights)
+            print(f"Overall initialize_peft took {time.time() - start:.4f}")
+        else:
+            print("Not using lora")
         n_tokens = 0
         st = time.time()
 
