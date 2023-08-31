@@ -2,7 +2,7 @@ import shutil
 import time
 import zipfile
 from typing import Optional
-##
+##;
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
@@ -66,11 +66,11 @@ class Predictor(BasePredictor):
         #     raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
 
     def initialize_peft(self, replicate_weights):
-        if "http" in replicate_weights:  # weights are in the cloud
+        if "http" in str(replicate_weights):  # weights are in the cloud
             print("Downloading peft weights")
             st = time.time()
             local_peft_weights = "local_weights.zip"
-            download_file(replicate_weights, local_peft_weights)
+            download_file(str(replicate_weights), local_peft_weights)
             print(f"downloaded peft weights in {time.time() - st}")
         else:
             local_peft_weights = replicate_weights
