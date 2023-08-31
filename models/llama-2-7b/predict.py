@@ -42,9 +42,6 @@ DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
         print("starting setup")
-        print("!" * 100)
-        print("Weights directory is:", weights)
-        print("!" * 100)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         from src.exllama_predictor import ExllamaGenerator
 
@@ -89,7 +86,7 @@ class Predictor(BasePredictor):
         self.generator.load_lora(peft_path)
         print(f"Initialized peft model in {time.time() - st}")
         # remove file
-        os.remove(local_peft_weights)
+        # os.remove(local_peft_weights)
 
     def predict(
         self,
