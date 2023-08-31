@@ -38,7 +38,7 @@ MODEL_NAME = "llama-2-13b-chat"
 
 LOAD_IN_4BIT = False
 TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
-USE_SYSTEM_PROMPT = True
+USE_SYSTEM_PROMPT = False
 
 
 # DEFAULT INFERENCE CONFIGURATION
