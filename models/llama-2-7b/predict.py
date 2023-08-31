@@ -46,7 +46,6 @@ class Predictor(BasePredictor):
         print("Weights directory is:", weights)
         print("!" * 100)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-
         from src.exllama_predictor import ExllamaGenerator
 
         base_weights = maybe_download_with_pget(
@@ -63,8 +62,8 @@ class Predictor(BasePredictor):
             # If weights are passed in, they are LoRa weights
             # so we need to download the fp16 weights and load with peft
             self.initialize_peft(weights)
-        else:
-            raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
+        # else:
+        #     raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
 
     def initialize_peft(self, replicate_weights):
         if "http" in replicate_weights:  # weights are in the cloud
@@ -134,7 +133,6 @@ class Predictor(BasePredictor):
             description="provide debugging output in logs", default=False
         ),
     ) -> ConcatenateIterator:
-
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
 
