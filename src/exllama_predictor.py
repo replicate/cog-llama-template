@@ -39,7 +39,7 @@ def timer(name, func):
 
 class ExllamaGenerator:
 
-    def __init__(self, model_directory):
+    def __init__(self, model_directory, fused_attn = True):
         tokenizer_path = os.path.join(model_directory, "tokenizer.model")
         model_config_path = os.path.join(model_directory, "config.json")
         st_pattern = os.path.join(model_directory, "*.safetensors")
@@ -53,7 +53,8 @@ class ExllamaGenerator:
         config.max_seq_len = 2*2048
         config.max_input_len = 2*2048
         config.max_attention_size = 2*2048**2
-
+        config.fused_attn = fused_attn
+        
         self.model = model = ExLlama(config)                                 # create ExLlama instance and load the weights
         tokenizer = ExLlamaTokenizer(tokenizer_path)            # create tokenizer from tokenizer model file
 
