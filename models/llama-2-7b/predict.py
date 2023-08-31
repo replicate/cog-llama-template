@@ -42,9 +42,6 @@ DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
         print("starting setup")
-        print("!" * 100)
-        print("Weights directory is:", weights)
-        print("!" * 100)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         from src.exllama_predictor import ExllamaGenerator
@@ -63,8 +60,8 @@ class Predictor(BasePredictor):
             # If weights are passed in, they are LoRa weights
             # so we need to download the fp16 weights and load with peft
             self.initialize_peft(weights)
-        else:
-            raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
+        # else:
+        #     raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
 
     def initialize_peft(self, replicate_weights):
         if "http" in replicate_weights:  # weights are in the cloud
@@ -90,7 +87,7 @@ class Predictor(BasePredictor):
         self.generator.load_lora(peft_path)
         print(f"Initialized peft model initialized in {time.time() - st}")
         # remove file
-        os.remove(local_peft_weights)
+        # os.remove(local_peft_weights)
 
     def predict(
         self,
