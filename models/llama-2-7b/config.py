@@ -120,6 +120,7 @@ REMOTE_TRAINING_FILES_TO_DOWNLOAD += [
 LOAD_IN_4BIT = False
 TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
 USE_SYSTEM_PROMPT = False
+USE_FUSED_ATTN = True
 
 # -------------------------------
 

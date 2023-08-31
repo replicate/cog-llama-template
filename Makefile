@@ -46,6 +46,11 @@ update:
 		exit 1; \
 	fi
 	cp -r model_templates/*  models/$(model)
+	
+update-all-predict:
+	@for dir in models/*/ ; do \
+		cp model_templates/predict.py $$dir ; \
+	done
 
 select:
 	@if [ -z "$(model)" ]; then \
