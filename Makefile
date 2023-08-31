@@ -13,7 +13,7 @@ else
 IMAGE_NAME := cog-$(CURRENT_DIR)
 endif
 
-REPLICATE_USER ?= technillogue
+REPLICATE_USER ?= replicate-internal
 
 model ?= $(SELECTED_MODEL)
 
@@ -105,8 +105,8 @@ test-local-train-predict:
 test-local: select test-local-predict test-local-train test-local-train-predict
 
 stage:
-	@echo "Pushing $(model) to r8.im/$(REPLICATE_USER)/good-staging-$(model)..."
-	cog push --openapi-schema=schema.json --use-cuda-base-image=false --debug --progress plain r8.im/$(REPLICATE_USER)/good-staging-$(model)
+	@echo "Pushing $(model) to r8.im/$(REPLICATE_USER)/staging-$(model)..."
+	cog push --openapi-schema=schema.json --use-cuda-base-image=false --debug --progress plain r8.im/$(REPLICATE_USER)/staging-$(model)
 
 test-stage-predict:
 	@if [ "$(verbose)" = "true" ]; then \

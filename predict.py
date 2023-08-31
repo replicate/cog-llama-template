@@ -148,6 +148,8 @@ class Predictor(BasePredictor):
             start = time.time()
             self.initialize_peft(replicate_weights)
             print(f"overall initialize_peft took {time.time() - start:.4f}")
+        else:
+            print("not using lora")
         n_tokens = 0
         st = time.time()
 
