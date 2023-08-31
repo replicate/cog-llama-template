@@ -19,6 +19,7 @@ from config import (
     load_tensorizer,
     download_file,
     USE_SYSTEM_PROMPT,
+    USE_FUSED_ATTN,
 )
 
 from subclass import YieldingLlama
@@ -51,7 +52,7 @@ class Predictor(BasePredictor):
             REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
             REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
         )
-        self.generator = ExllamaGenerator(base_weights, fused_attn=False)
+        self.generator = ExllamaGenerator(base_weights, fused_attn=USE_FUSED_ATTN)
 
         if weights is not None and weights.name == "weights":
             # bugfix
