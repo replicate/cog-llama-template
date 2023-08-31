@@ -2,7 +2,7 @@ import shutil
 import time
 import zipfile
 from typing import Optional
-
+##
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
@@ -87,7 +87,7 @@ class Predictor(BasePredictor):
         print("Initializing peft model")
         st = time.time()
         self.generator.load_lora(peft_path)
-        print(f"Initialized peft model initialized in {time.time() - st}")
+        print(f"Initialized peft model in {time.time() - st}")
         # remove file
         os.remove(local_peft_weights)
 
@@ -145,7 +145,9 @@ class Predictor(BasePredictor):
         print(f"Your formatted prompt is: \n{prompt}")
 
         if replicate_weights:
+            start = time.time()
             self.initialize_peft(replicate_weights)
+            print(f"overall initialize_peft took {time.time() - start:.4f}")
         n_tokens = 0
         st = time.time()
 
