@@ -2,7 +2,7 @@ import shutil
 import time
 import zipfile
 from typing import Optional
-##
+
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
@@ -46,6 +46,7 @@ class Predictor(BasePredictor):
         print("Weights directory is:", weights)
         print("!" * 100)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
         from src.exllama_predictor import ExllamaGenerator
 
         base_weights = maybe_download_with_pget(
