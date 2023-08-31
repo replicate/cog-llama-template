@@ -40,7 +40,7 @@ LOAD_IN_4BIT = False
 TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
 USE_SYSTEM_PROMPT = False
 USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = True
-
+USE_FUSED_ATTN = False
 
 # DEFAULT INFERENCE CONFIGURATION
 # -------------------------------
