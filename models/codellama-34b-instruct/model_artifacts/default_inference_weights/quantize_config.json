@@ -1,0 +1,10 @@
+{
+  "bits": 4,
+  "group_size": 32,
+  "damp_percent": 0.1,
+  "desc_act": true,
+  "sym": true,
+  "true_sequential": true,
+  "model_name_or_path": null,
+  "model_file_base_name": "model"
+}
