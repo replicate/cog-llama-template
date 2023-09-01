@@ -50,7 +50,7 @@ update:
 update-all:
 	@for dir in models/*/ ; do \
 		cp model_templates/predict.py $$dir ; \
-		cp model_templates/cog.yaml $$dir ; \
+		#cp model_templates/cog.yaml $$dir ; \
 	done
 
 select:

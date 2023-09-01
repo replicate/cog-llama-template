@@ -42,10 +42,7 @@ DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
-        print("starting setup")
-        print("!" * 100)
-        print("Weights directory is:", weights)
-        print("!" * 100)
+        print("Starting setup")
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         from src.exllama_predictor import ExllamaGenerator
