@@ -11,27 +11,24 @@ build:
 
   # a list of packages in the format <package-name>==<version>
   python_packages:
-    - "numpy==1.24.2"
-    - "sentencepiece==0.1.97"
-    - "jinja2==3.1.2"
-    - "scipy==1.11.1"
+    - "accelerate"
     - "asyncio==3.4.3"
-    - "safetensors==0.3.1"
-    - "ninja==1.11.1"
-    - "python-dotenv"
-    - "py7zr"
-    - "fire"
     - "datasets"
-  run: 
-    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.1/pget" && chmod +x /usr/local/bin/pget
-    - pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu118
-    - pip install git+https://github.com/huggingface/transformers.git@79ac5b523b0c0b4894a20bef163442a967d68dca
-    - pip install peft==0.4.0
-    - pip install tensorizer==1.0.1
+    - "fire"
+    - "jinja2==3.1.2"
+    - "ninja==1.11.1"
+    - "numpy==1.24.2"
+    - "py7zr"
+    - "python-dotenv"
+    - "safetensors==0.3.1"
+    - "scipy==1.11.1"
+    - "sentencepiece==0.1.97"
+    - "transformers -e git+https://github.com/huggingface/transformers.git@1fa2d89a9bb98a15e9720190e07d272a42f03d28#egg={transformers}"
+  run:
+    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.2/pget" && chmod +x /usr/local/bin/pget
+    # - pip install git+https://github.com/huggingface/transformers.git@1fa2d89a9bb98a15e9720190e07d272a42f03d28
     - pip install accelerate
-    - pip install scipy
-    - pip install -q -U bitsandbytes
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
-train: "train.py:train"
+# train: "train.py:train"
