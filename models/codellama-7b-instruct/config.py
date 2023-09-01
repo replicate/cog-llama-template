@@ -37,7 +37,7 @@ MODEL_NAME = "codellama-7b-instruct"
 # -------------------------------
 
 LOAD_IN_4BIT = False
-TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
+TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 USE_SYSTEM_PROMPT = True
 USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = True
 
@@ -63,12 +63,12 @@ REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = get_env_var_or_default(
 #     for i in range(N_SHARDS)
 # ]
 
-REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = ["model.safetensors"]
-# N_SHARDS=2
-# REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = [
-#     f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
-#     for i in range(N_SHARDS)
-# ]
+# REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = ["model.safetensors"]
+N_SHARDS=2
+REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = [
+    f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
+    for i in range(N_SHARDS)
+]
 
 REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
     "config.json",
@@ -77,7 +77,6 @@ REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
     "tokenizer_config.json",
     "tokenizer.json",
     "tokenizer.model",
-    "quantize_config.json",
     "model.safetensors.index.json"
 ]
 
@@ -109,11 +108,11 @@ REMOTE_TRAINING_FILES_TO_DOWNLOAD = [
 REMOTE_TRAINING_FILES_TO_DOWNLOAD += [
     "config.json",
     "generation_config.json",
-    "model.safetensors.index.json",
     "special_tokens_map.json",
     "tokenizer_config.json",
     "tokenizer.json",
     "tokenizer.model",
+    "model.safetensors.index.json"
 ]
 
 
@@ -146,7 +145,7 @@ def load_tokenizer():
         }
     )
     return tok
- 
+
 def download_file(file, local_filename):
     print(f"Downloading {file} to {local_filename}")
     if os.path.exists(local_filename):
