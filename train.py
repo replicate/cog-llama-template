@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import os
 import shutil
 from subprocess import call
@@ -27,7 +28,7 @@ from config import (
     log_memory_stuff
 )
 
-from src.utils import maybe_download_with_pget
+from src.utils import maybe_download_with_pget, download_file_with_pget
 
 
 MODEL_OUT = "/src/tuned_weights.tensors"
