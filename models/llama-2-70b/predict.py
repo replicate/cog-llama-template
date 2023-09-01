@@ -168,7 +168,7 @@ class Predictor(BasePredictor):
             n_tokens += 1
             yield decoded_token
         t = time.time() - st
-        print(f"Generation took {t.4f}")
+        print(f"Generation took {t:.4f}")
 
         if debug:
             print(f"cur memory: {torch.cuda.memory_allocated()}")
