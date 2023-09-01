@@ -34,6 +34,7 @@ build:
     # - pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu118
     # - pip install git+https://github.com/huggingface/transformers.git@d2295708a64feff485bb40caf0decf7bae5a05a2
     # - pip install -q -U bitsandbytes
+
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
 train: "train.py:train"

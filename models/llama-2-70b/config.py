@@ -36,7 +36,7 @@ MODEL_NAME = 'llama-2-70b'
 # which is used for both trained and untrained models.
 # -------------------------------
 
-LOAD_IN_4BIT = False
+LOAD_IN_4BIT = True
 TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
 USE_SYSTEM_PROMPT = False
 USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = True

@@ -2,7 +2,7 @@ import shutil
 import time
 import zipfile
 from typing import Optional
-##;
+
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
@@ -46,6 +46,7 @@ class Predictor(BasePredictor):
         print("Weights directory is:", weights)
         print("!" * 100)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
         from src.exllama_predictor import ExllamaGenerator
 
         base_weights = maybe_download_with_pget(
@@ -62,16 +63,17 @@ class Predictor(BasePredictor):
             # If weights are passed in, they are LoRa weights
             # so we need to download the fp16 weights and load with peft
             self.initialize_peft(weights)
-        # else:
-        #     raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
+        else:
+            local_peft_weights = replicate_weights
 
-    def initialize_peft(self, replicate_weights):
+    def initialize_peft(self, replicate_weights: str) -> None:
         if "http" in str(replicate_weights):  # weights are in the cloud
             print("Downloading peft weights")
             st = time.time()
             local_peft_weights = "local_weights.zip"
             download_file(str(replicate_weights), local_peft_weights)
-            print(f"downloaded peft weights in {time.time() - st}")
+            print(f"Downloaded peft weights in {time.time() - st}")
+
         else:
             local_peft_weights = replicate_weights
 
@@ -87,7 +89,7 @@ class Predictor(BasePredictor):
         print("Initializing peft model")
         st = time.time()
         self.generator.load_lora(peft_path)
-        print(f"Initialized peft model in {time.time() - st}")
+        print(f"Initialized peft model initialized in {time.time() - st}")
         # remove file
         os.remove(local_peft_weights)
 
@@ -152,6 +154,7 @@ class Predictor(BasePredictor):
             print("not using lora")
         n_tokens = 0
         st = time.time()
+
 
         for decoded_token in self.generator(
             prompt,

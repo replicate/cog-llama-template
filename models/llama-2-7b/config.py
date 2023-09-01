@@ -59,23 +59,6 @@ REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
 ]
 
 
-# N_SHARDS = 2
-# REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = [
-#     f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
-#     for i in range(N_SHARDS)
-# ]
-
-# REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
-#     "config.json",
-#     "generation_config.json",
-#     "model.safetensors.index.json",
-#     "special_tokens_map.json",
-#     "tokenizer_config.json",
-#     "tokenizer.json",
-#     "tokenizer.model",
-# ]
-
-
 # TRAINED INFERENCE CONFIGURATION
 # -------------------------------
 # This section defines the inference configuration for fine-tuned models

@@ -48,7 +48,7 @@ from utils.config_utils import (
     generate_peft_config,
     generate_dataset_config,
 )
-from peft import get_peft_model, TaskType, prepare_model_for_int8_training
+from peft import get_peft_model, TaskType, prepare_model_for_int8_training, prepare_model_for_kbit_training
 import configs
 from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
@@ -75,6 +75,9 @@ def main(**kwargs):
     torch.cuda.manual_seed(train_config.seed)
     torch.manual_seed(train_config.seed)
 
+    #########################################################
+    # CONFIGURE DISTRIBUTED TRAINING -----------------------
+    #########################################################
     if train_config.enable_fsdp:
         setup()
         # torchrun specific
@@ -86,7 +89,9 @@ def main(**kwargs):
         torch.cuda.set_device(rank)
         setup_environ_flags(rank)
 
-    # Load the tokenizer and add special tokens
+    #########################################################
+    # INITIALIZE TOKENIZEER --------------------------------
+    #########################################################
     tokenizer = LlamaTokenizer.from_pretrained(train_config.model_name, legacy=False)
 
     tokenizer.add_special_tokens(
@@ -95,7 +100,9 @@ def main(**kwargs):
                 "pad_token": "<PAD>",
             }
         )
-
+    #########################################################
+    # PREPARE TRAIN AND VALIDATION DATA --------------------
+    #########################################################
     dataset_config = generate_dataset_config(train_config, kwargs)
     update_config(dataset_config, **{
         "data_path": train_config.data_path,
@@ -179,15 +186,56 @@ def main(**kwargs):
                          "consist of short examples. Try setting `pack_sequences` to `False` and/or reducing your batch size."
                         )
                     
+    #########################################################
+    # CONFIGURE AND INITIALIZE MODEL ------------------------
+    #########################################################
+
+    # Model preparation for full fine-tuning -------
+    # ----------------------------------------------
+    if not train_config.use_peft:
+
+        model = LlamaForCausalLM.from_pretrained(
+            train_config.model_name,
+            load_in_8bit=True if train_config.quantization else None,
+            device_map="auto" if train_config.quantization else None,
+        )
     
-    # Calculate gradient accumulation steps
-    gradient_accumulation_steps = train_config.batch_size_training // train_config.micro_batch_size
-    # Load the pre-trained model and setup its configuration
-    model = LlamaForCausalLM.from_pretrained(
-        train_config.model_name,
-        load_in_8bit=True if train_config.quantization else None,
-        device_map="auto" if train_config.quantization else None,
-    )
+    else:
+        kwargs['r'] = kwargs['lora_rank'] # can't pass --r to the script, torchrun won't have it
+        peft_config = generate_peft_config(train_config.peft_method, kwargs)
+
+        # Model preparation for QLoRA fine-tuning ------
+        # ----------------------------------------------
+        if train_config.peft_method == 'qlora':
+            print('LOADING MODEL FOR QLORA')
+            bnb_config = generate_peft_config('bitsandbytes_config', kwargs)
+            import os
+            print(f"Loading model from {train_config.model_name}, which contains the following files:")
+            print(os.listdir(train_config.model_name))
+            
+            model = AutoModelForCausalLM.from_pretrained(
+                train_config.model_name,
+                quantization_config=bnb_config,
+                device_map="auto", # dispatch efficiently the model on the available ressources
+                # max_memory = {i: max_memory for i in range(num_gpus)},
+            )
+
+            model.gradient_checkpointing_enable()
+            model = prepare_model_for_kbit_training(model)
+
+        # Model preparation for LoRA fine-tuning ------
+        # ----------------------------------------------
+
+        else:
+            model = LlamaForCausalLM.from_pretrained(
+                train_config.model_name,
+                load_in_8bit=True if train_config.quantization else None,
+                device_map="auto" if train_config.quantization else None,
+            )
+        
+        model = get_peft_model(model, peft_config)
+
+    model.print_trainable_parameters()
 
     # We added a special token for padding, so we need to resize the token embeddings
     model.resize_token_embeddings(model.config.vocab_size + 1)
@@ -201,12 +249,6 @@ def main(**kwargs):
     # Convert the model to bfloat16 if fsdp and pure_bf16 is enabled
     if train_config.enable_fsdp and fsdp_config.pure_bf16:
         model.to(torch.bfloat16)
-
-    if train_config.use_peft:
-        kwargs['r'] = kwargs['lora_rank'] # can't pass --r to the script, torchrun won't have it
-        peft_config = generate_peft_config(train_config, kwargs)
-        model = get_peft_model(model, peft_config)
-        model.print_trainable_parameters()
     
     #setting up FSDP if enable_fsdp is enabled
     if train_config.enable_fsdp:
@@ -227,44 +269,99 @@ def main(**kwargs):
         )
         if fsdp_config.fsdp_activation_checkpointing:
             policies.apply_fsdp_checkpointing(model)
-    elif not train_config.quantization and not train_config.enable_fsdp:
+    
+    # Note: When we use QLoRA, we load directly to devices with `automap`, so we don't need to move to cuda here.
+    elif not train_config.quantization and not train_config.enable_fsdp and not train_config.peft_method=='qlora':
         model.to("cuda")
 
-        
     # Initialize the optimizer and learning rate scheduler
-    if fsdp_config.pure_bf16 and fsdp_config.optimizer == "anyprecision":
-        optimizer = AnyPrecisionAdamW(
-            model.parameters(),
-            lr=train_config.lr,
-            momentum_dtype=torch.bfloat16,
-            variance_dtype=torch.bfloat16,
-            use_kahan_summation=False,
+    if not train_config.peft_method == 'qlora':
+        if fsdp_config.pure_bf16 and fsdp_config.optimizer == "anyprecision":
+            optimizer = AnyPrecisionAdamW(
+                model.parameters(),
+                lr=train_config.lr,
+                momentum_dtype=torch.bfloat16,
+                variance_dtype=torch.bfloat16,
+                use_kahan_summation=False,
+            )
+        else:
+
+            optimizer = optim.AdamW(
+                model.parameters(),
+                lr=train_config.lr,
+                weight_decay=0.0,
+            )
+
+    if train_config.micro_batch_size > train_config.batch_size_training:
+        print(f"Micro-batch size is larger than batch size. Setting batch size to micro-batch size: {train_config.micro_batch_size}")
+        train_config.batch_size_training = train_config.micro_batch_size
+
+    gradient_accumulation_steps = train_config.batch_size_training // train_config.micro_batch_size
+
+    if not train_config.peft_method == 'qlora':
+        
+        scheduler = StepLR(optimizer, step_size=1, gamma=train_config.gamma)
+
+
+        # Start the training process
+        results = train(
+            model,
+            train_dataloader,
+            eval_dataloader, 
+            tokenizer,
+            optimizer,
+            scheduler,
+            gradient_accumulation_steps,
+            train_config,
+            fsdp_config if train_config.enable_fsdp else None,
+            local_rank if train_config.enable_fsdp else None,
+            rank if train_config.enable_fsdp else None,
         )
+        if not train_config.enable_fsdp or rank==0:
+            [print(f'Key: {k}, Value: {v}') for k, v in results.items()]
+    
     else:
-        optimizer = optim.AdamW(
-            model.parameters(),
-            lr=train_config.lr,
-            weight_decay=0.0,
+        from transformers import TrainingArguments, Trainer
+        from trl import SFTTrainer
+        from trl.trainer.utils import PeftSavingCallback
+
+        training_args = TrainingArguments(
+            output_dir=train_config.output_dir,
+            per_device_train_batch_size=train_config.batch_size_training,
+            per_device_eval_batch_size=train_config.val_batch_size,
+            gradient_accumulation_steps=gradient_accumulation_steps,
+            learning_rate=train_config.lr,
+            bf16=True,
+            log_level='info',
+            logging_steps=10,
+            optim="paged_adamw_32bit",
+            warmup_ratio=0.03,
+            save_strategy='no',
+            num_train_epochs=train_config.num_epochs,
+            gradient_checkpointing=True,
+            do_eval=True,
         )
-    scheduler = StepLR(optimizer, step_size=1, gamma=train_config.gamma)
+
+        
+        trainer = Trainer(
+            model=model,
+            tokenizer=tokenizer,
+            train_dataset=dataset_train,
+            eval_dataset=dataset_val,
+            data_collator=data_collator,
+            # peft_config=peft_config,
+            args=training_args,
+            compute_metrics=None,
+            callbacks = [PeftSavingCallback],
+        )
+
+        trainer.train()
+
+        trainer.model.save_pretrained(train_config.output_dir)
+
+        
 
 
-    # Start the training process
-    results = train(
-        model,
-        train_dataloader,
-        eval_dataloader, 
-        tokenizer,
-        optimizer,
-        scheduler,
-        gradient_accumulation_steps,
-        train_config,
-        fsdp_config if train_config.enable_fsdp else None,
-        local_rank if train_config.enable_fsdp else None,
-        rank if train_config.enable_fsdp else None,
-    )
-    if not train_config.enable_fsdp or rank==0:
-        [print(f'Key: {k}, Value: {v}') for k, v in results.items()]
 
 if __name__ == "__main__":
     fire.Fire(main)
