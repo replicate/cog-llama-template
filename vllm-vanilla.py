@@ -1,21 +1,12 @@
+import os
 from vllm import AsyncLLMEngine
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.sampling_params import SamplingParams
 
-import shutil
-import time
-from typing import List
-import zipfile
-
-import torch
-# from cog import BasePredictor, ConcatenateIterator, Input, Path
-from peft import PeftModel
-import os
-
 import asyncio
 
 
-prompt = '''<s>[INST] <<SYS>>
+prompt = '''<<SYS>>
 All responses must be written in TypeScript.
 <</SYS>>
 
@@ -35,6 +26,8 @@ Write a function that sums 2 integers together and returns the results.
 args = AsyncEngineArgs(
     tokenizer='hf-internal-testing/llama-tokenizer',
     model='codellama/CodeLlama-34b-Instruct-hf',
+    # model="../weights/codellama-13b-instruct/safetensors/",
+    # tokenizer="../weights/codellama-13b-instruct/safetensors/tokenizer.model",
     dtype="float16",
     max_num_seqs=4096,
 )
@@ -43,7 +36,7 @@ tokenizer = engine.engine.tokenizer
 
 async def generate_stream(
     prompt,
-    temperature=0.6,
+    temperature=1.0,
     top_p=0.95,
     max_new_tokens=128,
     stop_str=None,
