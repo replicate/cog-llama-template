@@ -1,48 +1,29 @@
+import os
+import torch
+import asyncio
+
+from typing import Optional
 from vllm import AsyncLLMEngine
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.sampling_params import SamplingParams
 
-import shutil
-import time
-from typing import List
-import zipfile
-
-import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
-from peft import PeftModel
-import os
 
-import asyncio
-import shutil
-import time
-from typing import Optional
-import zipfile
-import glob
-import time 
+from transformers import LlamaForCausalLM
 
-import torch
-from cog import BasePredictor, ConcatenateIterator, Input, Path
+from transformers.models.code_llama.tokenization_code_llama_fast import CodeLlamaTokenizerFast
 
 from config import (
     LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH, 
+    LOCAL_TRAINING_WEIGHTS_PATH,
+    REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD, 
     REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
     REMOTE_TRAINING_FILES_TO_DOWNLOAD,
-    USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS,
-    REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD, 
-    LOCAL_TRAINING_WEIGHTS_PATH, 
-    REMOTE_TRAINING_WEIGHTS_PATH,
-    LOAD_IN_4BIT,
-    load_tokenizer, 
-    load_tensorizer, 
-    download_file,
     USE_SYSTEM_PROMPT
 )
 
-from subclass import YieldingLlama
 from src.utils import maybe_download_with_pget
 
-from peft import PeftModel
-import os
 
 # This prompt formatting was copied from the original CodeLlama repo:
 # https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44
@@ -57,7 +38,7 @@ DEFAULT_SYSTEM_PROMPT = """"""
 
 
 class Predictor(BasePredictor):
-    def setup(self):
+    def setup(self, weights: Optional[Path] = None):
         print('starting setup')
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         
@@ -72,8 +53,17 @@ class Predictor(BasePredictor):
             )
 
 
+        model = LlamaForCausalLM.from_pretrained(LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH, use_safetensors=True)
+        # tokenizer = CodeLlamaTokenizerFast.from_pretrained(LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH, use_safetensors=True)
+
+        # tokenizer='hf-internal-testing/llama-tokenizer',
+        # model='codellama/CodeLlama-34b-Instruct-hf',
+        print('LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH', LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH)
         args = AsyncEngineArgs(
-            model=LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
+            model=model,
+            # tokenizer=LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH + "/tokenizer.model",
+            tokenizer='hf-internal-testing/llama-tokenizer',
+            # model='codellama/CodeLlama-7b-Instruct-hf',
             dtype="float16",
             max_num_seqs=16384,
         )
