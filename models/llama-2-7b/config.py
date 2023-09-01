@@ -36,14 +36,14 @@ MODEL_NAME = "llama-2-7b"
 # how we implement inference for a trained model.
 # -------------------------------
 
-USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = True
+USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = False
 
+# LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 
 REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = get_env_var_or_default(
     "REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH", 
     "remote/path/to/your/weights/here",
-
 )
 
 REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = ["gptq_model-4bit-128g.safetensors"]
@@ -57,6 +57,7 @@ REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
     "tokenizer.model",
     "quantize_config.json",
 ]
+
 
 # TRAINED INFERENCE CONFIGURATION
 # -------------------------------
@@ -102,6 +103,7 @@ REMOTE_TRAINING_FILES_TO_DOWNLOAD += [
 LOAD_IN_4BIT = False
 TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
 USE_SYSTEM_PROMPT = False
+USE_FUSED_ATTN = True
 
 # -------------------------------
 
