@@ -81,6 +81,7 @@ def main(**kwargs):
     if train_config.enable_fsdp:
         setup()
         # torchrun specific
+        import os
         local_rank = int(os.environ["LOCAL_RANK"])
         rank = int(os.environ["RANK"])
         world_size = int(os.environ["WORLD_SIZE"])

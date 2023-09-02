@@ -1,4 +1,5 @@
 import shutil
+import socket
 import time
 import zipfile
 from typing import Optional
@@ -175,3 +176,4 @@ class Predictor(BasePredictor):
             print(f"cur memory: {torch.cuda.memory_allocated()}")
             print(f"max allocated: {torch.cuda.max_memory_allocated()}")
             print(f"peak memory: {torch.cuda.max_memory_reserved()}")
+            print(f"hostname: {socket.hostname()}")

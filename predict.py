@@ -1,4 +1,5 @@
 import shutil
+import socket
 import time
 import zipfile
 from typing import Optional
@@ -19,6 +20,7 @@ from config import (
     load_tensorizer,
     download_file,
     USE_SYSTEM_PROMPT,
+    USE_FUSED_ATTN,
 )
 
 from subclass import YieldingLlama
@@ -41,10 +43,7 @@ DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
-        print("starting setup")
-        print("!" * 100)
-        print("Weights directory is:", weights)
-        print("!" * 100)
+        print("Starting setup")
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         from src.exllama_predictor import ExllamaGenerator
@@ -54,7 +53,7 @@ class Predictor(BasePredictor):
             REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
             REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
         )
-        self.generator = ExllamaGenerator(base_weights)
+        self.generator = ExllamaGenerator(base_weights, fused_attn=USE_FUSED_ATTN)
 
         if weights is not None and weights.name == "weights":
             # bugfix
@@ -64,7 +63,8 @@ class Predictor(BasePredictor):
             # so we need to download the fp16 weights and load with peft
             self.initialize_peft(weights)
         else:
-            local_peft_weights = replicate_weights
+            print("Not using old-style COG_WEIGHTS LoRA weights")
+            # raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
 
     def initialize_peft(self, replicate_weights: str) -> None:
         if "http" in str(replicate_weights):  # weights are in the cloud
@@ -176,3 +176,4 @@ class Predictor(BasePredictor):
             print(f"cur memory: {torch.cuda.memory_allocated()}")
             print(f"max allocated: {torch.cuda.max_memory_allocated()}")
             print(f"peak memory: {torch.cuda.max_memory_reserved()}")
+            print(f"hostname: {socket.gethostname()}")
