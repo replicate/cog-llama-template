@@ -1,4 +1,5 @@
 import shutil
+import socket
 import time
 import zipfile
 from typing import Optional
@@ -154,7 +155,6 @@ class Predictor(BasePredictor):
         n_tokens = 0
         st = time.time()
 
-
         for decoded_token in self.generator(
             prompt,
             repetition_penalty=1.15,
@@ -170,7 +170,7 @@ class Predictor(BasePredictor):
             n_tokens += 1
             yield decoded_token
         t = time.time() - st
-
+        print(f"hostname: {socket.gethostname()}")
         if debug:
             print(f"cur memory: {torch.cuda.memory_allocated()}")
             print(f"max allocated: {torch.cuda.max_memory_allocated()}")
