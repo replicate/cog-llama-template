@@ -5,6 +5,12 @@
 .PHONY: push-and-test
 .PHONY: clean
 
+# this is required to build sentencepiece for py3.11
+# it currently only works with syl/build-stage-patch
+# you can get the right version of cog by downloading
+# https://r2.drysys.workers.dev/cog
+export BUILD_STAGE_DEPS = "apt update && apt install -yy cmake google-perftools"
+
 CURRENT_DIR := $(shell basename $(PWD))
 
 ifeq ($(findstring cog,$(CURRENT_DIR)),cog)
