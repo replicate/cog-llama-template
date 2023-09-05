@@ -95,7 +95,7 @@ class Predictor(BasePredictor):
         os.remove(local_peft_weights)
         return lora
 
-    current_path: str
+    current_path: str = None
 
     def initialize_peft(self, replicate_weights: str) -> None:
         if self.current_path != replicate_weights:
@@ -194,15 +194,33 @@ class Predictor(BasePredictor):
             print(f"max allocated: {torch.cuda.max_memory_allocated()}")
             print(f"peak memory: {torch.cuda.max_memory_reserved()}")
 
-    def remove(f: "Callable", defaults: "dict[str, Any]") -> "Callable":
-        # pylint: disable=no-self-argument
-        # for the purposes of inspect.signature as used by predictor.get_input_type,
-        # remove the argument (system_prompt)
-        wrapped = functools.partial(f, **defaults)
-        sig = inspect.signature(wrapped)
-        params = [p for name, p in sig.parameters.items() if name not in defaults]
-        wrapped.__signature__ = sig.replace(parameters=params)
-        return wrapped
+    # def remove(f: "Callable", defaults: "dict[str, Any]") -> "Callable":
+    #     # pylint: disable=no-self-argument
+    #     # for the purposes of inspect.signature as used by predictor.get_input_type,
+    #     # remove the argument (system_prompt)
+    #     wrapped = functools.partialmethod(f, **defaults)
+    #     sig = inspect.signature(wrapped)
+    #     # TypeError: functools.partialmethod(<function Predictor.predict at 0x7fa5d2136340>, , system_prompt=None) is not a callabl object
+    #
+    #     params = [p for name, p in sig.parameters.items() if name not in defaults]
+    #     wrapped.__signature__ = sig.replace(parameters=params)
+    #     return wrapped
 
+    # if not USE_SYSTEM_PROMPT:
+    #     predict = remove(predict, {"system_prompt": None})
+
+    _predict = predict
+
+    def base_predict(self, *args, **kwargs) -> ConcatenateIterator:
+        kwargs["system_prompt"] = None
+        return self._predict(*args, **kwargs)
+
+    # for the purposes of inspect.signature as used by predictor.get_input_type,
+    # remove the argument (system_prompt)
     if not USE_SYSTEM_PROMPT:
-        predict = remove(predict, {"system_prompt": None})
+        wrapper = base_predict
+        # wrapper = functools.partialmethod(base_predict, system_prompt=None)
+        sig = inspect.signature(_predict)
+        params = [p for name, p in sig.parameters.items() if name != "system_prompt"]
+        wrapper.__signature__ = sig.replace(parameters=params)
+        predict = wrapper
