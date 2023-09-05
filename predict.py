@@ -1,3 +1,6 @@
+import functools
+import inspect
+import os
 import shutil
 import socket
 import time
@@ -8,26 +11,22 @@ import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
 from config import (
+    LOAD_IN_4BIT,
     LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
+    LOCAL_TRAINING_WEIGHTS_PATH,
+    REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
     REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
     REMOTE_TRAINING_FILES_TO_DOWNLOAD,
-    USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS,
-    REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
-    LOCAL_TRAINING_WEIGHTS_PATH,
     REMOTE_TRAINING_WEIGHTS_PATH,
-    LOAD_IN_4BIT,
-    load_tokenizer,
-    load_tensorizer,
-    download_file,
-    USE_SYSTEM_PROMPT,
+    USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS,
     USE_FUSED_ATTN,
+    USE_SYSTEM_PROMPT,
+    download_file,
+    load_tensorizer,
+    load_tokenizer,
 )
-
+from src.utils import StreamingTextStopSequenceHandler, maybe_download_with_pget
 from subclass import YieldingLlama
-from src.utils import maybe_download_with_pget, StreamingTextStopSequenceHandler
-
-import os
-
 
 # This prompt formatting was copied from the original Llama v2 repo:
 # https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44
@@ -100,6 +99,10 @@ class Predictor(BasePredictor):
             default=None,
         ),
         prompt: str = Input(description="Prompt to send to the model."),
+        system_prompt: str = Input(
+            description="System prompt to send to the model. This is prepended to the prompt and helps guide system behavior.",
+            default=DEFAULT_SYSTEM_PROMPT,
+        ),
         max_new_tokens: int = Input(
             description="Maximum number of tokens to generate. A word is generally 2-3 tokens",
             ge=1,
@@ -175,3 +178,15 @@ class Predictor(BasePredictor):
             print(f"cur memory: {torch.cuda.memory_allocated()}")
             print(f"max allocated: {torch.cuda.max_memory_allocated()}")
             print(f"peak memory: {torch.cuda.max_memory_reserved()}")
+
+    def remove(f: "Callable", defaults: "dict[str, Any]") -> "Callable":
+        # for the purposes of inspect.signature as used by predictor.get_input_type,
+        # remove the argument (system_prompt)
+        wrapped = functools.partial(f, **defaults)
+        sig = inspect.signature(wrapped)
+        params = [p for name, p in sig.parameters.items() if name not in defaults]
+        wrapped.__signature__ = sig.replace(parameters=params)
+        return wrapped
+
+    if not USE_SYSTEM_PROMPT:
+        predict = remove(predict, {"system_prompt": None})
