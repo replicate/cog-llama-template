@@ -1,35 +1,31 @@
-import shutil
-import time
-from typing import Optional
-import zipfile
-import glob
-import time 
-
+import os
 import torch
+import asyncio
+
+from typing import Optional
+from vllm import AsyncLLMEngine
+from vllm.engine.arg_utils import AsyncEngineArgs
+from vllm.sampling_params import SamplingParams
+
 from cog import BasePredictor, ConcatenateIterator, Input, Path
+
+from transformers import LlamaForCausalLM
+
+from transformers.models.code_llama.tokenization_code_llama_fast import CodeLlamaTokenizerFast
 
 from config import (
     LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH, 
+    LOCAL_TRAINING_WEIGHTS_PATH,
+    REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD, 
     REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
     REMOTE_TRAINING_FILES_TO_DOWNLOAD,
-    USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS,
-    REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD, 
-    LOCAL_TRAINING_WEIGHTS_PATH, 
-    REMOTE_TRAINING_WEIGHTS_PATH,
-    LOAD_IN_4BIT,
-    load_tokenizer, 
-    load_tensorizer, 
-    download_file,
     USE_SYSTEM_PROMPT
 )
 
-from subclass import YieldingLlama
-from src.utils import maybe_download_with_pget, StreamingTextStopSequenceHandler
+from src.utils import maybe_download_with_pget
 
-from peft import PeftModel
-import os
 
-# This prompt formatting was copied from the original Llama v2 repo:
+# This prompt formatting was copied from the original CodeLlama repo:
 # https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44
 
 # These are components of the prompt that should not be changed by the users
@@ -38,18 +34,17 @@ B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 PROMPT_TEMPLATE = f"{B_INST} {{instruction}} {E_INST}"
 PROMPT_TEMPLATE_WITH_SYSTEM_PROMPT = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_INST}"
 
-# Users may want to change the system prompt, but we use the recommended system prompt by default
-DEFAULT_SYSTEM_PROMPT = ''
+DEFAULT_SYSTEM_PROMPT = """"""
 
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
         print('starting setup')
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        
+
         if weights is not None and weights.name == "weights":
-            # bugfix
             weights = None
+
         # If weights aren't passed in, we'll use the default weights configuration
         if not weights:
             weights = LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH
@@ -57,87 +52,74 @@ class Predictor(BasePredictor):
                 weights, REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH, REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
             )
 
-            if USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS:
-                from src.exllama_predictor import ExllamaGenerator
-                self.generator = ExllamaGenerator(weights)
-                self.use_exllama = True
-            
-            else:
-                if os.path.isdir(weights):
-                    self.model = self.load_huggingface_model(weights, load_in_4bit=LOAD_IN_4BIT)
-                    self.tokenizer = load_tokenizer()
-                    self.use_exllama = False
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-        
-        # If weights are passed in, they are LoRa weights
-        # so we need to download the fp16 weights and load with peft
-        elif '.zip' in str(weights):
-            weights = str(weights)
-            self.model = self.load_peft(weights)
-            self.tokenizer = load_tokenizer()
-            self.use_exllama = False
-        else:
-            raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
-
-
-    def load_peft(self, weights):
-        st = time.time()
-
-        model_path = maybe_download_with_pget(
-            LOCAL_TRAINING_WEIGHTS_PATH, 
-            REMOTE_TRAINING_WEIGHTS_PATH, 
-            REMOTE_TRAINING_FILES_TO_DOWNLOAD,
+        args = AsyncEngineArgs(
+            model=LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
+            tokenizer=LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
+            dtype="float16",
+            max_num_seqs=16384,
         )
+        self.engine = AsyncLLMEngine.from_engine_args(args)
+        self.tokenizer = self.engine.engine.tokenizer
 
-        model = self.load_huggingface_model(model_path, load_in_4bit=LOAD_IN_4BIT)
-        if 'http' in weights: # weights are in the cloud
-            local_weights = 'local_weights.zip'
-            if not os.path.exists(local_weights):
-                download_file(weights, local_weights)
-            weights = local_weights
-        out = '/src/peft_dir'
-        if os.path.exists(out):
-            shutil.rmtree(out)
-        with zipfile.ZipFile(weights, 'r') as zip_ref:
-            zip_ref.extractall(out)
-        model = PeftModel.from_pretrained(model, out)
-        print(f"peft model loaded in {time.time() - st}")
-        return model.to('cuda')
+    async def generate_stream(
+        self,
+        prompt,
+        temperature=0.6,
+        top_p=0.95,
+        top_k=50,
+        max_new_tokens=128,
+        stop_str=None,
+        stop_token_ids=None,
+        repetition_penalty=1.0
+    ):
+        context = prompt
+        stop_token_ids = stop_token_ids or []
+        stop_token_ids.append(self.tokenizer.eos_token_id)
 
-    def load_huggingface_model(self, weights=None, load_in_4bit=False):
-        st = time.time()
-        print(f"loading weights from {weights} w/o tensorizer")
-        if LOAD_IN_4BIT:
-            model = YieldingLlama.from_pretrained(
-                weights, 
-                cache_dir="pretrained_weights", 
-                device_map='auto',
-                load_in_4bit=LOAD_IN_4BIT,
-            )
+        if isinstance(stop_str, str) and stop_str != "":
+            stop = [stop_str]
+        elif isinstance(stop_str, list) and stop_str != []:
+            stop = stop_str
         else:
-            model = YieldingLlama.from_pretrained(
-                weights, cache_dir="pretrained_weights", torch_dtype=torch.float16, low_cpu_mem_usage=True
-            ).to(self.device)
+            stop = []
 
-        print(f"weights loaded in {time.time() - st}")
-        return model
+        for tid in stop_token_ids:
+            stop.append(self.tokenizer.decode(tid))
+
+        # make sampling params in vllm
+        top_p = max(top_p, 1e-5)
+        if temperature <= 1e-5:
+            top_p = 1.0
+        sampling_params = SamplingParams(
+            n=1,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            use_beam_search=False,
+            stop=stop,
+            max_tokens=max_new_tokens,
+            frequency_penalty=repetition_penalty,
+        )
+        results_generator = self.engine.generate(context, sampling_params, 0)
+
+        async for request_output in results_generator:
+            prompt = request_output.prompt
+            yield request_output.outputs[-1].text
 
     def predict(
         self,
-        prompt: str = Input(description=f"Prompt to send to the model."),
+        prompt: str = Input(description=f"Prompt to send to CodeLlama."),
         system_prompt: str = Input(
-            description="System prompt to send to Codellama. This is prepended to the prompt and helps guide system behavior.", 
+            description="System prompt to send to CodeLlama. This is prepended to the prompt and helps guide system behavior.", 
             default=DEFAULT_SYSTEM_PROMPT,
         ),
         max_new_tokens: int = Input(
             description="Maximum number of tokens to generate. A word is generally 2-3 tokens",
             ge=1,
             default=128,
-        ),
-        min_new_tokens: int = Input(
-            description="Minimum number of tokens to generate. To disable, set to -1. A word is generally 2-3 tokens.",
-            ge=-1,
-            default=-1,
         ),
         temperature: float = Input(
             description="Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic, 0.75 is a good starting value.",
@@ -163,7 +145,7 @@ class Predictor(BasePredictor):
         debug: bool = Input(
             description="provide debugging output in logs", default=False
         ),
-    ) -> ConcatenateIterator: 
+    ) -> ConcatenateIterator[str]:
         
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
@@ -176,77 +158,25 @@ class Predictor(BasePredictor):
             prompt_templated = PROMPT_TEMPLATE_WITH_SYSTEM_PROMPT.format(system_prompt=system_prompt, instruction=user_prompt)
 
         print(f"Prompt: \n{prompt_templated}")
-        if self.use_exllama:
-            n_tokens = 0
-            st = time.time()
 
-            for decoded_token in self.generator(
-                prompt_templated,
-                repetition_penalty=1.15,
-                repetition_penalty_sustain=256,
-                token_repetition_penalty_decay=128,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-                max_new_tokens=max_new_tokens,
-                min_new_tokens=min_new_tokens,
-                stop_sequences=stop_sequences,
-            ):
-                n_tokens += 1
-                yield decoded_token
-            t = time.time() - st
-        
-        else:
-            
-            if stop_sequences:
-                stop_sequences_token_ids = [self.tokenizer.encode(seq, add_special_tokens=False) for seq in stop_sequences]
-            else:
-                stop_sequences_token_ids = []
+        loop = asyncio.get_event_loop()
 
-            stop_sequence_handler = StreamingTextStopSequenceHandler(
-                stop_sequences=stop_sequences,
-                eos_token=self.tokenizer.eos_token,
-            )
+        gen = self.generate_stream(
+            prompt_templated,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            max_new_tokens=max_new_tokens,
+            stop_str=stop_sequences,
+            repetition_penalty=1.0
+        )
 
-            prompt_tokens = self.tokenizer(prompt_templated, return_tensors="pt").input_ids.to(self.device)
-            n_in_tokens = prompt_tokens.shape[-1]
-            if n_in_tokens >= self.model.config.max_position_embeddings:
-                raise ValueError(f"Your input is too long. Max input length is {self.model.config.max_position_embeddings} tokens, but you supplied {n_in_tokens} tokens.")
-
-            max_new_tokens = min(max_new_tokens, self.model.config.max_position_embeddings - n_in_tokens)
-            old_tokens = prompt_tokens.tolist()[0]
-            old_text = self.tokenizer.bos_token + prompt_templated
-            with torch.inference_mode() and torch.autocast("cuda"):
-
-                for token in self.model.generate(
-                    input_ids=prompt_tokens,
-                    max_new_tokens=max_new_tokens,
-                    min_new_tokens=min_new_tokens,
-                    do_sample=True,
-                    temperature=temperature,
-                    top_p=top_p,
-                    top_k=top_k,
-                    repetition_penalty=1,
-                ):
-                    
-                    old_tokens.append(token.item())
-                    text = self.tokenizer.decode(old_tokens)
-                    new_text = text[len(old_text):]
-                    old_text = text
-
-                    for yielded_text in stop_sequence_handler(new_text):
-                        if yielded_text == stop_sequence_handler.eos_token:
-                            break
-                        yield yielded_text
-                    
-                    if yielded_text == stop_sequence_handler.eos_token:
-                        break
-
-                for yielded_text in stop_sequence_handler.finalize():
-                    yield yielded_text    
-
-
-        if debug:
-            print(f"cur memory: {torch.cuda.memory_allocated()}")
-            print(f"max allocated: {torch.cuda.max_memory_allocated()}")
-            print(f"peak memory: {torch.cuda.max_memory_reserved()}")
+        prv_value = ""
+        value = ""
+        while True:
+            prv_value = value
+            try:
+                value = loop.run_until_complete(gen.__anext__())
+                yield value[len(prv_value) :]
+            except StopAsyncIteration:
+                break
