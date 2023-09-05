@@ -41,7 +41,7 @@ class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
         print('starting setup')
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        
+
         if weights is not None and weights.name == "weights":
             weights = None
 
@@ -51,6 +51,9 @@ class Predictor(BasePredictor):
             weights = maybe_download_with_pget(
                 weights, REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH, REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
             )
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
         args = AsyncEngineArgs(
             model=LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
@@ -157,6 +160,7 @@ class Predictor(BasePredictor):
         print(f"Prompt: \n{prompt_templated}")
 
         loop = asyncio.get_event_loop()
+
         gen = self.generate_stream(
             prompt_templated,
             temperature=temperature,
@@ -166,6 +170,7 @@ class Predictor(BasePredictor):
             stop_str=stop_sequences,
             repetition_penalty=1.0
         )
+
         prv_value = ""
         value = ""
         while True:
