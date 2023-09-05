@@ -172,14 +172,21 @@ class Predictor(BasePredictor):
         if replicate_weights:
             start = time.time()
             self.initialize_peft(replicate_weights)
-            print(f"overall initialize_peft took {time.time() - start:.4f}")
+            print(f"Overall initialize_peft took {time.time() - start:.4f}")
         else:
-            print("not using lora")
+            print("Not using LoRA")
 
         if seed is not None:
+            print(f"Setting seed to {seed}")
+            os.environ["PYTHONHASHSEED"] = str(seed)
             torch.manual_seed(seed)
-            torch.cuda.manual_seed_all(int(seed))
+            torch.cuda.manual_seed(seed)
+            torch.cuda.manual_seed_all(seed)
             random.seed(seed)
+
+            import numpy
+
+            numpy.random.seed(seed)
 
         n_tokens = 0
         st = time.time()

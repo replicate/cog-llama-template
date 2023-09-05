@@ -6,10 +6,9 @@
 .PHONY: clean
 
 # this is required to build sentencepiece for py3.11
-# it currently only works with syl/build-stage-patch
-# you can get the right version of cog by downloading
-# https://r2.drysys.workers.dev/cog
-export BUILD_STAGE_DEPS = apt update && apt install -yy cmake google-perftools
+# requires cog > 0.9.0-beta1
+# get it at https://github.com/replicate/cog/releases/download/v0.9.0-beta1/cog_linux_x86_64
+export COG_EXPERIMENTAL_BUILD_STAGE_DEPS = apt update && apt install -yy cmake google-perftools
 
 CURRENT_DIR := $(shell basename $(PWD))
 
@@ -82,8 +81,6 @@ select:
 	fi
 	# this approach makes copies
 	# rsync -av --exclude 'model_artifacts/' models/$(model)/ .
-	# if [ -e models/$(model)/.env ]; then cp models/$(model)/.env . ; fi
-	# if [ -e models/$(model)/.dockerignore ]; then cp models/$(model)/.dockerignore . ; fi
 
 	# this approach behaves the same way but makes symlinks
 	# # if we also wanted to copy directory structure we could do this, but we only need one dir deep
