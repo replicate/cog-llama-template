@@ -29,6 +29,14 @@ else
     schema := base-schema.json
 endif
 
+base-schema.json:
+	$(MAKE) select model=llama-2-7b
+	cog run --use-cuda-base-image=false python3 -m cog.command.openapi_schema > base-schema.json
+chat-schema.json:
+	$(MAKE) select model=llama-2-7b-chat
+	cog run --use-cuda-base-image=false python3 -m cog.command.openapi_schema > chat-schema.json
+	
+
 init:
 	@if [ -z "$(model)" ]; then \
 		echo "Error: 'model' argument must be specified or 'MODEL_ENV' environment variable must be set. E.g., make select model=your_model_name or export MODEL_ENV=your_model_name"; \
