@@ -52,25 +52,14 @@ class Predictor(BasePredictor):
                 weights, REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH, REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
             )
 
-
-        model = LlamaForCausalLM.from_pretrained(LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH, use_safetensors=True)
-        # tokenizer = CodeLlamaTokenizerFast.from_pretrained(LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH, use_safetensors=True)
-
-        # tokenizer='hf-internal-testing/llama-tokenizer',
-        # model='codellama/CodeLlama-34b-Instruct-hf',
-        print('LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH', LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH)
         args = AsyncEngineArgs(
-            model=model,
-            # tokenizer=LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH + "/tokenizer.model",
-            tokenizer='hf-internal-testing/llama-tokenizer',
-            # model='codellama/CodeLlama-7b-Instruct-hf',
+            model=LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
+            tokenizer=LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
             dtype="float16",
             max_num_seqs=16384,
         )
         self.engine = AsyncLLMEngine.from_engine_args(args)
         self.tokenizer = self.engine.engine.tokenizer
-
-
 
     async def generate_stream(
         self,

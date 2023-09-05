@@ -55,9 +55,9 @@ REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = get_env_var_or_default(
 # ]
 
 # REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = ["model.safetensors"]
-N_SHARDS=2
+N_SHARDS=3
 REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = [
-    f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
+    f"pytorch_model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.bin"
     for i in range(N_SHARDS)
 ]
 
@@ -68,7 +68,7 @@ REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
     "tokenizer_config.json",
     "tokenizer.json",
     "tokenizer.model",
-    "model.safetensors.index.json"
+    "pytorch_model.bin.index.json"
 ]
 
 # TRAINED INFERENCE CONFIGURATION
