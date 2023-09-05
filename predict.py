@@ -1,6 +1,7 @@
 import functools
 import inspect
 import os
+import random
 import shutil
 import socket
 import time
@@ -149,6 +150,10 @@ class Predictor(BasePredictor):
             description="A comma-separated list of sequences to stop generation at. For example, '<end>,<stop>' will stop generation at the first instance of 'end' or '<stop>'.",
             default=None,
         ),
+        seed: int = Input(
+            description="Random seed. Leave blank to randomize the seed",
+            default=None,
+        ),
         debug: bool = Input(
             description="provide debugging output in logs", default=False
         ),
@@ -170,6 +175,12 @@ class Predictor(BasePredictor):
             print(f"overall initialize_peft took {time.time() - start:.4f}")
         else:
             print("not using lora")
+
+        if seed is not None:
+            torch.manual_seed(seed)
+            torch.cuda.manual_seed_all(int(seed))
+            random.seed(seed)
+
         n_tokens = 0
         st = time.time()
 
