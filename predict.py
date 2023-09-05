@@ -65,7 +65,9 @@ class Predictor(BasePredictor):
             print("Not using old-style COG_WEIGHTS LoRA weights")
             # raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
 
-    def initialize_peft(self, replicate_weights: str) -> None:
+    # todo: adaptive cache like CLOCK
+    @functools.lru_cache(maxsize=10)
+    def get_lora(self, replicate_weights: str) -> "ExLlamaLora":
         if "http" in str(replicate_weights):  # weights are in the cloud
             print("Downloading peft weights")
             st = time.time()
@@ -87,10 +89,23 @@ class Predictor(BasePredictor):
 
         print("Initializing peft model")
         st = time.time()
-        self.generator.load_lora(peft_path)
-        print(f"Initialized peft model initialized in {time.time() - st}")
+        lora = self.generator.load_lora(peft_path)
+        print(f"Initialized peft model in {time.time() - st}")
         # remove file
         os.remove(local_peft_weights)
+        return lora
+
+    current_path: str
+
+    def initialize_peft(self, replicate_weights: str) -> None:
+        if self.current_path != replicate_weights:
+            print(
+                f"previous weights were {self.current_path}, switching to {replicate_weights}"
+            )
+            self.generator.lora = self.get_lora(replicate_weights)
+            self.current_path = replicate_weights
+        else:
+            print("correct lora is already loaded")
 
     def predict(
         self,
@@ -180,6 +195,7 @@ class Predictor(BasePredictor):
             print(f"peak memory: {torch.cuda.max_memory_reserved()}")
 
     def remove(f: "Callable", defaults: "dict[str, Any]") -> "Callable":
+        # pylint: disable=no-self-argument
         # for the purposes of inspect.signature as used by predictor.get_input_type,
         # remove the argument (system_prompt)
         wrapped = functools.partial(f, **defaults)
