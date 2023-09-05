@@ -17,6 +17,12 @@ REPLICATE_USER ?= replicate-internal
 
 model ?= $(SELECTED_MODEL)
 
+ifeq ($(findstring chat,$(model)),chat)
+    schema := chat-schema.json
+else
+    schema := base-schema.json
+endif
+
 init:
 	@if [ -z "$(model)" ]; then \
 		echo "Error: 'model' argument must be specified or 'MODEL_ENV' environment variable must be set. E.g., make select model=your_model_name or export MODEL_ENV=your_model_name"; \
@@ -53,14 +59,27 @@ update-all:
 		#cp model_templates/cog.yaml $$dir ; \
 	done
 
+model_dir=models/$(model)
+
 select:
 	@if [ -z "$(model)" ]; then \
 		echo "Error: 'model' argument must be specified or 'MODEL_ENV' environment variable must be set. E.g., make select model=your_model_name or export MODEL_ENV=your_model_name"; \
 		exit 1; \
 	fi
-	rsync -av --exclude 'model_artifacts/' models/$(model)/ .
-	if [ -e models/$(model)/.env ]; then cp models/$(model)/.env . ; fi
-	if [ -e models/$(model)/.dockerignore ]; then cp models/$(model)/.dockerignore . ; fi
+	# this approach makes copies
+	# rsync -av --exclude 'model_artifacts/' models/$(model)/ .
+	# if [ -e models/$(model)/.env ]; then cp models/$(model)/.env . ; fi
+	# if [ -e models/$(model)/.dockerignore ]; then cp models/$(model)/.dockerignore . ; fi
+
+	# this approach behaves the same way but makes symlinks
+	# # if we also wanted to copy directory structure we could do this, but we only need one dir deep
+	# rsync -av --exclude 'model_artifacts/' --include '*/' --exclude '*' $(model_dir)/ .
+	# For symlinking files
+	find $(model_dir) -type f ! -path "$(model_dir)/model_artifacts/*" -exec ln -sf {} . \;
+	# For specific files like .env and .dockerignore, we link them if they exist
+	[ -e $(model_dir)/.env ] && ln -sf $(model_dir)/.env .env || true
+	[ -e $(model_dir)/.dockerignore ] && ln -sf $(model_dir)/.dockerignore .dockerignore || true
+
 	#cog build
 	@echo "#########Selected model: $(model)########"
 
@@ -112,7 +131,7 @@ test-local: select test-local-predict test-local-train test-local-train-predict
 
 stage:
 	@echo "Pushing $(model) to r8.im/$(REPLICATE_USER)/staging-$(model)..."
-	cog push --openapi-schema=schema.json --use-cuda-base-image=false --debug --progress plain r8.im/$(REPLICATE_USER)/staging-$(model)
+	cog push --openapi-schema=$(schema) --use-cuda-base-image=false --debug --progress plain r8.im/$(REPLICATE_USER)/staging-$(model)
 
 test-stage-predict:
 	@if [ "$(verbose)" = "true" ]; then \
