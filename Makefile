@@ -95,7 +95,7 @@ clean: select
 	if [ -e training_output.zip]; then sudo rm -rf training_output.zip; fi
 
 build-local: select
-	cog build--openapi-schema=$(schema) --use-cuda-base-image=false --progress plain
+	cog build --openapi-schema=$(schema) --use-cuda-base-image=false --progress plain
 
 serve: select
 	docker run \
