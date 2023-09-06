@@ -174,6 +174,7 @@ class Predictor(BasePredictor):
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.4f}")
         else:
+            self.generator.lora = None
             print("Not using LoRA")
 
         if seed is not None:
@@ -205,6 +206,8 @@ class Predictor(BasePredictor):
         ):
             n_tokens += 1
             yield decoded_token
+            if seed is not None:
+                torch.manual_seed(seed)
         t = time.time() - st
         print(f"hostname: {socket.gethostname()}")
         if debug:
