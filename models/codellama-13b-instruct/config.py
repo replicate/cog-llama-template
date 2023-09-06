@@ -11,7 +11,7 @@ from src.utils import get_env_var_or_default
 
 load_dotenv()
 
-MODEL_NAME = "codellama-7b-instruct"
+MODEL_NAME = "codellama-13b-instruct"
 # INFERENCE CONFIGURATION
 #######################################################################
 # --------------------Notes--------------------------------------------
