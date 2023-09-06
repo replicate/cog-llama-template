@@ -83,7 +83,8 @@ select:
 	find $(model_dir) -type f ! -path "$(model_dir)/model_artifacts/*" -exec ln -sf {} . \;
 	# For specific files like .env and .dockerignore, we link them if they exist
 	[ -e $(model_dir)/.env ] && ln -sf $(model_dir)/.env .env || true
-	[ -e $(model_dir)/.dockerignore ] && ln -sf $(model_dir)/.dockerignore .dockerignore || true
+	[ -e $(model_dir)/.dockerignore ] && cat model_templates/.dockerignore $(model_dir)/.dockerignore > .dockerignore || true
+	
 
 	#cog build
 	@echo "#########Selected model: $(model)########"
