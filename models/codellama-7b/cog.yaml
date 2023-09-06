@@ -24,10 +24,10 @@ build:
     - "scipy==1.11.1"
     - "sentencepiece==0.1.97"
     - "transformers -e git+https://github.com/huggingface/transformers.git@1fa2d89a9bb98a15e9720190e07d272a42f03d28#egg={transformers}"
+    - "vllm==0.1.4"
   run:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.2/pget" && chmod +x /usr/local/bin/pget
-    # - pip install git+https://github.com/huggingface/transformers.git@1fa2d89a9bb98a15e9720190e07d272a42f03d28
-    - pip install accelerate
+    - pip install git+https://github.com/huggingface/transformers.git@1fa2d89a9bb98a15e9720190e07d272a42f03d28
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
