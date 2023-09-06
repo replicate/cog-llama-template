@@ -42,6 +42,7 @@ class TrainingOutput(BaseModel):
     weights: Path
 
 def train(
+    fake_output: str = Input(description="fake training", default=None),
     train_data: Path = Input(
         description="path to data file to use for fine-tuning your model"
     ),
@@ -133,6 +134,10 @@ def train(
     lora_dropout: float = Input(description="Dropout for lora training", default=0.05, ge=0.0, le=1.0),
     # lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
 ) -> TrainingOutput:
+    if fake_output:
+        out_path = f"/tmp/{os.path.basename(fake_output)}"
+        asyncio.run(download_file_with_pget(fake_output, out_path))
+        return TrainingOutput(weights=Path(out_path))
     
     # Hardcode QLoRA for 70B models for now
     if '70' in MODEL_NAME and peft_method != "qlora":
@@ -171,7 +176,7 @@ def train(
     args = []
 
     if peft_method != "qlora":
-        args.extend(["torchrun", "--nnodes=1", f"--nproc_per_node={num_gpus}"])
+        args.extend(["python3", "-m", "torch.distributed.run", "--nnodes=1", f"--nproc_per_node={num_gpus}"])
     else:
         args.append("python")
     
@@ -190,14 +195,11 @@ def train(
         f"--model_name={model_path}",
         f"--pure_bf16",
         f"--output_dir={output_dir}",
-
         # User specified arguments -----
-
         # Preprocessing arguments
         f"--pack_sequences={pack_sequences}",
         f"--wrap_packed_sequences={wrap_packed_sequences}",
         f"--chunk_size={chunk_size}",
-
         # Train arguments
         f"--data_path={train_data}",
         f"--num_epochs={num_train_epochs}",
@@ -208,7 +210,6 @@ def train(
         f"--lora_alpha={lora_alpha}",
         f"--lora_dropout={lora_dropout}",
         f"--peft_method={peft_method}",
-
         # Validation arguments
         f"--run_validation={'False' if not run_validation else 'True'}",
         f"--num_validation_samples={num_validation_samples}",
@@ -227,7 +228,9 @@ def train(
         p.wait()
         return_code = p.poll()
         if return_code != 0:
-            raise Exception(f"Training failed with exit code {return_code}! Check logs for details")
+            raise Exception(
+                f"Training failed with exit code {return_code}! Check logs for details"
+            )
         out_path = "training_output.zip"
 
         directory = Path(output_dir)
@@ -237,19 +240,18 @@ def train(
                 zip.write(file_path, arcname=file_path.relative_to(directory))
 
         return TrainingOutput(weights=Path(out_path))
-    finally: 
+    finally:
         if p and p.poll() is None:
             top = psutil.Process(p.pid)
             children = top.children(recursive=True)
             for process in children + [top]:
                 process.terminate()
-            _, alive = psutil.wait_procs(children + [top], timeout = 5)
+            _, alive = psutil.wait_procs(children + [top], timeout=5)
             if alive:
                 for process in alive:
                     print(f"process {process.pid} survived termination")
             else:
                 print("terminated all processes successfully")
-
 
 
 if __name__ == "__main__":

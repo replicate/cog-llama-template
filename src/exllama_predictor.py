@@ -74,10 +74,10 @@ class ExllamaGenerator:
         self.generator = begin(generator)
     
 
-    def load_lora(self, lora_path: str) -> None:
-        # add a cache here 
+    def load_lora(self, lora_path: str) -> ExLlamaLora:
         lora = ExLlamaLora(self.model, f"{lora_path}/adapter_config.json", f"{lora_path}/adapter_model.bin")
-        self.generator.lora = lora
+        #self.generator.lora = lora
+        return lora
     
     def __call__(
         self,

@@ -5,6 +5,11 @@
 .PHONY: push-and-test
 .PHONY: clean
 
+# this is required to build sentencepiece for py3.11
+# requires cog > 0.9.0-beta1
+# get it at https://github.com/replicate/cog/releases/download/v0.9.0-beta1/cog_linux_x86_64
+export COG_EXPERIMENTAL_BUILD_STAGE_DEPS = apt update && apt install -yy cmake google-perftools
+
 CURRENT_DIR := $(shell basename $(PWD))
 
 ifeq ($(findstring cog,$(CURRENT_DIR)),cog)
@@ -16,6 +21,20 @@ endif
 REPLICATE_USER ?= replicate-internal
 
 model ?= $(SELECTED_MODEL)
+
+ifeq ($(findstring chat,$(model)),chat)
+    schema := chat-schema.json
+else
+    schema := base-schema.json
+endif
+
+base-schema.json:
+	$(MAKE) select model=llama-2-7b
+	cog run --use-cuda-base-image=false python3 -m cog.command.openapi_schema > base-schema.json
+chat-schema.json:
+	$(MAKE) select model=llama-2-7b-chat
+	cog run --use-cuda-base-image=false python3 -m cog.command.openapi_schema > chat-schema.json
+	
 
 init:
 	@if [ -z "$(model)" ]; then \
@@ -47,21 +66,27 @@ update:
 	fi
 	cp -r model_templates/*  models/$(model)
 	
-update-all:
-	@for dir in models/*/ ; do \
-		cp model_templates/predict.py $$dir ; \
-		cp model_templates/cog.yaml $$dir ; \
-	done
+model_dir=models/$(model)
 
 select:
 	@if [ -z "$(model)" ]; then \
 		echo "Error: 'model' argument must be specified or 'MODEL_ENV' environment variable must be set. E.g., make select model=your_model_name or export MODEL_ENV=your_model_name"; \
 		exit 1; \
 	fi
-	rsync -av --exclude 'model_artifacts/' models/$(model)/ .
-	if [ -e models/$(model)/.env ]; then cp models/$(model)/.env . ; fi
-	if [ -e models/$(model)/.dockerignore ]; then cp models/$(model)/.dockerignore . ; fi
-	cog build
+	# this approach makes copies
+	# rsync -av --exclude 'model_artifacts/' models/$(model)/ .
+
+	# this approach behaves the same way but makes symlinks
+	# # if we also wanted to copy directory structure we could do this, but we only need one dir deep
+	# rsync -av --exclude 'model_artifacts/' --include '*/' --exclude '*' $(model_dir)/ .
+	# For symlinking files
+	find $(model_dir) -type f ! -path "$(model_dir)/model_artifacts/*" -exec ln -sf {} . \;
+	# For specific files like .env and .dockerignore, we link them if they exist
+	[ -e $(model_dir)/.env ] && ln -sf $(model_dir)/.env .env || true
+	[ -e $(model_dir)/.dockerignore ] && cat model_templates/.dockerignore $(model_dir)/.dockerignore > .dockerignore || true
+	
+
+	#cog build
 	@echo "#########Selected model: $(model)########"
 
 clean: select
@@ -112,7 +137,7 @@ test-local: select test-local-predict test-local-train test-local-train-predict
 
 stage:
 	@echo "Pushing $(model) to r8.im/$(REPLICATE_USER)/staging-$(model)..."
-	cog push r8.im/$(REPLICATE_USER)/staging-$(model)
+	cog push --openapi-schema=$(schema) --use-cuda-base-image=false --debug --progress plain r8.im/$(REPLICATE_USER)/staging-$(model)
 
 test-stage-predict:
 	@if [ "$(verbose)" = "true" ]; then \

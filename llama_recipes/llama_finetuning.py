@@ -81,6 +81,7 @@ def main(**kwargs):
     if train_config.enable_fsdp:
         setup()
         # torchrun specific
+        import os
         local_rank = int(os.environ["LOCAL_RANK"])
         rank = int(os.environ["RANK"])
         world_size = int(os.environ["WORLD_SIZE"])
@@ -193,12 +194,13 @@ def main(**kwargs):
     # Model preparation for full fine-tuning -------
     # ----------------------------------------------
     if not train_config.use_peft:
-
+        print("Loading model for peft")
         model = LlamaForCausalLM.from_pretrained(
             train_config.model_name,
             load_in_8bit=True if train_config.quantization else None,
             device_map="auto" if train_config.quantization else None,
         )
+        print("Loaded model")
     
     else:
         kwargs['r'] = kwargs['lora_rank'] # can't pass --r to the script, torchrun won't have it
@@ -219,6 +221,7 @@ def main(**kwargs):
                 device_map="auto", # dispatch efficiently the model on the available ressources
                 # max_memory = {i: max_memory for i in range(num_gpus)},
             )
+            print("Loaded model")
 
             model.gradient_checkpointing_enable()
             model = prepare_model_for_kbit_training(model)
