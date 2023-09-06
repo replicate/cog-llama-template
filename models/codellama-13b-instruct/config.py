@@ -30,7 +30,7 @@ MODEL_NAME = "codellama-13b-instruct"
 LOAD_IN_4BIT = False
 TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 USE_SYSTEM_PROMPT = True
-USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = True
+USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = False
 
 
 # DEFAULT INFERENCE CONFIGURATION
