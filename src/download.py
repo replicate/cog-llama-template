@@ -30,15 +30,20 @@ class Downloader:
 
     async def get_remote_file_size(self, url: str) -> int:
         for _ in range(3):
-            async with self.session.head(url, allow_redirects=True) as response:
+            start = time.time()
+            try:
+                response = await self.session.head(url, allow_redirects=True)
                 if response.status >= 400:
                     print("HEAD failed:", response, response.headers.items())
-                try:
-                    return int(response.headers["Content-Length"])
-                except KeyError as e:
-                    print("HEAD failed", repr(e))
-                    print(response.headers)
-                    print(response)
+                return int(response.headers["Content-Length"])
+            except KeyError as e:
+                print("HEAD failed", repr(e))
+                print(response.headers)
+                print(response)
+            except asyncio.TimeoutError:
+                print(f"HEAD {url} timed out after {time.time() - start:.4f}")
+            except aiohttp.ClientError as e:
+                print(f"HEAD {url} {repr(e)}")
             await asyncio.sleep(random.random() / 10)
         raise ValueError(f"Failed to HEAD {url} after multiple retries")
 
