@@ -55,7 +55,7 @@ REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = get_env_var_or_default(
 # ]
 
 # REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = ["model.safetensors"]
-N_SHARDS=7
+N_SHARDS=3
 REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = [
     f"pytorch_model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.bin"
     for i in range(N_SHARDS)
