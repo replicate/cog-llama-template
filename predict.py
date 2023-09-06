@@ -215,6 +215,7 @@ class Predictor(BasePredictor):
             print(f"max allocated: {torch.cuda.max_memory_allocated()}")
             print(f"peak memory: {torch.cuda.max_memory_reserved()}")
 
+    # # we'd like this to work eventually
     # def remove(f: "Callable", defaults: "dict[str, Any]") -> "Callable":
     #     # pylint: disable=no-self-argument
     #     # for the purposes of inspect.signature as used by predictor.get_input_type,
@@ -238,6 +239,7 @@ class Predictor(BasePredictor):
 
     # for the purposes of inspect.signature as used by predictor.get_input_type,
     # remove the argument (system_prompt)
+    # this removes system_prompt from the Replicate API for non-chat models.
     if not USE_SYSTEM_PROMPT:
         wrapper = base_predict
         # wrapper = functools.partialmethod(base_predict, system_prompt=None)
