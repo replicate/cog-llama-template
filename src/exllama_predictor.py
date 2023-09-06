@@ -3,7 +3,8 @@ import sys
 import glob 
 import torch 
 import time
-import typing as tp 
+from pathlib import Path
+import typing as tp
 
 exllama_path = os.path.abspath('exllama')
 sys.path.insert(0, exllama_path)
@@ -79,7 +80,7 @@ class ExllamaGenerator:
     #     #self.generator.lora = lora
     #     return lora
 
-    def load_lora(self, config: str | Path, weights: str | path) -> ExLlamaLora:
+    def load_lora(self, config: str | Path, weights: str | Path) -> ExLlamaLora:
         return ExLlamaLora(self.model, config, weights)
     
     def __call__(

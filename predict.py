@@ -1,12 +1,12 @@
 import functools
 import inspect
+import io
 import os
 import random
 import shutil
 import socket
 import time
 import zipfile
-from pathlib import Path
 from typing import Optional
 
 import torch
@@ -26,8 +26,8 @@ from config import (
     load_tensorizer,
     load_tokenizer,
 )
-from src.utils import StreamingTextStopSequenceHandler, maybe_download_with_pget
 from src.download import Downloader
+from src.utils import StreamingTextStopSequenceHandler, maybe_download_with_pget
 from subclass import YieldingLlama
 
 # This prompt formatting was copied from the original Llama v2 repo:
@@ -74,7 +74,6 @@ class Predictor(BasePredictor):
         if "http" in str(replicate_weights):  # weights are in the cloud
             print("Downloading peft weights")
             st = time.time()
-            local_peft_weights = "local_weights.zip"
             buffer = self.downloader.sync_download_file(str(replicate_weights))
             print(f"Downloaded peft weights in {time.time() - st:.4f}")
         else:
@@ -82,11 +81,13 @@ class Predictor(BasePredictor):
             buffer = replicate_weights
         print("Unziping peft weights")
         st = time.time()
-        with zipfile.ZipFile(local_peft_weights, "r") as zip_ref:
-            data = {name: input_zip.read(name) for name in input_zip.namelist()}
+        with zipfile.ZipFile(buffer, "r") as zip_ref:
+            data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
         print("Initializing peft model")
         st = time.time()
-        lora = self.generator.load_lora(data["adapter_config.json"], data["adapter_model.bin"])
+        lora = self.generator.load_lora(
+            data["adapter_config.json"], io.BytesIO(data["adapter_model.bin"])
+        )
         del data, zip_ref
         print(f"Initialized peft model in {time.time() - st:.4f}")
         # remove file
