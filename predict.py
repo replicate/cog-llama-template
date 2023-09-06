@@ -77,7 +77,7 @@ class Predictor(BasePredictor):
             st = time.time()
             local_peft_weights = "local_weights.zip"
             download_file(str(replicate_weights), local_peft_weights)
-            print(f"Downloaded peft weights in {time.time() - st}")
+            print(f"Downloaded peft weights in {time.time() - st:.4f}")
 
         else:
             local_peft_weights = replicate_weights
@@ -89,12 +89,12 @@ class Predictor(BasePredictor):
             shutil.rmtree(peft_path)
         with zipfile.ZipFile(local_peft_weights, "r") as zip_ref:
             zip_ref.extractall(peft_path)
-        print(f"Unzipped peft weights in {time.time() - st}")
+        print(f"Unzipped peft weights in {time.time() - st:.4f}")
 
         print("Initializing peft model")
         st = time.time()
         lora = self.generator.load_lora(peft_path)
-        print(f"Initialized peft model in {time.time() - st}")
+        print(f"Initialized peft model in {time.time() - st:.4f}")
         # remove file
         os.remove(local_peft_weights)
         return lora
