@@ -95,7 +95,7 @@ clean: select
 	if [ -e training_output.zip]; then sudo rm -rf training_output.zip; fi
 
 build-local: select
-	cog build
+	cog build--openapi-schema=$(schema) --use-cuda-base-image=false --progress plain
 
 serve: select
 	docker run \
@@ -105,8 +105,6 @@ serve: select
 	-e COG_WEIGHTS=http://$(HOST_NAME):8000/training_output.zip \
 	-v `pwd`/training_output.zip:/src/local_weights.zip \
 	$(IMAGE_NAME)
-
-
 
 test-local-predict: 
 	cog build
@@ -125,8 +123,7 @@ test-local-train:
 		pytest ./tests/test_train.py; \
 	fi
 
-test-local-train-predict: 
-	cog build
+test-local-train-predict: build-local
 	@if [ "$(verbose)" = "true" ]; then \
 		pytest ./tests/test_train_predict.py -s; \
 	else \
@@ -165,6 +162,8 @@ stage-and-test-models:
 	
 push: select
 	cog push r8.im/$(destination)
+	cog push --openapi-schema=$(schema) --use-cuda-base-image=false --debug --progress plain r8.im/$(destination)
+
 
 test-push: test-local push
 	
@@ -172,8 +171,6 @@ test-live:
 	python test/push_test.py
 
 push-and-test: push test-live
-
-
 
 help:
 	@echo "Available targets:\n\n"
