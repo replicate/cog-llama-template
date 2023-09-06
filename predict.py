@@ -6,6 +6,7 @@ import shutil
 import socket
 import time
 import zipfile
+from pathlib import Path
 from typing import Optional
 
 import torch
@@ -25,11 +26,8 @@ from config import (
     load_tensorizer,
     load_tokenizer,
 )
-from src.utils import (
-    StreamingTextStopSequenceHandler,
-    download_file,
-    maybe_download_with_pget,
-)
+from src.utils import StreamingTextStopSequenceHandler, maybe_download_with_pget
+from src.download import Downloader
 from subclass import YieldingLlama
 
 # This prompt formatting was copied from the original Llama v2 repo:
@@ -47,6 +45,7 @@ DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
         print("Starting setup")
+        self.downloader = Downloader()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         from src.exllama_predictor import ExllamaGenerator
@@ -76,27 +75,22 @@ class Predictor(BasePredictor):
             print("Downloading peft weights")
             st = time.time()
             local_peft_weights = "local_weights.zip"
-            download_file(str(replicate_weights), local_peft_weights)
+            buffer = self.downloader.sync_download_file(str(replicate_weights))
             print(f"Downloaded peft weights in {time.time() - st:.4f}")
-
         else:
-            local_peft_weights = replicate_weights
-
+            # zipfile accepts either a file-like or path-like object
+            buffer = replicate_weights
         print("Unziping peft weights")
         st = time.time()
-        peft_path = "/src/peft_dir"
-        if os.path.exists(peft_path):
-            shutil.rmtree(peft_path)
         with zipfile.ZipFile(local_peft_weights, "r") as zip_ref:
-            zip_ref.extractall(peft_path)
-        print(f"Unzipped peft weights in {time.time() - st:.4f}")
-
+            data = {name: input_zip.read(name) for name in input_zip.namelist()}
         print("Initializing peft model")
         st = time.time()
-        lora = self.generator.load_lora(peft_path)
+        lora = self.generator.load_lora(data["adapter_config.json"], data["adapter_model.bin"])
+        del data, zip_ref
         print(f"Initialized peft model in {time.time() - st:.4f}")
         # remove file
-        os.remove(local_peft_weights)
+        # os.remove(local_peft_weights)
         return lora
 
     current_path: str = None
