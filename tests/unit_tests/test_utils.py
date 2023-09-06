@@ -3,7 +3,7 @@ import pytest
 import sys
 sys.path.append('.')
 
-from src.src.utils import StreamingTokenStopSequenceHandler, StreamingTextStopSequenceHandler
+from src.src.utils import StreamingTextStopSequenceHandler
 
 @pytest.fixture(scope="session")
 def tokenizer():
@@ -202,3 +202,43 @@ def test_adjacent_stop_sequences(tokenizer):
     
     assert ''.join(output) == " how are <end" # All tokens are yielded since no stop sequence was provided
 
+
+
+
+
+def test_output_stop_sequence(tokenizer):
+    stop_sequences = ["</output>"]
+    stop_sequence_handler = StreamingTextStopSequenceHandler(
+        stop_sequences, 
+        eos_token=tokenizer.eos_token
+    )
+    
+    prompt = "<input>4</input><output>"
+    prompt_tokens = tokenizer.encode(prompt)
+
+    response = """5</output></block>"""
+    
+    response_tokens = tokenizer.encode(response, add_special_tokens=False)
+
+    old_text = tokenizer.decode(prompt_tokens)
+    output = []
+    for token in response_tokens:
+        prompt_tokens.append(token)
+        text = tokenizer.decode(prompt_tokens)
+        new_text = text[len(old_text):]
+        old_text = text
+
+        for yielded_text in stop_sequence_handler(new_text):
+            if yielded_text == stop_sequence_handler.eos_token:
+                break
+    
+            output.append(yielded_text)
+            print(''.join(output))
+
+        if yielded_text == stop_sequence_handler.eos_token:
+            break
+    
+    for yielded_text in stop_sequence_handler.finalize():
+        output.append(yielded_text) 
+    
+    assert ''.join(output) == " 5" # All tokens are yielded since no stop sequence was provided
