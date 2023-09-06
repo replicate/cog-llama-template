@@ -1,1 +1,1 @@
-models/llama-2-13b-chat/config.py
+models/llama-2-70b/config.py
