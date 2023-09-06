@@ -22,11 +22,14 @@ from config import (
     USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS,
     USE_FUSED_ATTN,
     USE_SYSTEM_PROMPT,
-    download_file,
     load_tensorizer,
     load_tokenizer,
 )
-from src.utils import StreamingTextStopSequenceHandler, maybe_download_with_pget
+from src.utils import (
+    StreamingTextStopSequenceHandler,
+    download_file,
+    maybe_download_with_pget,
+)
 from subclass import YieldingLlama
 
 # This prompt formatting was copied from the original Llama v2 repo:
