@@ -19,7 +19,6 @@ from transformers import LlamaForCausalLM
 from llama_recipes.configs.training import train_config
 
 from config import (
-    download_file,
     LOCAL_TRAINING_WEIGHTS_PATH, 
     REMOTE_TRAINING_WEIGHTS_PATH, 
     LOCAL_TRAINING_WEIGHTS_CONFIG_PATH,

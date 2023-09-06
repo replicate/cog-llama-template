@@ -30,7 +30,7 @@ build:
     - "bitsandbytes" # force upgrade afterwards?
     - "https://r2.drysys.workers.dev/torch/torch-2.1.0a0+git3af011b-cp311-cp311-linux_x86_64.whl"
   run:
-    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.1/pget" && chmod +x /usr/local/bin/pget
+    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.3/pget" && chmod +x /usr/local/bin/pget
     # - pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu118
     # - pip install git+https://github.com/huggingface/transformers.git@d2295708a64feff485bb40caf0decf7bae5a05a2
     # - pip install -q -U bitsandbytes
