@@ -9,6 +9,7 @@
 # requires cog > 0.9.0-beta1
 # get it at https://github.com/replicate/cog/releases/download/v0.9.0-beta1/cog_linux_x86_64
 export COG_EXPERIMENTAL_BUILD_STAGE_DEPS = apt update && apt install -yy cmake google-perftools
+export FAKE_COG_VERSION = 0.8.1
 
 CURRENT_DIR := $(shell basename $(PWD))
 
@@ -162,8 +163,7 @@ stage-and-test-models:
 	)
 	
 push: select
-	cog push r8.im/$(destination)
-	cog push --openapi-schema=$(schema) --use-cuda-base-image=false --debug --progress plain r8.im/$(destination)
+	cog push --openapi-schema=$(schema) --use-cuda-base-image=false --debug --progress plain r8.im/$(REPLICATE_USER)/$(model)
 
 
 test-push: test-local push
