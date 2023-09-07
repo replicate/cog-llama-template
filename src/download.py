@@ -4,7 +4,7 @@ import os
 import random
 import time
 import aiohttp
-
+from yarl import URL
 
 class Downloader:
     def __init__(self, concurrency: int | None = None) -> None:
@@ -28,9 +28,9 @@ class Downloader:
             )
         return self._session
 
-    async def get_remote_file_size(self, url: str) -> "tuple[str, int]":
+    async def get_remote_file_size(self, url: str | URL) -> "tuple[URL, int]":
         try:
-            direct_url = url.replace(
+            direct_url = str(url).replace(
                 "pbxt.replicate.delivery", "replicate-files.object.lga1.coreweave.com"
             )
             resp = await self.session.head(direct_url, timeout=5)
@@ -54,8 +54,7 @@ class Downloader:
                 return response.url, int(response.headers["Content-Length"])
             except KeyError as e:
                 print("HEAD failed", repr(e))
-                print(response.headers)
-                print(response)
+                print(response.headers, response)
             except asyncio.TimeoutError:
                 print(f"HEAD {url} timed out after {time.time() - start:.4f}")
             except aiohttp.ClientError as e:
@@ -64,7 +63,7 @@ class Downloader:
         raise ValueError(f"Failed to HEAD {url} after multiple retries")
 
     async def download_chunk(
-        self, url: str, start: int, end: int, buffer_view: memoryview
+        self, url: str | URL, start: int, end: int, buffer_view: memoryview
     ) -> None:
         for i in range(5):
             headers = {"Retry-Count": str(i)} if i else {}
@@ -78,7 +77,7 @@ class Downloader:
                 await asyncio.sleep(random.random() / 10)  # sleep 0-100ms
         raise ValueError(f"Failed to download {url} after multiple retries")
 
-    async def download_file(self, url: str) -> io.BytesIO:
+    async def download_file(self, url: str | URL) -> io.BytesIO:
         self.retries = 0
         start_time = time.time()
         url, file_size = await self.get_remote_file_size(url)
@@ -113,6 +112,7 @@ class Downloader:
             return self.loop.run_until_complete(self.download_file(url))
         except RuntimeError as e:
             if e.args[0] == "Event loop is closed":
+                print("has to start a new event loop")
                 self.loop = asyncio.new_event_loop()
                 self._session = None
                 return self.loop.run_until_complete(self.download_file(url))

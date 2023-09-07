@@ -66,7 +66,6 @@ class Predictor(BasePredictor):
             self.initialize_peft(weights)
         else:
             print("Not using old-style COG_WEIGHTS LoRA weights")
-            # raise Exception(f"Fine-tuned weights {weights} were improperly formatted.")
 
     # todo: adaptive cache like CLOCK
     @functools.lru_cache(maxsize=10)
@@ -89,8 +88,6 @@ class Predictor(BasePredictor):
         )
         del data, zip_ref
         print(f"Initialized peft model in {time.time() - st:.4f}")
-        # remove file
-        # os.remove(local_peft_weights)
         return lora
 
     current_path: str = None
