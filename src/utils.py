@@ -70,10 +70,13 @@ def check_files_exist(remote_files, local_path):
 async def download_file_with_pget(remote_path, dest_path):
     # Create the subprocess
     print("Downloading ", remote_path)
+    if remote_path.endswith("json"):
+        info = "%{filename_effective} took %{time_total}s (%{speed_download} bytes/sec)\n"
+        args = ["curl", "-w", info, "-sLo", dest_path, remote_path]
+    else:
+        args = ["pget", remote_path, dest_path]
     process = await asyncio.create_subprocess_exec(
-        "pget",
-        remote_path,
-        dest_path,
+        *args,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
         close_fds=True,

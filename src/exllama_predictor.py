@@ -3,7 +3,8 @@ import sys
 import glob 
 import torch 
 import time
-import typing as tp 
+from pathlib import Path
+import typing as tp
 
 exllama_path = os.path.abspath('exllama')
 sys.path.insert(0, exllama_path)
@@ -74,10 +75,13 @@ class ExllamaGenerator:
         self.generator = begin(generator)
     
 
-    def load_lora(self, lora_path: str) -> ExLlamaLora:
-        lora = ExLlamaLora(self.model, f"{lora_path}/adapter_config.json", f"{lora_path}/adapter_model.bin")
-        #self.generator.lora = lora
-        return lora
+    # def load_lora(self, lora_path: str) -> ExLlamaLora:
+    #     lora = ExLlamaLora(self.model, f"{lora_path}/adapter_config.json", f"{lora_path}/adapter_model.bin")
+    #     #self.generator.lora = lora
+    #     return lora
+
+    def load_lora(self, config: str | Path, weights: str | Path) -> ExLlamaLora:
+        return ExLlamaLora(self.model, config, weights)
     
     def __call__(
         self,
