@@ -295,11 +295,7 @@ def main(**kwargs):
                 weight_decay=0.0,
             )
 
-    if train_config.micro_batch_size > train_config.batch_size_training:
-        print(f"Micro-batch size is larger than batch size. Setting batch size to micro-batch size: {train_config.micro_batch_size}")
-        train_config.batch_size_training = train_config.micro_batch_size
-
-    gradient_accumulation_steps = train_config.batch_size_training // train_config.micro_batch_size
+    gradient_accumulation_steps = train_config.gradient_accumulation_steps
 
     if not train_config.peft_method == 'qlora':
         

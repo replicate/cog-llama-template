@@ -12,6 +12,7 @@ class train_config:
     batch_size_training: int=4
     num_epochs: int=3
     num_workers_dataloader: int=1
+    gradient_accumulation_steps: int=1
     lr: float=1e-4
     weight_decay: float=0.0
     gamma: float= 0.85
@@ -20,7 +21,6 @@ class train_config:
     mixed_precision: bool=True
     val_batch_size: int=1
     dataset = "completion"
-    micro_batch_size: int=4
     peft_method: str = "lora" # None , llama_adapter, prefix
     use_peft: bool=False
     output_dir: str = "PATH/to/save/PEFT/model"
