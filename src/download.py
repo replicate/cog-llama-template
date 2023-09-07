@@ -29,10 +29,13 @@ class Downloader:
         return self._session
 
     async def get_remote_file_size(self, url: str) -> int:
-        for _ in range(3):
+        for i in range(3):
             start = time.time()
+            headers = {"Retry-Count": str(i)} if i else {}
             try:
-                response = await self.session.head(url, allow_redirects=True)
+                response = await self.session.head(
+                    url, allow_redirects=True, headers=headers
+                )
                 if response.status >= 400:
                     print("HEAD failed:", response, response.headers.items())
                 return int(response.headers["Content-Length"])
@@ -50,9 +53,10 @@ class Downloader:
     async def download_chunk(
         self, url: str, start: int, end: int, buffer_view: memoryview
     ) -> None:
-        for _ in range(5):
+        for i in range(5):
+            headers = {"Retry-Count": str(i)} if i else {}
             try:
-                headers = {"Range": f"bytes={start}-{end}"}
+                headers |= {"Range": f"bytes={start}-{end}"}
                 async with self.session.get(url, headers=headers) as response:
                     buffer_view[start : end + 1] = await response.read()
                     return
