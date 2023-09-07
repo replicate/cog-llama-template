@@ -79,11 +79,10 @@ class Predictor(BasePredictor):
         else:
             # zipfile accepts either a file-like or path-like object
             buffer = replicate_weights
-        print("Unziping peft weights")
         st = time.time()
         with zipfile.ZipFile(buffer, "r") as zip_ref:
             data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
-        print("Initializing peft model")
+        print(f"Unzipped peft weights in {time.time() - st:.4f}")
         st = time.time()
         lora = self.generator.load_lora(
             data["adapter_config.json"], io.BytesIO(data["adapter_model.bin"])

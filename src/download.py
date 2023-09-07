@@ -28,7 +28,18 @@ class Downloader:
             )
         return self._session
 
-    async def get_remote_file_size(self, url: str) -> int:
+    async def get_remote_file_size(self, url: str) -> "tuple[str, int]":
+        try:
+            direct_url = url.replace(
+                "pbxt.replicate.delivery", "replicate-files.object.lga1.coreweave.com"
+            )
+            resp = await self.session.head(direct_url, timeout=5)
+            if resp.status == 200:
+                print(f"using {resp.url} instead of {url}")
+                return resp.url, int(resp.headers["Content-Length"])
+            print(f"failed to get direct link {resp}")
+        except (KeyError, asyncio.TimeoutError, aiohttp.ClientError) as e:
+            print(f"failed to fetch {direct_url} with error {repr(e)}")
         for i in range(3):
             start = time.time()
             headers = {"Retry-Count": str(i)} if i else {}
@@ -38,7 +49,9 @@ class Downloader:
                 )
                 if response.status >= 400:
                     print("HEAD failed:", response, response.headers.items())
-                return int(response.headers["Content-Length"])
+                # https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientResponse.url
+                # .url is the url of the final request, as opposed to .real_url
+                return response.url, int(response.headers["Content-Length"])
             except KeyError as e:
                 print("HEAD failed", repr(e))
                 print(response.headers)
@@ -60,7 +73,7 @@ class Downloader:
                 async with self.session.get(url, headers=headers) as response:
                     buffer_view[start : end + 1] = await response.read()
                     return
-            except Exception as e:
+            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
                 print(f"Error: {e}")
                 await asyncio.sleep(random.random() / 10)  # sleep 0-100ms
         raise ValueError(f"Failed to download {url} after multiple retries")
@@ -68,7 +81,7 @@ class Downloader:
     async def download_file(self, url: str) -> io.BytesIO:
         self.retries = 0
         start_time = time.time()
-        file_size = await self.get_remote_file_size(url)
+        url, file_size = await self.get_remote_file_size(url)
         chunk_size = file_size // self.concurrency
         # if it's less than 1kB, download only as a single chunk
         if chunk_size < 1 << 10:
@@ -89,7 +102,7 @@ class Downloader:
         await asyncio.gather(*tasks)
         buf.seek(0)
         print(
-            f"Downloaded {os.path.basename(url)} as {concurrency} {chunk_size // 1024}"
+            f"Downloaded {os.path.basename(str(url))} as {concurrency} {chunk_size // 1024}"
             f" kB chunks in {time.time() - start_time:.4f} with {self.retries} retries"
         )
         self.retries = 0
@@ -101,6 +114,7 @@ class Downloader:
         except RuntimeError as e:
             if e.args[0] == "Event loop is closed":
                 self.loop = asyncio.new_event_loop()
+                self._session = None
                 return self.loop.run_until_complete(self.download_file(url))
             raise e
 
