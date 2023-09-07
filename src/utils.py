@@ -174,12 +174,12 @@ class StreamingTextStopSequenceHandler:
             if stop_sequence[:i] in text:
             # if text.endswith(stop_sequence[:i]):
                 matched_len = i
-        print('*'*100)
-        print("len stop sequence: ", len(stop_sequence))
-        print('stop sequence: ', stop_sequence)
-        print('current text: ', text)
-        print('matched length: ', matched_len)
-        print('*'*100)
+        # print('*'*100)
+        # print("len stop sequence: ", len(stop_sequence))
+        # print('stop sequence: ', stop_sequence)
+        # print('current text: ', text)
+        # print('matched length: ', matched_len)
+        # print('*'*100)
 
         if matched_len:
             return matched_len
@@ -197,8 +197,14 @@ class StreamingTextStopSequenceHandler:
             if match_length:
                 # If we've completed the stop sequence
                 if match_length == self.stop_sequence_lens[idx]:
-                    print('YAY HERE!')
-                    self.cache.clear()
+                    self.cache.append(token)
+                    text_before_stop_sequence = "".join(self.cache).split(stop_sequence)[0]
+                    if text_before_stop_sequence:
+                        self.cache = [text_before_stop_sequence]
+                    else:
+                        self.cache.clear()
+
+                    # self.cache.clear()
                     stop_sequence_tracker = [0] * len(self.stop_sequences)
                     yield self.eos_token
                 else:

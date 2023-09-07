@@ -93,7 +93,7 @@ def test_single_stop_sequence_1(tokenizer):
     for yielded_text in stop_sequence_handler.finalize():
         output.append(yielded_text) 
     
-    assert ''.join(output) == " how are" # All tokens are yielded since no stop sequence was provided
+    assert ''.join(output) == " how are " # All tokens are yielded since no stop sequence was provided
 
 
 def test_single_stop_sequence_2(tokenizer):
@@ -129,7 +129,7 @@ def test_single_stop_sequence_2(tokenizer):
     for yielded_text in stop_sequence_handler.finalize():
         output.append(yielded_text) 
     
-    assert ''.join(output) == " how are" # All tokens are yielded since no stop sequence was provided
+    assert ''.join(output) == " how are " # All tokens are yielded since no stop sequence was provided
 
 
 def test_multiple_stop_sequence(tokenizer):
@@ -158,14 +158,14 @@ def test_multiple_stop_sequence(tokenizer):
                 break
     
             output.append(yielded_text)
-
-        if yielded_text == stop_sequence_handler.eos_token:
+        
+        if yielded_text.endswith(stop_sequence_handler.eos_token):
             break
     
     for yielded_text in stop_sequence_handler.finalize():
         output.append(yielded_text) 
     
-    assert ''.join(output) == " how are <end you" # All tokens are yielded since no stop sequence was provided
+    assert ''.join(output) == " how are <end you " # All tokens are yielded since no stop sequence was provided
 
 def test_adjacent_stop_sequences(tokenizer):
     stop_sequences = ["<end>", "|STOP|"]
@@ -200,13 +200,13 @@ def test_adjacent_stop_sequences(tokenizer):
     for yielded_text in stop_sequence_handler.finalize():
         output.append(yielded_text) 
     
-    assert ''.join(output) == " how are <end" # All tokens are yielded since no stop sequence was provided
+    assert ''.join(output) == " how are <end " # All tokens are yielded since no stop sequence was provided
 
 
-
-
-
-def test_output_stop_sequence(tokenizer):
+def test_substring_stop_sequence(tokenizer):
+    """
+    This test ensures that we stop generating when a stop sequence is a substring.
+    """
     stop_sequences = ["</output>"]
     stop_sequence_handler = StreamingTextStopSequenceHandler(
         stop_sequences, 
