@@ -172,14 +172,7 @@ class StreamingTextStopSequenceHandler:
         for i in range(1, len(stop_sequence) + 1):
             # Check if the end of the text matches the start of the stop_sequence
             if stop_sequence[:i] in text:
-            # if text.endswith(stop_sequence[:i]):
                 matched_len = i
-        # print('*'*100)
-        # print("len stop sequence: ", len(stop_sequence))
-        # print('stop sequence: ', stop_sequence)
-        # print('current text: ', text)
-        # print('matched length: ', matched_len)
-        # print('*'*100)
 
         if matched_len:
             return matched_len
