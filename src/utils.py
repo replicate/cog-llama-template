@@ -165,14 +165,15 @@ class StreamingTextStopSequenceHandler:
 
     def get_match_length(self, text: str, stop_sequence: str):
         """
-        Checks if the end of the provided text matches the beginning of any stop sequence.
+        Checks if the end of the provided text matches the beginning of the stop sequence.
         Returns the length of the matched stop sequence if it exists, otherwise returns 0.
         """
         matched_len = 0
         for i in range(1, len(stop_sequence) + 1):
             # Check if the end of the text matches the start of the stop_sequence
-            if text.endswith(stop_sequence[:i]):
+            if stop_sequence[:i] in text:
                 matched_len = i
+
         if matched_len:
             return matched_len
         return 0
@@ -189,7 +190,14 @@ class StreamingTextStopSequenceHandler:
             if match_length:
                 # If we've completed the stop sequence
                 if match_length == self.stop_sequence_lens[idx]:
-                    self.cache.clear()
+                    self.cache.append(token)
+                    text_before_stop_sequence = "".join(self.cache).split(stop_sequence)[0]
+                    if text_before_stop_sequence:
+                        self.cache = [text_before_stop_sequence]
+                    else:
+                        self.cache.clear()
+
+                    # self.cache.clear()
                     stop_sequence_tracker = [0] * len(self.stop_sequences)
                     yield self.eos_token
                 else:

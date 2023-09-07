@@ -145,7 +145,8 @@ class ExllamaGenerator:
             if skip_space: new_text = new_text[1:]
             # Why are we decoding to "�" so frequently? Need to compare to our original code.
             new_text = "" if new_text == "�" else new_text
-
+            
+            yielded_text = None  
             for yielded_text in stop_sequence_handler(new_text):
                 if yielded_text == stop_sequence_handler.eos_token:
                     break
