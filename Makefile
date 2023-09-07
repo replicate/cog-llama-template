@@ -165,7 +165,6 @@ stage-and-test-models:
 push: select
 	cog push --openapi-schema=$(schema) --use-cuda-base-image=false --progress plain r8.im/$(REPLICATE_USER)/$(model)
 
-
 test-push: test-local push
 	
 test-live:
