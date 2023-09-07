@@ -97,7 +97,7 @@ class Predictor(BasePredictor):
             print(
                 f"previous weights were {self.current_path}, switching to {replicate_weights}"
             )
-            self.generator.lora = self.get_lora(replicate_weights)
+            self.generator.generator.lora = self.get_lora(replicate_weights)
             self.current_path = replicate_weights
         else:
             print("correct lora is already loaded")
@@ -168,7 +168,7 @@ class Predictor(BasePredictor):
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.4f}")
         else:
-            self.generator.lora = None
+            self.generator.generator.lora = None
             print("Not using LoRA")
 
         if seed is not None:
