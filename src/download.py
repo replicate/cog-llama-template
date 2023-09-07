@@ -7,8 +7,6 @@ import aiohttp
 
 
 class Downloader:
-    _session: aiohttp.ClientSession | None = None
-
     def __init__(self, concurrency: int | None = None) -> None:
         if not concurrency:
             concurrency = len(os.sched_getaffinity(0))
@@ -18,6 +16,8 @@ class Downloader:
             self.loop = asyncio.get_running_loop()
         except RuntimeError:
             self.loop = asyncio.new_event_loop()
+
+    _session: aiohttp.ClientSession | None = None
 
     @property
     def session(self) -> aiohttp.ClientSession:
@@ -117,18 +117,3 @@ class Downloader:
                 self._session = None
                 return self.loop.run_until_complete(self.download_file(url))
             raise e
-
-
-async def main() -> None:
-    url = "YOUR_URL_HERE"
-    start_time = time.time()
-    data = await Downloader().download_file(url)
-    size = data.getbuffer().nbytes
-    elapsed = time.time() - start_time
-    throughput = size / elapsed
-    print(f"Downloaded {size} B in {elapsed:.3f}s ({throughput} B/s)")
-
-
-# To run the code
-if __name__ == "__main__":
-    asyncio.run(main())
