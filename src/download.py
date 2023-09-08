@@ -43,9 +43,9 @@ class Downloader:
             if resp.status == 200:
                 print(f"using {resp.url} instead of {url}")
                 return resp.url, int(resp.headers["Content-Length"])
-            print(f"failed to get direct link {resp}")
+            print(f"direct link not available {resp}")
         except (KeyError, asyncio.TimeoutError, aiohttp.ClientError) as e:
-            print(f"failed to fetch {direct_url} with error {repr(e)}")
+            print(f"direct link not available: {direct_url} with error {repr(e)}")
         for i in range(3):
             start = time.time()
             headers = {"Retry-Count": str(i)} if i else {}

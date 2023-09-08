@@ -74,20 +74,20 @@ class Predictor(BasePredictor):
             print("Downloading peft weights")
             st = time.time()
             buffer = self.downloader.sync_download_file(str(replicate_weights))
-            print(f"Downloaded peft weights in {time.time() - st:.4f}")
+            print(f"Downloaded peft weights in {time.time() - st:.3f}")
         else:
             # zipfile accepts either a file-like or path-like object
             buffer = replicate_weights
         st = time.time()
         with zipfile.ZipFile(buffer, "r") as zip_ref:
             data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
-        print(f"Unzipped peft weights in {time.time() - st:.4f}")
+        print(f"Unzipped peft weights in {time.time() - st:.3f}")
         st = time.time()
         lora = self.generator.load_lora(
             data["adapter_config.json"], io.BytesIO(data["adapter_model.bin"])
         )
         del data, zip_ref
-        print(f"Initialized peft model in {time.time() - st:.4f}")
+        print(f"Initialized peft model in {time.time() - st:.3f}")
         return lora
 
     current_path: str = None
@@ -166,7 +166,7 @@ class Predictor(BasePredictor):
         if replicate_weights:
             start = time.time()
             self.initialize_peft(replicate_weights)
-            print(f"Overall initialize_peft took {time.time() - start:.4f}")
+            print(f"Overall initialize_peft took {time.time() - start:.3f}")
         else:
             self.generator.generator.lora = None
             print("Not using LoRA")
@@ -200,6 +200,8 @@ class Predictor(BasePredictor):
         ):
             n_tokens += 1
             yield decoded_token
+            if n_tokens == 1 and debug:
+                print(f"after initialization, first token took {time.time() - st:.3f}")
             if seed is not None:
                 torch.manual_seed(seed)
         t = time.time() - st
