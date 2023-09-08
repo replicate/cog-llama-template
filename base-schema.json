@@ -235,17 +235,11 @@
         ],
         "type": "object",
         "properties": {
-          "replicate_weights": {
-            "title": "Replicate Weights",
-            "type": "string",
-            "description": "Path to fine-tuned weights produced by a Replicate fine-tune job.",
-            "x-order": 0
-          },
           "prompt": {
             "title": "Prompt",
             "type": "string",
             "description": "Prompt to send to the model.",
-            "x-order": 1
+            "x-order": 0
           },
           "max_new_tokens": {
             "title": "Max New Tokens",
@@ -253,7 +247,7 @@
             "type": "integer",
             "description": "Maximum number of tokens to generate. A word is generally 2-3 tokens",
             "default": 128,
-            "x-order": 2
+            "x-order": 1
           },
           "min_new_tokens": {
             "title": "Min New Tokens",
@@ -261,7 +255,7 @@
             "type": "integer",
             "description": "Minimum number of tokens to generate. To disable, set to -1. A word is generally 2-3 tokens.",
             "default": -1,
-            "x-order": 3
+            "x-order": 2
           },
           "temperature": {
             "title": "Temperature",
@@ -270,7 +264,7 @@
             "type": "number",
             "description": "Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic, 0.75 is a good starting value.",
             "default": 0.75,
-            "x-order": 4
+            "x-order": 3
           },
           "top_p": {
             "title": "Top P",
@@ -279,7 +273,7 @@
             "type": "number",
             "description": "When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens",
             "default": 0.9,
-            "x-order": 5
+            "x-order": 4
           },
           "top_k": {
             "title": "Top K",
@@ -287,25 +281,31 @@
             "type": "integer",
             "description": "When decoding text, samples from the top k most likely tokens; lower to ignore less likely tokens",
             "default": 50,
-            "x-order": 6
+            "x-order": 5
           },
           "stop_sequences": {
             "title": "Stop Sequences",
             "type": "string",
             "description": "A comma-separated list of sequences to stop generation at. For example, '<end>,<stop>' will stop generation at the first instance of 'end' or '<stop>'.",
-            "x-order": 7
+            "x-order": 6
           },
           "seed": {
             "title": "Seed",
             "type": "integer",
             "description": "Random seed. Leave blank to randomize the seed",
-            "x-order": 8
+            "x-order": 7
           },
           "debug": {
             "title": "Debug",
             "type": "boolean",
             "description": "provide debugging output in logs",
             "default": false,
+            "x-order": 8
+          },
+          "replicate_weights": {
+            "title": "Replicate Weights",
+            "type": "string",
+            "description": "Path to fine-tuned weights produced by a Replicate fine-tune job.",
             "x-order": 9
           }
         }

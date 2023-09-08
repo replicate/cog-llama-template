@@ -134,7 +134,7 @@ test-local-train-predict: build-local
 
 test-local: select test-local-predict test-local-train test-local-train-predict
 
-stage:
+stage: select
 	@echo "Pushing $(model) to r8.im/$(REPLICATE_USER)/staging-$(model)..."
 	cog push --openapi-schema=$(schema) --use-cuda-base-image=false --progress plain r8.im/$(REPLICATE_USER)/staging-$(model)
 

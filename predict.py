@@ -104,10 +104,6 @@ class Predictor(BasePredictor):
 
     def predict(
         self,
-        replicate_weights: str = Input(
-            description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
-            default=None,
-        ),
         prompt: str = Input(description="Prompt to send to the model."),
         system_prompt: str = Input(
             description="System prompt to send to the model. This is prepended to the prompt and helps guide system behavior.",
@@ -150,6 +146,10 @@ class Predictor(BasePredictor):
         ),
         debug: bool = Input(
             description="provide debugging output in logs", default=False
+        ),
+        replicate_weights: str = Input(
+            description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
+            default=None,
         ),
     ) -> ConcatenateIterator:
         if stop_sequences:
