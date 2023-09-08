@@ -3,8 +3,14 @@ import io
 import os
 import random
 import time
+import sys
 import aiohttp
 from yarl import URL
+
+# some important tricks:
+# 1. os.sched_getaffinity to work right in docker
+# 2. memoryview for less copies
+# 3. keep redirects from the first head
 
 class Downloader:
     def __init__(self, concurrency: int | None = None) -> None:
@@ -117,3 +123,6 @@ class Downloader:
                 self._session = None
                 return self.loop.run_until_complete(self.download_file(url))
             raise e
+
+if __name__ == "__main__":
+    Downloader().sync_download_file(sys.argv[1])
