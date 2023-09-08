@@ -53,7 +53,7 @@ def train(
         description="Global batch size. This specifies the batch size that will be used to calculate gradients.",
         default=4, ge=1,
     ),
-    gradient_checkpointing_steps: int = Input(
+    gradient_accumulation_steps: int = Input(
         description="Number of training steps (each of train_batch_size) to update gradients for before performing a backward pass.", 
         default=1, ge=1
     ),
@@ -203,7 +203,7 @@ def train(
         f"--data_path={train_data}",
         f"--num_epochs={num_train_epochs}",
         f"--batch_size_training={train_batch_size}",
-        f"--gradient_checkpointing_steps={gradient_checkpointing_steps}",
+        f"--gradient_accumulation_steps={gradient_accumulation_steps}",
         f"--lr={learning_rate}",
         f"--lora_rank={lora_rank}",
         f"--lora_alpha={lora_alpha}",
