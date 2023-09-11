@@ -48,14 +48,14 @@ class Predictor(BasePredictor):
         self.downloader = Downloader()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        from src.exllama_predictor import ExllamaGenerator
+        from src.exllama_predictor import ExllamaWrapper
 
         base_weights = maybe_download_with_pget(
             LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
             REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
             REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
         )
-        self.generator = ExllamaGenerator(base_weights, fused_attn=USE_FUSED_ATTN)
+        self.exllama_wrapper = ExllamaWrapper(base_weights, fused_attn=USE_FUSED_ATTN)
 
         if weights is not None and weights.name == "weights":
             # bugfix
@@ -83,7 +83,7 @@ class Predictor(BasePredictor):
             data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
         print(f"Unzipped peft weights in {time.time() - st:.3f}")
         st = time.time()
-        lora = self.generator.load_lora(
+        lora = self.exllama_wrapper.load_lora(
             data["adapter_config.json"], io.BytesIO(data["adapter_model.bin"])
         )
         del data, zip_ref
@@ -97,7 +97,7 @@ class Predictor(BasePredictor):
             print(
                 f"previous weights were {self.current_path}, switching to {replicate_weights}"
             )
-            self.generator.generator.lora = self.get_lora(replicate_weights)
+            self.exllama_wrapper.set_lora(self.get_lora(replicate_weights))
             self.current_path = replicate_weights
         else:
             print("correct lora is already loaded")
@@ -168,7 +168,7 @@ class Predictor(BasePredictor):
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.3f}")
         else:
-            self.generator.generator.lora = None
+            self.exllama_wrapper.set_lora(None)
             print("Not using LoRA")
 
         if seed is not None:
@@ -186,7 +186,7 @@ class Predictor(BasePredictor):
         n_tokens = 0
         st = time.time()
 
-        for decoded_token in self.generator(
+        for decoded_token in self.exllama_wrapper(
             prompt,
             repetition_penalty=1.15,
             repetition_penalty_sustain=256,
