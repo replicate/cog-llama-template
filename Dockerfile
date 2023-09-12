@@ -55,14 +55,14 @@ WORKDIR /app
 # COPY --from=ait /workdir/tmp /app/tmp
 # COPY --from=model /model /app/model
 COPY --link --from=downloaders /usr/local/bin/pget /usr/local/bin
-COPY --link --from=downloaders /usr/local/bin/remotefile/usr/local/bin
+COPY --link --from=downloaders /usr/local/bin/remotefile /usr/local/bin
 COPY --link --from=libbuilder /app/venv/lib/python3.11/site-packages /app/
 COPY --link --from=libbuilder /app/nya/ /app/
 #COPY --from=next /app/out /app/next
-COPY ./client.js ./index.html ./server.py /app/
-COPY ./predict.py ./config.py 
-COPY ./src/ /app/src/
-COPY ./exllama/ /app/src/
+COPY --link ./client.js ./index.html ./server.py /app/
+COPY --link ./predict.py ./config.py  /app/
+COPY --link ./src/ /app/src/
+COPY --link ./exllama/ /app/
 # ew
 COPY .env /app/
 
