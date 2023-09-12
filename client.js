@@ -23,7 +23,7 @@ async function getPrompt() {
         console.log("got prompt");
         last_sent = Date.now();
         console.time("generation");
-        return JSON.stringify({ prompt: prompt.value, seed: seed.value, id: last_sent });
+        return JSON.stringify({ input: { prompt: prompt.value, seed: seed.value }, id: last_sent });
       }
     }
     await new Promise((r) => setTimeout(r, 100));
@@ -39,17 +39,7 @@ function handleImage(data) {
   var latencyField = document.getElementById("latency");
   latencyField.textContent = `latency: ${latency}ms`;
   document.getElementById("gen_time").textContent = `generation: ${parsed.gen_time}ms`;
-  var top = document.getElementById("imoge");
-  var bottom = document.getElementById("imoge2");
-  if (top.style.opacity == 1) {
-    bottom.src = parsed.image;
-    bottom.style.opacity = 1;
-    top.style.opacity = 0;
-  } else {
-    top.src = parsed.image;
-    top.style.opacity = 1;
-    bottom.style.opacity = 0;
-  }
+  document.getElementById("output").textContent += parsed.text
   sendPrompt();
 }
 

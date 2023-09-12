@@ -6,15 +6,17 @@ authors = ["various"]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
-torch = {url = "https://download.pytorch.org/whl/cu113/torch-1.12.1%2Bcu113-cp310-cp310-linux_x86_64.whl"}
-aitemplate = {url = "https://r2-public-worker.drysys.workers.dev/aitemplate-0.1.dev1-py3-none-any.whl"}
-#nyacomp = {url = "https://r2-public-worker.drysys.workers.dev/nyacomp-0.0.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"}
-# install in dockerfile as a diff layer for ease
-transformers = "*"
-#diffusers = ">=0.9"
-diffusers = "==0.10.2"
+torch = {url = "https://r2.drysys.workers.dev/torch/torch-2.1.0a0+git3af011b-cp311-cp311-linux_x86_64.whl"}
+#aitemplate = {url = "https://r2-public-worker.drysys.workers.dev/aitemplate-0.1.dev1-py3-none-any.whl"}
 aiohttp = {extras = ["speedups"], version="*"}
 aiortc = "*"
+transformers = {git = "https://github.com/huggingface/transformers.git", rev="d2295708a64feff485bb40caf0decf7bae5a05a2"}
+sentencepiece = "==0.1.99"
+safetensors = "==0.3.1"
+python-dotenv = "*"
+
+# install in dockerfile as a diff layer for ease
+#nyacomp = {url = "https://r2-public-worker.drysys.workers.dev/nyacomp-0.0.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"}
 
 [tool.poetry.dev-dependencies]
 
