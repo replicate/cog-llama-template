@@ -201,8 +201,8 @@ class Live:
         resp = {"output": output, "latency": latency}
         return web.json_response(resp)
 
-    async def ws_only(self, req: web.Request) -> web.Response:
-        return web.FileResponse("./ws-only.html")
+    # async def ws_only(self, req: web.Request) -> web.Response:
+    #     return web.FileResponse("./ws-only.html")
 
     async def next_index(self, req: web.Request) -> web.Response:
         return web.FileResponse("/app/next/index.html")
@@ -221,7 +221,7 @@ app.add_routes(
         web.route("*", "/client.js", live.js),
         web.post("/offer", live.offer),
         web.get("/ws", live.handle_ws),
-        web.get("/ws-only", live.ws_only),
+        # web.get("/ws-only", live.ws_only),
         web.post(
             "/",
             live.handle_endpoint,
