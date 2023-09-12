@@ -5,12 +5,32 @@ import random
 import time
 import sys
 import aiohttp
+import typing as t
+from logging import Logger
 from yarl import URL
 
 # some important tricks:
 # 1. os.sched_getaffinity to work right in docker
 # 2. memoryview for less copies
 # 3. keep redirects from the first head
+
+
+async def download_file_with_pget(remote_path: str, dest_path: str) -> None:
+    # Create the subprocess
+    print("Downloading ", remote_path)
+    args = ["pget", remote_path, dest_path]
+    process = await asyncio.create_subprocess_exec(
+        *args, stdout=-1, stderr=-1, close_fds=True
+    )
+    # Wait for the subprocess to finish
+    stdout, stderr = await process.communicate()
+
+    # Print what the subprocess outut (if any)
+    if stdout:
+        print(f"[stdout]\n{stdout.decode()}")
+    if stderr:
+        print(f"[stderr]\n{stderr.decode()}")
+
 
 class Downloader:
     def __init__(self, concurrency: int | None = None) -> None:
@@ -123,6 +143,83 @@ class Downloader:
                 self._session = None
                 return self.loop.run_until_complete(self.download_file(url))
             raise e
+
+    async def download_small_file(self, url: str | URL, dest: str) -> None:
+        for i in range(5):
+            headers = {"Retry-Count": str(i)} if i else {}
+            try:
+                f = open(dest, "wb")
+                async with self.session.get(url, headers=headers) as response:
+                    f.write(await response.read())
+                    return
+            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                print(f"Error: {e}")
+                await asyncio.sleep(random.random() / 10)  # sleep 0-100ms
+        raise ValueError(f"Failed to download {url} after multiple retries")
+
+    async def smart_download(self, url: str, dest: str) -> None:
+        if url.endswith("json"):
+            await self.download_small_file(url, dest)
+        else:
+            # we could sometimes use our actual downloader but whatever
+            await download_file_with_pget(url, dest)
+
+    async def maybe_download_files(
+        self,
+        path: str,
+        remote_path: t.Optional[str] = None,
+        remote_filenames: t.Optional[t.List[str]] = [],
+        logger: t.Optional[Logger] = None,
+    ) -> None:
+        """
+        Downloads files from remote_path to path if they are not present in path. File paths are constructed
+        by concatenating remote_path and remote_filenames. If remote_path is None, files are not downloaded.
+
+        Args:
+            path (str): Path to the directory where files should be downloaded
+            remote_path (str): Path to the directory where files should be downloaded from
+            remote_filenames (List[str]): List of file names to download
+            logger (Logger): Logger object to log progress
+
+        Returns:
+            path (str): Path to the directory where files were downloaded
+
+        Example:
+
+            maybe_download_with_pget(
+                path="models/roberta-base",
+                remote_path="gs://my-bucket/models/roberta-base",
+                remote_filenames=["config.json", "pytorch_model.bin", "tokenizer.json", "vocab.json"],
+                logger=logger
+            )
+        """
+        if remote_path:
+            remote_path = remote_path.rstrip("/")
+
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+                missing_files = remote_filenames
+            else:
+                local_files = os.listdir(path)
+                missing_files = list(set(remote_filenames) - set(local_files))
+
+            if len(missing_files) > 0:
+                print("Downloading weights...")
+                st = time.time()
+                if logger:
+                    logger.info(
+                        f"Downloading {missing_files} from {remote_path} to {path}"
+                    )
+                coros = [
+                    self.smart_download(f"{remote_path}/{file}", f"{path}/{file}")
+                    for file in missing_files
+                ]
+                await asyncio.gather(*coros)
+                if logger:
+                    logger.info("Finished download")
+                print(f"Finished download in {time.time() - st:.2f}s")
+        return path
+
 
 if __name__ == "__main__":
     Downloader().sync_download_file(sys.argv[1])

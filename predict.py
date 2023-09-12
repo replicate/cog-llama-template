@@ -1,19 +1,18 @@
+import asyncio
 import functools
-import inspect
 import io
 import os
 import random
-import shutil
 import socket
 import time
 import zipfile
 import typing as t
 
 import torch
-#from cog import BasePredictor, ConcatenateIterator, Input, Path
+
+# from cog import BasePredictor, ConcatenateIterator, Input, Path
 
 from config import (
-    LOAD_IN_4BIT,
     LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
     LOCAL_TRAINING_WEIGHTS_PATH,
     REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
@@ -39,12 +38,13 @@ PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_I
 # Users may want to change the system prompt, but we use the recommended system prompt by default
 DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
 
+
 def Input(default=None, *args, **kwargs):
     return default
 
 
-class Predictor: #(BasePredictor):
-    def setup(self): #, weights: Optional[Path] = None):
+class Predictor:  # (BasePredictor):
+    def setup(self):  # , weights: Optional[Path] = None):
         print("Starting setup")
         self.downloader = Downloader()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -57,6 +57,24 @@ class Predictor: #(BasePredictor):
             REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
         )
         self.exllama_wrapper = ExllamaWrapper(base_weights, fused_attn=USE_FUSED_ATTN)
+
+    async def async_setup(self) -> None:
+        print("Starting setup")
+        self.downloader = Downloader()
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        coro = self.downloader.maybe_download_files(
+            LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
+            REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
+            REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
+        )
+        download_task = asyncio.create_task(coro)
+        from src.exllama_predictor import ExllamaWrapper
+
+        await download_task
+        self.exllama_wrapper = ExllamaWrapper(
+            LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH, fused_attn=USE_FUSED_ATTN
+        )
 
     # todo: adaptive cache like CLOCK
     @functools.lru_cache(maxsize=10)
@@ -195,7 +213,7 @@ class Predictor: #(BasePredictor):
                 print(f"after initialization, first token took {time.time() - st:.3f}")
             if seed is not None:
                 torch.manual_seed(seed)
-        t = time.time() - st
+        elapsed = time.time() - st
         print(f"hostname: {socket.gethostname()}")
         if debug:
             print(f"cur memory: {torch.cuda.memory_allocated()}")
