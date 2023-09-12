@@ -23,7 +23,6 @@ import aiohttp
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 
-from predict import Predictor as Llama
 
 pc_logger = logging.getLogger("pc")
 pc_logger.setLevel("DEBUG")
@@ -41,6 +40,7 @@ class Live:
         # self.txt_pipe = nyacomp.load_compressed(Path("model/boneless_sd.pth"))
 
         from predict import Predictor as Llama
+from predict import Predictor as Llama
 
         self.llama = Llama()
         self.llama.setup()

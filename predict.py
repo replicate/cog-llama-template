@@ -7,10 +7,10 @@ import shutil
 import socket
 import time
 import zipfile
-from typing import Optional
+import typing as t
 
 import torch
-from cog import BasePredictor, ConcatenateIterator, Input, Path
+#from cog import BasePredictor, ConcatenateIterator, Input, Path
 
 from config import (
     LOAD_IN_4BIT,
@@ -23,8 +23,6 @@ from config import (
     USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS,
     USE_FUSED_ATTN,
     USE_SYSTEM_PROMPT,
-    load_tensorizer,
-    load_tokenizer,
 )
 from src.download import Downloader
 from src.utils import StreamingTextStopSequenceHandler, maybe_download_with_pget
@@ -41,9 +39,12 @@ PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_I
 # Users may want to change the system prompt, but we use the recommended system prompt by default
 DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
 
+def Input(default=None, *args, **kwargs):
+    return default
 
-class Predictor(BasePredictor):
-    def setup(self, weights: Optional[Path] = None):
+
+class Predictor: #(BasePredictor):
+    def setup(self): #, weights: Optional[Path] = None):
         print("Starting setup")
         self.downloader = Downloader()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -56,16 +57,6 @@ class Predictor(BasePredictor):
             REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
         )
         self.exllama_wrapper = ExllamaWrapper(base_weights, fused_attn=USE_FUSED_ATTN)
-
-        if weights is not None and weights.name == "weights":
-            # bugfix
-            weights = None
-        if weights:
-            # If weights are passed in, they are LoRa weights
-            # so we need to download the fp16 weights and load with peft
-            self.initialize_peft(weights)
-        else:
-            print("Not using old-style COG_WEIGHTS LoRA weights")
 
     # todo: adaptive cache like CLOCK
     @functools.lru_cache(maxsize=10)
@@ -151,7 +142,7 @@ class Predictor(BasePredictor):
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
             default=None,
         ),
-    ) -> ConcatenateIterator:
+    ) -> t.Iterator[str]:
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
 
