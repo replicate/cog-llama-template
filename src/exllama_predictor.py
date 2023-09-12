@@ -55,7 +55,8 @@ class ExllamaWrapper:
         config.max_input_len = 2*2048
         config.max_attention_size = 2*2048**2
         config.fused_attn = fused_attn
-        
+
+        # model = nyacomp.load_compressed("boneless_exllama.pth")
         self.model = model = ExLlama(config)                                 # create ExLlama instance and load the weights
         tokenizer = ExLlamaTokenizer(tokenizer_path)            # create tokenizer from tokenizer model file
 
