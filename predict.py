@@ -218,19 +218,19 @@ class Predictor: #(BasePredictor):
     # if not USE_SYSTEM_PROMPT:
     #     predict = remove(predict, {"system_prompt": None})
 
-    _predict = predict
+    # _predict = predict
 
-    def base_predict(self, *args, **kwargs) -> ConcatenateIterator:
-        kwargs["system_prompt"] = None
-        return self._predict(*args, **kwargs)
+    # def base_predict(self, *args, **kwargs) -> ConcatenateIterator:
+    #     kwargs["system_prompt"] = None
+    #     return self._predict(*args, **kwargs)
 
-    # for the purposes of inspect.signature as used by predictor.get_input_type,
-    # remove the argument (system_prompt)
-    # this removes system_prompt from the Replicate API for non-chat models.
-    if not USE_SYSTEM_PROMPT:
-        wrapper = base_predict
-        # wrapper = functools.partialmethod(base_predict, system_prompt=None)
-        sig = inspect.signature(_predict)
-        params = [p for name, p in sig.parameters.items() if name != "system_prompt"]
-        wrapper.__signature__ = sig.replace(parameters=params)
-        predict = wrapper
+    # # for the purposes of inspect.signature as used by predictor.get_input_type,
+    # # remove the argument (system_prompt)
+    # # this removes system_prompt from the Replicate API for non-chat models.
+    # if not USE_SYSTEM_PROMPT:
+    #     wrapper = base_predict
+    #     # wrapper = functools.partialmethod(base_predict, system_prompt=None)
+    #     sig = inspect.signature(_predict)
+    #     params = [p for name, p in sig.parameters.items() if name != "system_prompt"]
+    #     wrapper.__signature__ = sig.replace(parameters=params)
+    #     predict = wrapper
