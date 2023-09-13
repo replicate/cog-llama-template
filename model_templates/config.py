@@ -24,23 +24,27 @@ MODEL_NAME =
 # INFERENCE CONFIGURATION
 #######################################################################
 # --------------------Notes--------------------------------------------
-# We sometimes implement inference differently for models that have not 
-# been trained/fine-tuned vs. those that have been trained/fine-tuned. We refer to the 
-# former as "default" and the latter as "trained". Below, you can
-# set your "default inference configuration" and your "trained
-# inference configuration". 
+# We are trying our very best to no longer have different inference code paths
+# for trained and untrained weights :)
 #
-# GENERAL INFERENCE CONFIGURATION
+# INFERENCE CONFIGURATION
 # -------------------------------
 # This section defines the general inference configuration,
 # which is used for both trained and untrained models.
 # -------------------------------
 
-LOAD_IN_4BIT = False
 TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
 USE_SYSTEM_PROMPT = 
-USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = 
 
+
+# ENGINE CONFIGURATION
+# -------------------------------
+# Here we define the specific inference engine we intend to use for inference, and all appropriate kwargs. 
+# -------------------------------
+
+
+ENGINE = 
+ENGINE_KWARGS = {}
 
 # DEFAULT INFERENCE CONFIGURATION
 # -------------------------------
