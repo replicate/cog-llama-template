@@ -32,11 +32,11 @@ pc_logger.setLevel("DEBUG")
 pcs = set()
 
 logging.getLogger().setLevel("DEBUG")
-script = open("client.js").read()
-html = open("index.html").read()
 
 
 class Live:
+    html = open("index.html").read()
+
     def __init__(self) -> None:
         # token = os.getenv("HF_TOKEN")
         # args: dict = {"use_auth_token": token} if token else {"local_files_only": True}
@@ -83,7 +83,7 @@ class Live:
         print(f"finished generating in {time.time() - start:.3f}")
 
     async def index(self, req: web.Request) -> web.Response:
-        return web.Response(body=html, content_type="text/html")
+        return web.Response(body=self.html, content_type="text/html")
 
     async def js(self, req: web.Request) -> web.Response:
         return web.Response(
@@ -166,13 +166,13 @@ class Live:
         self.cs = cs = aiohttp.ClientSession()
         if launched:
             msg = f"wordmirror started {int(server_start - int(launched))}s after launch, took {time.time() - server_start:.3f}s to load"
-            await cs.post("https://imogen-dryad.fly.dev/admin", data=msg)
+            #await cs.post("https://imogen-dryad.fly.dev/admin", data=msg)
             await cs.post("https://imogen.fly.dev/admin", data=msg)
         req = await cs.get("https://ipinfo.io", headers={"User-Agent": "curl"})
         self.ipinfo = await req.json()
         if "city" in self.ipinfo and "region" in self.ipinfo:
             loc = ", ".join((self.ipinfo["city"], self.ipinfo["region"]))
-            html.replace("<!--$LOC-->", f"<span>location: {loc}</span><br>")
+            self.html = self.html.replace("<!--$LOC-->", f"location: {loc}")
             logging.info(f"got location: {self.ipinfo}")
         else:
             logging.info(f"couldn't get location: {self.ipinfo}")
@@ -190,7 +190,7 @@ class Live:
                     "https://imogen.fly.dev/admin",
                     data="mirror shutting down after 20m inactivity",
                 )
-                # TODO: if we don't have a volume, exit instead of suspendint
+                # TODO: if we don't have a volume, exit instead of suspend
                 # query = 'mutation {podTerminate(input: {podId: "%s"})}' % pod_id
                 query = 'mutation {podStop(input: {podId: "%s"})}' % pod_id
                 await self.cs.post(
