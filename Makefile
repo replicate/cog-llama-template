@@ -176,3 +176,9 @@ help:
 	@echo "Available targets:\n\n"
 	@echo "init: Create the model directory."
 	@echo "   e.g., \`make init dir=<model_dir>\`"
+
+mypush:
+        docker build -t us.gcr.io/replicate/wordframe:$(version) .
+        docker push us.gcr.io/replicate/wordframe:$(version)
+	# make select whatever
+       

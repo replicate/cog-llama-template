@@ -173,6 +173,9 @@ class Live:
         if "city" in self.ipinfo and "region" in self.ipinfo:
             loc = ", ".join((self.ipinfo["city"], self.ipinfo["region"]))
             html.replace("<!--$LOC-->", f"<span>location: {loc}</span><br>")
+            logging.info(f"got location: {self.ipinfo}")
+        else:
+            logging.info(f"couldn't get location: {self.ipinfo}")
         # idle exit needs to be in a task because all on_startups have to exit
         asyncio.create_task(self.idle_exit())
 
