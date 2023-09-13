@@ -163,11 +163,16 @@ class Live:
     async def on_startup(self, app: web.Application) -> None:
         launched = os.getenv("START")
         await self.llama.async_setup()
+        self.cs = cs = aiohttp.ClientSession()
         if launched:
-            self.cs = cs = aiohttp.ClientSession()
             msg = f"wordmirror started {int(server_start - int(launched))}s after launch, took {time.time() - server_start:.3f}s to load"
             await cs.post("https://imogen-dryad.fly.dev/admin", data=msg)
             await cs.post("https://imogen.fly.dev/admin", data=msg)
+        req = await cs.get("https://ipinfo.io", headers={"User-Agent": "curl"})
+        self.ipinfo = await req.json()
+        if "city" in self.ipinfo and "region" in self.ipinfo:
+            loc = ", ".join((self.ipinfo["city"], self.ipinfo["region"]))
+            html.replace("<!--$LOC-->", f"<span>location: {loc}</span><br>")
         # idle exit needs to be in a task because all on_startups have to exit
         asyncio.create_task(self.idle_exit())
 
