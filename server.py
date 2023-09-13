@@ -73,6 +73,7 @@ class Live:
                 "id": params.get("id"),
             }
             yield json.dumps(resp)
+        yield json.dumps({"status": "done", "id": params.get("id")}) 
         print(f"finished generating in {time.time() - start:.3f}")
 
     async def index(self, req: web.Request) -> web.Response:

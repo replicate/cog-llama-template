@@ -23,30 +23,42 @@ async function getPrompt() {
         console.log("got prompt");
         last_sent = Date.now();
         console.time("generation");
-        return JSON.stringify({ input: { prompt: prompt.value, seed: seed.value }, id: last_sent });
+        return JSON.stringify({ input: { prompt: prompt.value /*,seed: seed.value*/ }, id: last_sent });
       }
     }
     await new Promise((r) => setTimeout(r, 100));
   }
 }
 
+var last_token_time = 0;
+var CLEAR_AFTER_GEN = true;
 
 function handleImage(data) {
-  waiting = false;
-  console.log("handling image");
+  console.log("handling token");
   var parsed = JSON.parse(data);
-  var latency = Math.round(Date.now() - parsed.id);
-  var latencyField = document.getElementById("latency");
-  latencyField.textContent = `latency: ${latency}ms`;
-  document.getElementById("gen_time").textContent = `generation: ${parsed.gen_time}ms`;
-  document.getElementById("output").textContent += parsed.text
-  sendPrompt();
+  var promptLatencyField = document.getElementById("prompt-latency");
+  var promptLatency = Math.round(Date.now() - parsed.id);
+  promptLatencyField.textContent = `prompt latency: ${promptLatency}ms`;
+  var tokenLatencyField = document.getElementById("token-latency");
+  // last token, or start of request, to now
+  var tokenLatency = Math.round(Date.now() - Math.max(last_token_time, parsed.id))
+  last_token_time = Date.now()
+  tokenLatencyField.textContent = `token latency: ${tokenLatency}ms`;
+  if (parsed.status == "done") {
+    waiting = false
+    console.log("prediction done")
+    if (CLEAR_AFTER_GEN) { document.getElementById("output").textContent = "" }
+    sendPrompt();
+  } else {
+    document.getElementById("gen_time").textContent = `token generation latency: ${parsed.gen_time}ms`;
+    document.getElementById("output").textContent += parsed.text;
+  }
 }
 
 var sending = false;
 var waiting = false;
 function sendPrompt() {
-  if (waiting) {
+  if (waiting || sending) {
       console.log("already waiting, not sending again")
       return;
   }
@@ -54,6 +66,7 @@ function sendPrompt() {
   getPrompt().then((prompt) => {
     let interval = setInterval(function () {
         if (dc !== null && dc_open) {
+          document.getElementById("output").textContent = ""
           console.log("got prompt, actually sending over rtc");
           dataChannelLog.textContent += "> " + prompt + "\n";
           dc.send(prompt);
@@ -62,6 +75,7 @@ function sendPrompt() {
           waiting = true;
         } else if (ws && ws.readyState === 1) {
           console.log("sending over ws");
+          document.getElementById("output").textContent = ""
           ws.send(prompt);
           clearInterval(interval);
           sending = false;
