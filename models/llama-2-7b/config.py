@@ -24,21 +24,36 @@ MODEL_NAME = "llama-2-7b"
 # INFERENCE CONFIGURATION
 #######################################################################
 # --------------------Notes--------------------------------------------
-# We sometimes implement inference differently for models that have not 
-# been trained/fine-tuned vs. those that have been trained/fine-tuned. We refer to the 
-# former as "default" and the latter as "trained". Below, you can
-# set your "default inference configuration" and your "trained
-# inference configuration". 
-
-# DEFAULT INFERENCE CONFIGURATION
+# We are trying our very best to no longer have different inference code paths
+# for trained and untrained weights :)
+#
+# INFERENCE CONFIGURATION
 # -------------------------------
-# This section defines the default inference configuration, which may differ from
-# how we implement inference for a trained model.
+# This section defines the general inference configuration,
+# which is used for both trained and untrained models.
 # -------------------------------
 
-USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = False
 
-# LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
+TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
+USE_SYSTEM_PROMPT = False
+
+# ENGINE CONFIGURATION
+# -------------------------------
+# Here we define the specific inference engine we intend to use for inference, and all appropriate kwargs. 
+# -------------------------------
+
+from src.exllama_predictor import ExllamaEngine
+
+ENGINE = ExllamaEngine
+ENGINE_KWARGS = {
+    "fused_attn": True
+}
+
+# WEIGHTS CONFIGURATION
+# -------------------------------
+# Which base weights do we use for inference with this model?  
+# -------------------------------
+
 LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 
 REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = get_env_var_or_default(
@@ -59,9 +74,9 @@ REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
 ]
 
 
-# TRAINED INFERENCE CONFIGURATION
+# TRAINING CONFIGURATION
 # -------------------------------
-# This section defines the inference configuration for fine-tuned models
+# This section defines the configuration for weights used to train/fine-tune models
 # -------------------------------
 
 LOCAL_TRAINING_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/training_weights"
@@ -94,16 +109,7 @@ REMOTE_TRAINING_FILES_TO_DOWNLOAD += [
     "tokenizer.model",
 ]
 
-# GENERAL INFERENCE CONFIGURATION
-# -------------------------------
-# This section defines the general inference configuration,
-# which is used for both trained and untrained models.
-# -------------------------------
 
-LOAD_IN_4BIT = False
-TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
-USE_SYSTEM_PROMPT = False
-USE_FUSED_ATTN = True
 
 # -------------------------------
 
@@ -111,15 +117,6 @@ DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
 DEFAULT_BOS_TOKEN = "<s>"
 DEFAULT_UNK_TOKEN = "</s>"
-
-
-def log_memory_stuff(prompt=None):
-    """One method to barf out everything we'd ever want to know about memory"""
-    
-    if prompt is not None:
-        print(prompt)
-    os.system("nvidia-smi")
-    print(torch.cuda.memory_summary())
 
 
 def load_tokenizer():

@@ -38,7 +38,7 @@ def timer(name, func):
     return ret
 
 
-class ExllamaWrapper:
+class ExllamaEngine:
 
     def __init__(self, model_directory, fused_attn = True):
         tokenizer_path = os.path.join(model_directory, "tokenizer.model")

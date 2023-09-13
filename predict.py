@@ -13,18 +13,12 @@ import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
 from config import (
-    LOAD_IN_4BIT,
+    ENGINE,
+    ENGINE_KWARGS,
     LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
-    LOCAL_TRAINING_WEIGHTS_PATH,
     REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
     REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
-    REMOTE_TRAINING_FILES_TO_DOWNLOAD,
-    REMOTE_TRAINING_WEIGHTS_PATH,
-    USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS,
-    USE_FUSED_ATTN,
     USE_SYSTEM_PROMPT,
-    load_tensorizer,
-    load_tokenizer,
 )
 from src.download import Downloader
 from src.utils import StreamingTextStopSequenceHandler, maybe_download_with_pget
@@ -48,14 +42,14 @@ class Predictor(BasePredictor):
         self.downloader = Downloader()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        from src.exllama_predictor import ExllamaWrapper
 
         base_weights = maybe_download_with_pget(
             LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
             REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
             REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
         )
-        self.exllama_wrapper = ExllamaWrapper(base_weights, fused_attn=USE_FUSED_ATTN)
+
+        self.engine = ENGINE(base_weights, **ENGINE_KWARGS)
 
         if weights is not None and weights.name == "weights":
             # bugfix
@@ -63,6 +57,7 @@ class Predictor(BasePredictor):
         if weights:
             # If weights are passed in, they are LoRa weights
             # so we need to download the fp16 weights and load with peft
+            # TODO: pass engine and weights both in here. 
             self.initialize_peft(weights)
         else:
             print("Not using old-style COG_WEIGHTS LoRA weights")
@@ -83,7 +78,7 @@ class Predictor(BasePredictor):
             data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
         print(f"Unzipped peft weights in {time.time() - st:.3f}")
         st = time.time()
-        lora = self.exllama_wrapper.load_lora(
+        lora = self.engine.load_lora(
             data["adapter_config.json"], io.BytesIO(data["adapter_model.bin"])
         )
         del data, zip_ref
@@ -97,7 +92,7 @@ class Predictor(BasePredictor):
             print(
                 f"previous weights were different, switching to {replicate_weights}"
             )
-            self.exllama_wrapper.set_lora(self.get_lora(replicate_weights))
+            self.engine.set_lora(self.get_lora(replicate_weights))
             self.current_path = replicate_weights
         else:
             print("correct lora is already loaded")
@@ -168,7 +163,7 @@ class Predictor(BasePredictor):
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.3f}")
         else:
-            self.exllama_wrapper.set_lora(None)
+            self.engine.set_lora(None)
             print("Not using LoRA")
 
         if seed is not None:
@@ -186,11 +181,9 @@ class Predictor(BasePredictor):
         n_tokens = 0
         st = time.time()
 
-        for decoded_token in self.exllama_wrapper(
+        # todo: may need to do something clever with kwargs if/when we add more engines. 
+        for decoded_token in self.engine(
             prompt,
-            repetition_penalty=1.15,
-            repetition_penalty_sustain=256,
-            token_repetition_penalty_decay=128,
             temperature=temperature,
             top_p=top_p,
             top_k=top_k,
