@@ -38,7 +38,7 @@ def timer(name, func):
     return ret
 
 
-class ExllamaGenerator:
+class ExllamaWrapper:
 
     def __init__(self, model_directory, fused_attn = True):
         tokenizer_path = os.path.join(model_directory, "tokenizer.model")
@@ -75,13 +75,11 @@ class ExllamaGenerator:
         self.generator = begin(generator)
     
 
-    # def load_lora(self, lora_path: str) -> ExLlamaLora:
-    #     lora = ExLlamaLora(self.model, f"{lora_path}/adapter_config.json", f"{lora_path}/adapter_model.bin")
-    #     #self.generator.lora = lora
-    #     return lora
-
     def load_lora(self, config: str | Path, weights: str | Path) -> ExLlamaLora:
         return ExLlamaLora(self.model, config, weights)
+
+    def set_lora(self, lora: ExLlamaLora | None) -> None:
+        self.generator.lora = lora
     
     def __call__(
         self,
