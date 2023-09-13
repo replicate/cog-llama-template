@@ -45,7 +45,7 @@ USE_SYSTEM_PROMPT = True
 # Here we define the specific inference engine we intend to use for inference, and all appropriate kwargs. 
 # -------------------------------
 
-from src.exllama_predictor import ExllamaEngine
+from src.inference_engines.exllama_engine import ExllamaEngine
 
 ENGINE = ExllamaEngine
 ENGINE_KWARGS = {

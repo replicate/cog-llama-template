@@ -14,7 +14,7 @@ from exllama.lora import ExLlamaLora
 from exllama.tokenizer import ExLlamaTokenizer
 from exllama.generator import ExLlamaGenerator
 
-from .utils import maybe_download_with_pget, StreamingTextStopSequenceHandler
+from ..utils import maybe_download_with_pget, StreamingTextStopSequenceHandler
 
 torch.cuda._lazy_init()
 torch.set_printoptions(precision = 10)
@@ -37,7 +37,6 @@ def timer(name, func):
     print(f" ** Time, {name}: {t:.2f} seconds")
     return ret
 
-
 class ExllamaEngine:
 
     def __init__(self, model_directory, fused_attn = True):
@@ -45,7 +44,7 @@ class ExllamaEngine:
         model_config_path = os.path.join(model_directory, "config.json")
         st_pattern = os.path.join(model_directory, "*.safetensors")
         model_path = glob.glob(st_pattern)[0]
-        
+
 
         config = ExLlamaConfig(model_config_path)               # create config from config.json
         config.model_path = model_path                          # supply path to model weights file
@@ -55,7 +54,7 @@ class ExllamaEngine:
         config.max_input_len = 2*2048
         config.max_attention_size = 2*2048**2
         config.fused_attn = fused_attn
-        
+
         self.model = model = ExLlama(config)                                 # create ExLlama instance and load the weights
         tokenizer = ExLlamaTokenizer(tokenizer_path)            # create tokenizer from tokenizer model file
 
@@ -73,14 +72,14 @@ class ExllamaEngine:
             logits = timer("Warmup", lambda: next_logits(generator, warmup_ids, None))
 
         self.generator = begin(generator)
-    
+
 
     def load_lora(self, config: str | Path, weights: str | Path) -> ExLlamaLora:
         return ExLlamaLora(self.model, config, weights)
 
     def set_lora(self, lora: ExLlamaLora | None) -> None:
         self.generator.lora = lora
-    
+
     def __call__(
         self,
         prompt: str,
@@ -124,18 +123,18 @@ class ExllamaEngine:
             stop_sequences=stop_sequences,
             eos_token=generator.tokenizer.eos_token,
         )
-                   
+
         for i in range(max_new_tokens):
-            
+
             if i < min_new_tokens:
                 generator.disallow_tokens([generator.tokenizer.newline_token_id, generator.tokenizer.eos_token_id])
             else:
                 generator.disallow_tokens(None)
-            
+
             gen_token = generator.beam_search()
             if gen_token.item() == generator.tokenizer.eos_token_id:
                 break
-    
+
             if gen_token.item() == generator.tokenizer.eos_token_id:
                 generator.replace_last_token(generator.tokenizer.newline_token_id)
 
@@ -147,8 +146,8 @@ class ExllamaEngine:
             if skip_space: new_text = new_text[1:]
             # Why are we decoding to "�" so frequently? Need to compare to our original code.
             new_text = "" if new_text == "�" else new_text
-            
-            yielded_text = None  
+
+            yielded_text = None
             for yielded_text in stop_sequence_handler(new_text):
                 if yielded_text == stop_sequence_handler.eos_token:
                     break
@@ -159,4 +158,3 @@ class ExllamaEngine:
 
         for yielded_text in stop_sequence_handler.finalize():
             yield yielded_text
-
