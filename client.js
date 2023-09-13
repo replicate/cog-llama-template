@@ -1,15 +1,9 @@
 console.time("connecting");
 console.time("loading");
-// image stuff
+
 let last_prompt = null;
 let last_seed = null;
 let last_sent = null;
-
-// async function testStability {
-//     var
-//     fetch("")
-//     //https://api.stability.ai/v1alpha/generation/stable-diffusion-512-v2-0/text-to-image"  -H 'Content-Type: application/json'  -H 'Accept: image/png' -H "Authorization: sk-2ZP1rHM6OsQzzedLAkeHzPiZeAd5PYAWek35JqKpPsWsgitW"  --data-raw '{"cfg_scale": 7,"clip_guidance_preset": "NONE","height": 512,"width": 512,"samples": 1,"seed": 0,"steps": 50,"text_prompts": [{"text": "A lighthouse on a cliff","weight": 1}]}'
-// }
 
 async function getPrompt() {
   var prompt = document.getElementById("prompt");
@@ -17,9 +11,9 @@ async function getPrompt() {
   while (true) {
     console.log("checking if prompt");
     if (prompt && prompt.value) {
-      if (prompt.value !== last_prompt || seed.value !== last_seed) {
+      if (prompt.value !== last_prompt /* || seed.value !== last_seed */) {
         last_prompt = prompt.value;
-        last_seed = seed;
+        last_seed = seed.value;
         console.log("got prompt");
         last_sent = Date.now();
         console.time("generation");
@@ -226,7 +220,6 @@ function start() {
   pc = createPeerConnection();
 
   // {"ordered": false, "maxRetransmits": 0}
-
   // {"ordered": false, "maxPacketLifetime": 500}
   dc = pc.createDataChannel("chat", { ordered: true });
   dc.onclose = function () {
