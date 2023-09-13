@@ -244,3 +244,7 @@ class StreamingTextStopSequenceHandler:
         if self.cache:
             yield from self.cache
             self.cache.clear()
+
+
+
+
