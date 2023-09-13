@@ -23,10 +23,9 @@ from config import (
     USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS,
     USE_FUSED_ATTN,
     USE_SYSTEM_PROMPT,
-    load_tensorizer,
-    load_tokenizer,
 )
 from src.download import Downloader
+# from src.more_utils import load_tokenizer
 from src.utils import StreamingTextStopSequenceHandler, maybe_download_with_pget
 from subclass import YieldingLlama
 
@@ -94,9 +93,7 @@ class Predictor(BasePredictor):
 
     def initialize_peft(self, replicate_weights: str) -> None:
         if self.current_path != replicate_weights:
-            print(
-                f"previous weights were different, switching to {replicate_weights}"
-            )
+            print(f"previous weights were different, switching to {replicate_weights}")
             self.exllama_wrapper.set_lora(self.get_lora(replicate_weights))
             self.current_path = replicate_weights
         else:
