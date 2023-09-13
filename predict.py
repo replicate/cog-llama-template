@@ -95,7 +95,7 @@ class Predictor(BasePredictor):
     def initialize_peft(self, replicate_weights: str) -> None:
         if self.current_path != replicate_weights:
             print(
-                f"previous weights were {self.current_path}, switching to {replicate_weights}"
+                f"previous weights were different, switching to {replicate_weights}"
             )
             self.exllama_wrapper.set_lora(self.get_lora(replicate_weights))
             self.current_path = replicate_weights
