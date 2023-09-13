@@ -9,17 +9,20 @@ if os.getenv("BREAK"):
 # import nyacomp
 
 import asyncio
-#import base64
+
+# import base64
 import json
 import logging
 import uuid
 import sys
 import typing as t
-#from pathlib import Path
-#from io import BytesIO
+
+# from pathlib import Path
+# from io import BytesIO
 
 import aiortc
-#import torch
+
+# import torch
 import aiohttp
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
@@ -42,7 +45,7 @@ class Live:
         from predict import Predictor as Llama
 
         self.llama = Llama()
-        #self.llama.setup()
+        # self.llama.setup()
 
         self.connections = set()
 
@@ -73,10 +76,10 @@ class Live:
                 "text": tok,
                 "gen_time": round((time.time() - tok_start) * 1000),
                 "id": params.get("id"),
-                "idx": token_count
+                "idx": token_count,
             }
             yield json.dumps(resp)
-        yield json.dumps({"status": "done", "id": params.get("id")}) 
+        yield json.dumps({"status": "done", "id": params.get("id")})
         print(f"finished generating in {time.time() - start:.3f}")
 
     async def index(self, req: web.Request) -> web.Response:
@@ -173,14 +176,15 @@ class Live:
     async def idle_exit(self):
         pod_id = os.getenv("RUNPOD_POD_ID")
         while pod_id:
-            await asyncio.sleep(12000)
+            await asyncio.sleep(20 * 60)
             if time.time() - self.last_gen > 3600:
                 await self.cs.post(
                     "https://imogen.fly.dev/admin",
-                    data="mirror shutting down after 1h inactivity",
+                    data="mirror shutting down after 20m inactivity",
                 )
-                query = 'mutation {podTerminate(input: {podId: "%s"})}' % pod_id
-                # TODO: if we have a volume, suspend instead of exiting
+                # TODO: if we don't have a volume, exit instead of suspendint
+                # query = 'mutation {podTerminate(input: {podId: "%s"})}' % pod_id
+                query = 'mutation {podStop(input: {podId: "%s"})}' % pod_id
                 await self.cs.post(
                     "https://api.runpod.io/graphql",
                     params={"api_key": os.getenv("RUNPOD_API_KEY")},
@@ -232,8 +236,8 @@ app.add_routes(
             live.handle_endpoint,
         ),
         web.route("*", "/", live.index),
-        #web.route("*", "/", live.next_index),
-        #web.static("/", "/app/next"),
+        # web.route("*", "/", live.next_index),
+        # web.static("/", "/app/next"),
     ]
 )
 
