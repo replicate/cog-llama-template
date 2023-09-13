@@ -21,19 +21,19 @@ USE_SYSTEM_PROMPT = False
 
 # ENGINE CONFIGURATION
 # -------------------------------
-# Here we define the specific inference engine we intend to use for inference, and all appropriate kwargs. 
+# Here we define the specific inference engine we intend to use for inference, and all appropriate kwargs.
 # -------------------------------
 
 from src.inference_engines.exllama import ExllamaEngine
 
 ENGINE = ExllamaEngine
 ENGINE_KWARGS = {
-    "fused_attn": True
+    "fused_attn": True,
 }
 
 # WEIGHTS CONFIGURATION
 # -------------------------------
-# Which base weights do we use for inference with this model?  
+# Which base weights do we use for inference with this model?
 # -------------------------------
 
 LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = (
