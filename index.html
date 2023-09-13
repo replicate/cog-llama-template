@@ -31,27 +31,25 @@
     <div id="output"></div><br/>
     <!--<img id="imoge" alt="imoge" src="" style="opacity:0;"><br/>
     <img id="imoge2" alt="imoge" src="" style="opacity:1;"><br/>!-->
-    <textarea id="prompt" name="prompt" value=""></textarea><br/>
+    <textarea style="width: 50%; height: 50%" id="prompt" name="prompt" value=""></textarea><br/>
     <input id="seed" name="seed" value="42" type="hidden">
     <span id="gen_time"></span><br/>
     <span id="prompt-latency"></span><br/>
     <span id="token-latency"></span><br/>
 </div>
 
-<button id="stop" style="display: none" onclick="stop()">Stop</button>
 
-
-<div class="option">
-    <input id="use-stun" type="checkbox" checked=true/>
-    <label for="use-stun">Use STUN server</label>
-</div>
-<!--<div class="option">
-    <input id="use-webrtc" type="checkbox" checked=true/>
-    <label for="use-webrtc">Use webRTC if available instead of websocket</label>
-</div>-->
 <details>
     <summary>Debug information</summary>
-
+    <button id="stop" style="display: none" onclick="stop()">Stop</button>
+    <div class="option">
+        <input id="use-stun" type="checkbox" checked=true/>
+        <label for="use-stun">Use STUN server</label>
+    </div>
+    <!--<div class="option">
+        <input id="use-webrtc" type="checkbox" checked=true/>
+        <label for="use-webrtc">Use webRTC if available instead of websocket</label>
+    </div>-->
     <h2>State</h2>
     <p>
         ICE gathering state: <span id="ice-gathering-state"></span>

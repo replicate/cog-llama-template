@@ -23,7 +23,10 @@ async function getPrompt() {
         console.log("got prompt");
         last_sent = Date.now();
         console.time("generation");
-        return JSON.stringify({ input: { prompt: prompt.value /*,seed: seed.value*/ }, id: last_sent });
+        return JSON.stringify({
+          input: { prompt: prompt.value /*,seed: seed.value*/ },
+          id: last_sent,
+        });
       }
     }
     await new Promise((r) => setTimeout(r, 100));
@@ -31,7 +34,6 @@ async function getPrompt() {
 }
 
 var last_token_time = 0;
-var CLEAR_AFTER_GEN = true;
 
 function handleImage(data) {
   console.log("handling token");
@@ -41,16 +43,19 @@ function handleImage(data) {
   promptLatencyField.textContent = `prompt latency: ${promptLatency}ms`;
   var tokenLatencyField = document.getElementById("token-latency");
   // last token, or start of request, to now
-  var tokenLatency = Math.round(Date.now() - Math.max(last_token_time, parsed.id))
-  last_token_time = Date.now()
+  var tokenLatency = Math.round(
+    Date.now() - Math.max(last_token_time, parsed.id),
+  );
+  last_token_time = Date.now();
   tokenLatencyField.textContent = `token latency: ${tokenLatency}ms`;
   if (parsed.status == "done") {
-    waiting = false
-    console.log("prediction done")
-    if (CLEAR_AFTER_GEN) { document.getElementById("output").textContent = "" }
+    waiting = false;
+    console.log("prediction done");
     sendPrompt();
   } else {
-    document.getElementById("gen_time").textContent = `token generation latency: ${parsed.gen_time}ms`;
+    document.getElementById(
+      "gen_time",
+    ).textContent = `token generation latency: ${parsed.gen_time}ms`;
     document.getElementById("output").textContent += parsed.text;
   }
 }
@@ -59,30 +64,30 @@ var sending = false;
 var waiting = false;
 function sendPrompt() {
   if (waiting || sending) {
-      console.log("already waiting, not sending again")
-      return;
+    console.log("already waiting, not sending again");
+    return;
   }
   sending = true;
   getPrompt().then((prompt) => {
     let interval = setInterval(function () {
-        if (dc !== null && dc_open) {
-          document.getElementById("output").textContent = ""
-          console.log("got prompt, actually sending over rtc");
-          dataChannelLog.textContent += "> " + prompt + "\n";
-          dc.send(prompt);
-          clearInterval(interval);
-          sending = false;
-          waiting = true;
-        } else if (ws && ws.readyState === 1) {
-          console.log("sending over ws");
-          document.getElementById("output").textContent = ""
-          ws.send(prompt);
-          clearInterval(interval);
-          sending = false;
-          waiting = true;
-        } else {
-          console.log("no connections open, retrying");
-        }
+      if (dc !== null && dc_open) {
+        document.getElementById("output").textContent = "";
+        console.log("got prompt, actually sending over rtc");
+        dataChannelLog.textContent += "> " + prompt + "\n";
+        dc.send(prompt);
+        clearInterval(interval);
+        sending = false;
+        waiting = true;
+      } else if (ws && ws.readyState === 1) {
+        console.log("sending over ws");
+        document.getElementById("output").textContent = "";
+        ws.send(prompt);
+        clearInterval(interval);
+        sending = false;
+        waiting = true;
+      } else {
+        console.log("no connections open, retrying");
+      }
     }, 1000);
   });
 }
@@ -108,9 +113,9 @@ function createPeerConnection() {
     sdpSemantics: "unified-plan",
   };
 
-  if (document.getElementById('use-stun').checked) {
-  // hm
-     config.iceServers = [{urls: ['stun:stun.l.google.com:19302']}];
+  if (document.getElementById("use-stun").checked) {
+    // hm
+    config.iceServers = [{ urls: ["stun:stun.l.google.com:19302"] }];
   }
 
   pc = new RTCPeerConnection(config);
@@ -121,7 +126,7 @@ function createPeerConnection() {
     function () {
       iceGatheringLog.textContent += " -> " + pc.iceGatheringState;
     },
-    false
+    false,
   );
   iceGatheringLog.textContent = pc.iceGatheringState;
 
@@ -130,7 +135,7 @@ function createPeerConnection() {
     function () {
       iceConnectionLog.textContent += " -> " + pc.iceConnectionState;
     },
-    false
+    false,
   );
   iceConnectionLog.textContent = pc.iceConnectionState;
 
@@ -139,7 +144,7 @@ function createPeerConnection() {
     function () {
       signalingLog.textContent += " -> " + pc.signalingState;
     },
-    false
+    false,
   );
   signalingLog.textContent = pc.signalingState;
 
@@ -289,7 +294,7 @@ function stop() {
 let ws = new WebSocket(
   (window.location.protocol === "https:" ? "wss://" : "ws://") +
     window.location.host +
-    "/ws"
+    "/ws",
 );
 var ws_open = false;
 setInterval(function () {
@@ -321,7 +326,6 @@ ws.addEventListener("close", (event) => {
 start();
 //);
 console.timeEnd("loading");
-
 
 //setInterval(function () {
 //  if (!sending && !waiting) { sendPrompt() }
