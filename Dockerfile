@@ -59,10 +59,10 @@ COPY --link --from=downloaders /usr/local/bin/remotefile /usr/local/bin
 COPY --link --from=libbuilder /app/venv/lib/python3.11/site-packages /app/
 COPY --link --from=libbuilder /app/nya/ /app/
 #COPY --from=next /app/out /app/next
-COPY --link ./client.js ./index.html ./server.py /app/
-COPY --link ./predict.py ./config.py ./subclass.py /app/
-COPY --link ./src/ /app/src/
 COPY --link ./exllama/ /app/exllama/
+COPY --link ./src/ /app/src/
+COPY --link ./predict.py ./config.py ./subclass.py /app/
+COPY --link ./client.js ./index.html ./server.py /app/
 # ew
 COPY .env /app/
 

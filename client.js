@@ -38,14 +38,14 @@ function handleImage(data) {
   var tokenLatencyField = document.getElementById("token-latency");
   if (parsed.idx == 1) {
       var firstTokenLatencyField = document.getElementById("first-token-latency");
-      firstTokenLatencyField.textContent = `first token latency: ${promptLatency}`;
+      firstTokenLatencyField.textContent = `first token latency: ${promptLatency}ms`;
   }
   // last token, or start of request, to now
   var tokenLatency = Math.round(
     Date.now() - Math.max(last_token_time, parsed.id),
   );
   last_token_time = Date.now();
-  tokenLatencyField.textContent = `token latency: ${tokenLatency}ms`;
+  tokenLatencyField.textContent = `last token latency: ${tokenLatency}ms`;
   if (parsed.status == "done") {
     waiting = false;
     console.log("prediction done");
@@ -53,7 +53,7 @@ function handleImage(data) {
   } else {
     document.getElementById(
       "gen_time",
-    ).textContent = `token generation latency: ${parsed.gen_time}ms`;
+    ).textContent = `token generation time: ${parsed.gen_time}ms`;
     document.getElementById("output").textContent += parsed.text;
   }
 }
