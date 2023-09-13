@@ -108,16 +108,14 @@ serve: select
 	-v `pwd`/training_output.zip:/src/local_weights.zip \
 	$(IMAGE_NAME)
 
-test-local-predict: 
-	cog build
+test-local-predict: build-local
 	@if [ "$(verbose)" = "true" ]; then \
 		pytest ./tests/test_predict.py -s; \
 	else \
 		pytest ./tests/test_predict.py; \
 	fi
 
-test-local-train: 
-	cog build
+test-local-train: build-local
 	rm -rf training_output.zip
 	@if [ "$(verbose)" = "true" ]; then \
 		pytest ./tests/test_train.py -s; \

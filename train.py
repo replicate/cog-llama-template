@@ -47,15 +47,15 @@ def train(
     ),
     num_train_epochs: int = Input(
         description="number of training epochs", 
-        ge=1, default=3,
+        ge=1, default=1,
     ),
     train_batch_size: int = Input(
         description="Global batch size. This specifies the batch size that will be used to calculate gradients.",
         default=4, ge=1,
     ),
-    micro_batch_size: int = Input(
-        description="Micro batch size. This specifies the on-device batch size, if this is less than `train_batch_size`, gradient accumulation will be activated.", 
-        default=4, ge=1
+    gradient_accumulation_steps: int = Input(
+        description="Number of training steps (each of train_batch_size) to update gradients for before performing a backward pass.", 
+        default=1, ge=1
     ),
     num_validation_samples: int = Input(
         description=("Number of samples to use for validation." \
@@ -203,7 +203,7 @@ def train(
         f"--data_path={train_data}",
         f"--num_epochs={num_train_epochs}",
         f"--batch_size_training={train_batch_size}",
-        f"--micro_batch_size={micro_batch_size}",
+        f"--gradient_accumulation_steps={gradient_accumulation_steps}",
         f"--lr={learning_rate}",
         f"--lora_rank={lora_rank}",
         f"--lora_alpha={lora_alpha}",

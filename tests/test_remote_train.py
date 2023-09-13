@@ -24,7 +24,7 @@ def training(model_name, version):
     training_input = {
         # "train_data": "https://storage.googleapis.com/replicate-weights/training-deadlock/1k_samples.jsonl",
         "train_data": "https://r2.drysys.workers.dev/tmp/b_prompts.jsonl",
-        "micro_batch_size": 48,
+        "gradient_accumulation_steps": 2,
         "train_batch_size": 48,
         "run_validation": False
     }
