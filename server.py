@@ -61,16 +61,19 @@ class Live:
         # rng = torch.Generator(device="cuda").manual_seed(int(params.get("seed", 420)))
         start = time.time()
         stream = self.llama.predict(**params["input"])
+        token_count = 0
         while True:
             tok_start = time.time()
             # while-next() seems clearer than for-in here
             tok = next(stream, None)
             if tok is None:
                 break
+            token_count += 1
             resp = {
                 "text": tok,
                 "gen_time": round((time.time() - tok_start) * 1000),
                 "id": params.get("id"),
+                "idx": token_count
             }
             yield json.dumps(resp)
         yield json.dumps({"status": "done", "id": params.get("id")}) 

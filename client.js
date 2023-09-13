@@ -36,6 +36,10 @@ function handleImage(data) {
   var promptLatency = Math.round(Date.now() - parsed.id);
   promptLatencyField.textContent = `prompt latency: ${promptLatency}ms`;
   var tokenLatencyField = document.getElementById("token-latency");
+  if (parsed.idx == 1) {
+      var firstTokenLatencyField = document.getElementById("first-token-latency");
+      firstTokenLatencyField.textContent = `first token latency: ${promptLatency}`;
+  }
   // last token, or start of request, to now
   var tokenLatency = Math.round(
     Date.now() - Math.max(last_token_time, parsed.id),
