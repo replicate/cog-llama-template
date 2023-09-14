@@ -10,7 +10,6 @@ if os.getenv("BREAK"):
 
 import asyncio
 
-# import base64
 import json
 import logging
 import uuid
@@ -18,7 +17,6 @@ import sys
 import typing as t
 
 # from pathlib import Path
-# from io import BytesIO
 
 import aiortc
 
@@ -50,18 +48,6 @@ class Live:
         self.connections = set()
 
     def generate(self, params: dict) -> t.Iterator[str]:
-        # time.sleep(3)
-        # print("generated")
-        # shared_params = {
-        #     "prompt": params["prompt"],
-        #     # maybe use num_images_per_prompt? think about batch v serial
-        #     "height": params.get("height", 512),
-        #     "width": params.get("width", 512),
-        #     "num_inference_steps": params.get("ddim_steps", 35),
-        #     "guidance_scale": params.get("scale", 7.5),
-        # }
-        # logging.info(params["prompt"])
-        # rng = torch.Generator(device="cuda").manual_seed(int(params.get("seed", 420)))
         start = time.time()
         stream = self.llama.predict(**params["input"])
         token_count = 0
@@ -80,7 +66,7 @@ class Live:
             }
             yield json.dumps(resp)
         yield json.dumps({"status": "done", "id": params.get("id")})
-        print(f"finished generating in {time.time() - start:.3f}")
+        logging.info(f"finished generating in {time.time() - start:.3f}")
 
     async def index(self, req: web.Request) -> web.Response:
         return web.Response(body=self.html, content_type="text/html")
@@ -97,20 +83,20 @@ class Live:
         await ws.prepare(request)
         logging.info("ws connected")
         self.connections.add(ws)
-        async for msg in ws:
-            print(msg)
-            if isinstance(msg.data, str) and msg.data.startswith("ping"):
-                await ws.send_str("pong" + msg.data[4:])
+        async for message in ws:
+            logging.info(message)
+            if isinstance(message.data, str) and message.data.startswith("ping"):
+                await ws.send_str("pong" + message.data[4:])
             else:
                 # async with generate_lock:
-                for item in self.generate(json.loads(msg.data)):
+                for item in self.generate(json.loads(message.data)):
                     await ws.send_str(item)
-        print("websocket disconnected")
+        logging.info("websocket disconnected")
         self.connections.discard(ws)
         return ws
 
     async def offer(self, request: web.Request) -> web.Response:
-        print("handling offer")
+        logging.info("handling offer")
         params = await request.json()
         offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
@@ -125,18 +111,16 @@ class Live:
 
         @pc.on("datachannel")
         def on_datachannel(channel: aiortc.rtcdatachannel.RTCDataChannel) -> None:
-            print(type(channel))
+            logging.info(type(channel))
 
             @channel.on("message")
             def on_message(message):
-                print(message)
+                logging.info(message)
                 if isinstance(message, str) and message.startswith("ping"):
                     channel.send("pong" + message[4:])
-                if isinstance(message, str) and message[0] == "{":
-                    print("will generate")
-                    image = self.generate(json.loads(message))
+                elif isinstance(message, str) and message[0] == "{":
                     for item in self.generate(json.loads(message.data)):
-                        print("sending token over webrtc")
+                        logging.info("sending token over webrtc")
                         channel.send(item)
 
         @pc.on("connectionstatechange")
@@ -152,12 +136,10 @@ class Live:
         # send answer
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
-
+        data = {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
         return web.Response(
             content_type="application/json",
-            text=json.dumps(
-                {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
-            ),
+            text=json.dumps(data),
         )
 
     async def on_startup(self, app: web.Application) -> None:
@@ -165,8 +147,7 @@ class Live:
         await self.llama.async_setup()
         self.cs = cs = aiohttp.ClientSession()
         if launched:
-            msg = f"wordmirror started {int(server_start - int(launched))}s after launch, took {time.time() - server_start:.3f}s to load"
-            #await cs.post("https://imogen-dryad.fly.dev/admin", data=msg)
+            msg = f"wordmirror started {int(server_start - int(launched))}s after launch, ready {time.time() - server_start:.3f}s after start"
             await cs.post("https://imogen.fly.dev/admin", data=msg)
         req = await cs.get("https://ipinfo.io", headers={"User-Agent": "curl"})
         self.ipinfo = await req.json()
@@ -214,15 +195,15 @@ class Live:
         start = time.time()
         output = " ".join(list(self.llama.predict(**params["input"])))
         latency = round(time.time() - start, 3)
-        print(f"handling endpoint took {latency}")
+        logging.info(f"handling endpoint took {latency}")
         resp = {"output": output, "latency": latency}
         return web.json_response(resp)
 
     # async def ws_only(self, req: web.Request) -> web.Response:
     #     return web.FileResponse("./ws-only.html")
 
-    async def next_index(self, req: web.Request) -> web.Response:
-        return web.FileResponse("/app/next/index.html")
+    # async def next_index(self, req: web.Request) -> web.Response:
+    #     return web.FileResponse("/app/next/index.html")
 
     async def conn_count(self, req: web.Request) -> web.Response:
         return web.Response(body=str(len(pcs) + len(self.connections)))
