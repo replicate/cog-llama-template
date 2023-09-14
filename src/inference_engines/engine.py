@@ -7,8 +7,7 @@ class Engine(ABC):
     """
 
     @abstractmethod
-    @staticmethod
-    def load_lora(self, lora_):
+    def load_lora(self, lora_files):
         """
         loads a lora from files into the format that this particular engine expects. DOES NOT prepare the engine for inference.
         """

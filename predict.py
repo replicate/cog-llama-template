@@ -58,7 +58,6 @@ class Predictor(BasePredictor):
         if weights:
             # If weights are passed in, they are LoRa weights
             # so we need to download the fp16 weights and load with peft
-            # TODO: pass engine and weights both in here. 
             self.initialize_peft(weights)
         else:
             print("Not using old-style COG_WEIGHTS LoRA weights")
