@@ -39,8 +39,8 @@ function handleImage(data) {
   promptLatencyField.textContent = `prompt latency: ${promptLatency}ms`;
   var tokenLatencyField = document.getElementById("token-latency");
   if (parsed.idx == 1) {
-      var firstTokenLatencyField = document.getElementById("first-token-latency");
-      firstTokenLatencyField.textContent = `first token latency: ${promptLatency}ms`;
+    var firstTokenLatencyField = document.getElementById("first-token-latency");
+    firstTokenLatencyField.textContent = `first token latency: ${promptLatency}ms`;
   }
   // last token, or start of request, to now
   var tokenLatency = Math.round(
@@ -69,7 +69,7 @@ function sendPrompt() {
   }
   sending = true;
   getPrompt().then((prompt) => {
-    let interval = setInterval(function () {
+    let interval = setInterval(() => {
       if (dc !== null && dc_open) {
         document.getElementById("output").textContent = "";
         console.log("got prompt, actually sending over rtc");
@@ -124,7 +124,7 @@ function createPeerConnection() {
   // register some listeners to help debugging
   pc.addEventListener(
     "icegatheringstatechange",
-    function () {
+    () => {
       iceGatheringLog.textContent += " -> " + pc.iceGatheringState;
     },
     false,
@@ -133,7 +133,7 @@ function createPeerConnection() {
 
   pc.addEventListener(
     "iceconnectionstatechange",
-    function () {
+    () => {
       iceConnectionLog.textContent += " -> " + pc.iceConnectionState;
     },
     false,
@@ -142,7 +142,7 @@ function createPeerConnection() {
 
   pc.addEventListener(
     "signalingstatechange",
-    function () {
+    () => {
       signalingLog.textContent += " -> " + pc.signalingState;
     },
     false,
@@ -164,12 +164,12 @@ function createPeerConnection() {
 function negotiate() {
   return pc
     .createOffer()
-    .then(function (offer) {
+    .then((offer) => {
       return pc.setLocalDescription(offer);
     })
-    .then(function () {
+    .then(() => {
       // wait for ICE gathering to complete
-      return new Promise(function (resolve) {
+      return new Promise((resolve) => {
         if (pc.iceGatheringState === "complete") {
           resolve();
         } else {
@@ -183,7 +183,7 @@ function negotiate() {
         }
       });
     })
-    .then(function () {
+    .then(() => {
       var offer = pc.localDescription;
       document.getElementById("offer-sdp").textContent = offer.sdp;
       // this part needs to go through runpod
@@ -199,14 +199,14 @@ function negotiate() {
         method: "POST",
       });
     })
-    .then(function (response) {
+    .then((response) => {
       return response.json();
     })
-    .then(function (answer) {
+    .then((answer) => {
       document.getElementById("answer-sdp").textContent = answer.sdp;
       return pc.setRemoteDescription(answer);
     })
-    .catch(function (e) {
+    .catch((e) => {
       console.log(e);
       alert(e);
     });
@@ -229,16 +229,16 @@ function start() {
   // {"ordered": false, "maxRetransmits": 0}
   // {"ordered": false, "maxPacketLifetime": 500}
   dc = pc.createDataChannel("chat", { ordered: true });
-  dc.onclose = function () {
+  dc.onclose = () => {
     dc_open = false;
     clearInterval(dcInterval);
     dataChannelLog.textContent += "- close\n";
   };
-  dc.onopen = function () {
+  dc.onopen = () => {
     dc_open = true;
     console.log("onopen");
     dataChannelLog.textContent += "- open\n";
-    dcInterval = setInterval(function () {
+    dcInterval = setInterval(() => {
       var message = "ping " + current_stamp();
       dataChannelLog.textContent += "> " + message + "\n";
       dc.send(message);
@@ -247,12 +247,12 @@ function start() {
     console.log("started sending prompt");
     console.timeEnd("connecting");
   };
-  dc.onmessage = function (evt) {
+  dc.onmessage = (evt) => {
     dataChannelLog.textContent += "< " + evt.data + "\n";
     if (evt.data.substring(0, 4) === "pong") {
       var elapsed_ms = current_stamp() - parseInt(evt.data.substring(5), 10);
       dataChannelLog.textContent += " RTT " + elapsed_ms + " ms\n";
-      rtcPing.textContent = `webRTC roundtrip ping: ${elapsed_ms}ms`
+      rtcPing.textContent = `webRTC roundtrip ping: ${elapsed_ms}ms`;
     }
     if (evt.data.substring(0, 1) === "{") {
       handleImage(evt.data);
@@ -274,7 +274,7 @@ function stop() {
 
   // close transceivers
   if (pc.getTransceivers) {
-    pc.getTransceivers().forEach(function (transceiver) {
+    pc.getTransceivers().forEach((transceiver) => {
       if (transceiver.stop) {
         transceiver.stop();
       }
@@ -282,12 +282,12 @@ function stop() {
   }
 
   // close local audio / video
-  pc.getSenders().forEach(function (sender) {
+  pc.getSenders().forEach((sender) => {
     sender.track.stop();
   });
 
   // close peer connection
-  setTimeout(function () {
+  setTimeout(() => {
     pc.close();
   }, 500);
 }
@@ -298,7 +298,7 @@ let ws = new WebSocket(
     "/ws",
 );
 var ws_open = false;
-setInterval(function () {
+setInterval(() => {
   if (ws.readyState === 1) {
     var message = "ping " + current_stamp();
     ws.send(message);
@@ -310,13 +310,13 @@ ws.addEventListener("open", (event) => {
     sendPrompt();
   }
 });
-var wsPing = document.getElementById("ws-ping")
+var wsPing = document.getElementById("ws-ping");
 
 ws.addEventListener("message", ({ data }) => {
   if (data.substring(0, 4) === "pong") {
     var elapsed_ms = current_stamp() - parseInt(data.substring(5), 10);
     console.log("ws RTT " + elapsed_ms + " ms\n");
-    wsPing.textContent = `websocket roundtrip ping: ${elapsed_ms}ms`
+    wsPing.textContent = `websocket roundtrip ping: ${elapsed_ms}ms`;
   } else {
     handleImage(data);
   }
