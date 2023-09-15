@@ -7,7 +7,7 @@ import shutil
 import socket
 import time
 import zipfile
-from typing import Optional
+from typing import Any, Optional
 
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
@@ -64,7 +64,7 @@ class Predictor(BasePredictor):
 
     # todo: adaptive cache like CLOCK
     @functools.lru_cache(maxsize=10)
-    def get_lora(self, replicate_weights: str) -> "ExLlamaLora":
+    def get_lora(self, replicate_weights: str) -> Any:
         if "http" in str(replicate_weights):  # weights are in the cloud
             print("Downloading peft weights")
             st = time.time()
@@ -78,9 +78,7 @@ class Predictor(BasePredictor):
             data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
         print(f"Unzipped peft weights in {time.time() - st:.3f}")
         st = time.time()
-        lora = self.engine.load_lora(
-            data["adapter_config.json"], io.BytesIO(data["adapter_model.bin"])
-        )
+        lora = self.engine.load_lora(data)
         del data, zip_ref
         print(f"Initialized peft model in {time.time() - st:.3f}")
         return lora
@@ -96,6 +94,10 @@ class Predictor(BasePredictor):
             self.current_path = replicate_weights
         else:
             print("correct lora is already loaded")
+
+    def unload_lora(self):
+        self.current_path = None
+        self.engine.set_lora(None)
 
     def predict(
         self,
@@ -163,7 +165,7 @@ class Predictor(BasePredictor):
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.3f}")
         else:
-            self.engine.set_lora(None)
+            self.unload_lora()
             print("Not using LoRA")
 
         if seed is not None:

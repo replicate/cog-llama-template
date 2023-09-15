@@ -1,6 +1,9 @@
+import os
+import shutil
 from transformers import AutoModelForCausalLM, TextIteratorStreamer, StoppingCriteria
 from typing import Optional, List
 from threading import Thread
+from peft import PeftModel
 
 import torch
 
@@ -30,13 +33,33 @@ class TransformersEngine(Engine):
         self.device = device 
         print("Transformers engine initialized.")
 
-    def load_lora(sel, lora_weights):
-        # todo - this is probably where the contract for loading needs to change a bit. 
-        pass
+
+    def load_lora(self, lora_weights: dict):
+        # reset to non-lora model if previous lora exists, can't just swap loras out w/transformers
+        if hasattr(self.model, 'unload') and callable(self.model.unload):
+            self.model = self.model.unload()
+
+        # serializing the dictionary of files and such - hf doesn't have quick and easy ways to load loras from file references, 
+        # and this implementation isn't built for speed anyway
+        model_dir = 'tmp/model'
+        os.makedirs(model_dir)
+        for handle in lora_weights:
+            fpath = os.path.join(model_dir, handle)
+            with open(fpath, 'wb') as f:
+                f.write(lora_weights[handle])
+
+        model = PeftModel.from_pretrained(self.model, model_dir)
+        shutil.rmtree(model_dir)
+        return model
+
 
     def set_lora(self, lora):
-        # todo - this is probably more straightforward
-        pass
+        if lora is None:
+            # reset to non-lora model, checking to see if model has ever been lora'd
+            if hasattr(self.model, 'unload') and callable(self.model.unload):
+                self.model = self.model.unload()
+        else:
+            self.model = lora
 
     def __call__(self, 
                  prompt,

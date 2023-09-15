@@ -1,6 +1,8 @@
+import io
 import os
 import sys
-import glob 
+import glob
+
 import torch 
 import time
 from pathlib import Path
@@ -14,6 +16,7 @@ from exllama.lora import ExLlamaLora
 from exllama.tokenizer import ExLlamaTokenizer
 from exllama.generator import ExLlamaGenerator
 
+from src.inference_engines.engine import Engine 
 from ..utils import maybe_download_with_pget, StreamingTextStopSequenceHandler
 
 torch.cuda._lazy_init()
@@ -37,7 +40,7 @@ def timer(name, func):
     print(f" ** Time, {name}: {t:.2f} seconds")
     return ret
 
-class ExllamaEngine:
+class ExllamaEngine(Engine):
 
     def __init__(self, model_directory, fused_attn = True):
         tokenizer_path = os.path.join(model_directory, "tokenizer.model")
@@ -74,8 +77,8 @@ class ExllamaEngine:
         self.generator = begin(generator)
 
 
-    def load_lora(self, config: str | Path, weights: str | Path) -> ExLlamaLora:
-        return ExLlamaLora(self.model, config, weights)
+    def load_lora(self, data_ref: dict) -> ExLlamaLora:
+        return ExLlamaLora(self.model, data_ref["adapter_config.json"], io.BytesIO(data_ref["adapter_model.bin"]))
 
     def set_lora(self, lora: ExLlamaLora | None) -> None:
         self.generator.lora = lora
