@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import os
 import shutil
 from subprocess import call
@@ -18,16 +19,16 @@ from transformers import LlamaForCausalLM
 from llama_recipes.configs.training import train_config
 
 from config import (
-    download_file,
     LOCAL_TRAINING_WEIGHTS_PATH, 
     REMOTE_TRAINING_WEIGHTS_PATH, 
     LOCAL_TRAINING_WEIGHTS_CONFIG_PATH,
     REMOTE_TRAINING_WEIGHTS_CONFIG_PATH,
     REMOTE_TRAINING_FILES_TO_DOWNLOAD,
+    MODEL_NAME,
     log_memory_stuff
 )
 
-from src.utils import maybe_download_with_pget
+from src.utils import maybe_download_with_pget, download_file_with_pget
 
 
 MODEL_OUT = "/src/tuned_weights.tensors"
@@ -40,6 +41,7 @@ class TrainingOutput(BaseModel):
     weights: Path
 
 def train(
+    fake_output: str = Input(description="fake training", default=None),
     train_data: Path = Input(
         description="path to data file to use for fine-tuning your model"
     ),
@@ -51,9 +53,9 @@ def train(
         description="Global batch size. This specifies the batch size that will be used to calculate gradients.",
         default=4, ge=1,
     ),
-    micro_batch_size: int = Input(
-        description="Micro batch size. This specifies the on-device batch size, if this is less than `train_batch_size`, gradient accumulation will be activated.", 
-        default=4, ge=1
+    gradient_accumulation_steps: int = Input(
+        description="Number of training steps (each of train_batch_size) to update gradients for before performing a backward pass.", 
+        default=1, ge=1
     ),
     num_validation_samples: int = Input(
         description=("Number of samples to use for validation." \
@@ -61,7 +63,7 @@ def train(
                      "will be selected from the tail of the training data. If `validation_data` is specified, this" \
                      "number of samples will be selected from the head of the validation data, up to the size of the validation data."
         ),
-        default=100, ge=1
+        default=50, ge=1
     ),
     validation_data: Path = Input(
         description="path to optional evaluation data file to use for model eval",
@@ -84,7 +86,7 @@ def train(
     ),
     pack_sequences: bool = Input(
         description="If 'True', sequences will be packed into a single sequences up to a given length. This improves computational efficiency.",
-        default=True
+        default=False,
     ),
     wrap_packed_sequences: bool = Input(
         description="If 'pack_sequences' is 'True', this will wrap packed sequences across examples, ensuring a constant sequence length but breaking prompt formatting.",
@@ -94,9 +96,18 @@ def train(
         description="If 'pack_sequences' is 'True', this will chunk sequences into chunks of this size.",
         default=2048, ge=1
     ),
+    peft_method: str = Input(
+        description="Training method to use. Currently, 'lora' and 'qlora'.",
+        default="lora",
+        choices=["lora", "qlora"]
+    ),
     seed: int = Input(
         description="random seed to use for training", 
         default=42
+    ),
+    local_model_path: str = Input(
+        description="Path to local model to use for training. If not specified, will download a model based on `REMOTE_TRAINING_WEIGHTS_PATH`.",
+        default=None,
     ),
     # weights: Path = Input(
     #     description="location of weights that are going to be fine-tuned", default=None
@@ -122,16 +133,29 @@ def train(
     lora_dropout: float = Input(description="Dropout for lora training", default=0.05, ge=0.0, le=1.0),
     # lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
 ) -> TrainingOutput:
+    if fake_output:
+        out_path = f"/tmp/{os.path.basename(fake_output)}"
+        asyncio.run(download_file_with_pget(fake_output, out_path))
+        return TrainingOutput(weights=Path(out_path))
+    
+    # Hardcode QLoRA for 70B models for now
+    if '70' in MODEL_NAME and peft_method != "qlora":
+        print('Using 70B model, setting peft_method to qlora')
+        peft_method = "qlora"
 
-    weights = REMOTE_TRAINING_WEIGHTS_PATH
+    if not local_model_path:
+        weights = REMOTE_TRAINING_WEIGHTS_PATH
 
-    if 'http' in weights:
-       
-        model_path = maybe_download_with_pget(
-            LOCAL_TRAINING_WEIGHTS_PATH, 
-            weights, 
-            REMOTE_TRAINING_FILES_TO_DOWNLOAD,
-        )
+        if 'http' in weights:
+            print(f"Downloading weights to {LOCAL_TRAINING_WEIGHTS_PATH}...")
+            model_path = maybe_download_with_pget(
+                LOCAL_TRAINING_WEIGHTS_PATH, 
+                weights, 
+                REMOTE_TRAINING_FILES_TO_DOWNLOAD,
+            )
+
+    else:
+        model_path = local_model_path
 
     root_path = os.getcwd()
 
@@ -148,38 +172,43 @@ def train(
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     os.environ["HF_DATASETS_CACHE"] = "/src/.hf-cache"
 
+    args = []
 
-
-    args = [
-        # Hard coded for now
-        "torchrun",
-        f"--nnodes=1",
-        f"--nproc_per_node={num_gpus}",
+    if peft_method != "qlora":
+        args.extend(["python3", "-m", "torch.distributed.run", "--nnodes=1", f"--nproc_per_node={num_gpus}"])
+    else:
+        args.append("python")
+    
+    args.append(
         f"llama_recipes/llama_finetuning.py",
-        f"--enable_fsdp",
+    )
+    
+    if peft_method != "qlora":
+        args.append(
+            f"--enable_fsdp",
+        )
+
+    args.extend([
+        # Hard coded for now
         f"--use_peft",
-        f"--peft_method=lora",
         f"--model_name={model_path}",
         f"--pure_bf16",
         f"--output_dir={output_dir}",
-
         # User specified arguments -----
-
         # Preprocessing arguments
         f"--pack_sequences={pack_sequences}",
         f"--wrap_packed_sequences={wrap_packed_sequences}",
         f"--chunk_size={chunk_size}",
-
         # Train arguments
         f"--data_path={train_data}",
         f"--num_epochs={num_train_epochs}",
         f"--batch_size_training={train_batch_size}",
-        f"--micro_batch_size={micro_batch_size}",
+        f"--gradient_accumulation_steps={gradient_accumulation_steps}",
         f"--lr={learning_rate}",
         f"--lora_rank={lora_rank}",
         f"--lora_alpha={lora_alpha}",
         f"--lora_dropout={lora_dropout}",
-
+        f"--peft_method={peft_method}",
         # Validation arguments
         f"--run_validation={'False' if not run_validation else 'True'}",
         f"--num_validation_samples={num_validation_samples}",
@@ -188,7 +217,9 @@ def train(
         f"--validation_prompt={validation_prompt}",
         # Other arguments
         f"--seed={seed}",
-    ]
+    ])
+
+    print(f"Train.py Arguments: \n{args}")
 
     p = None
     try:
@@ -196,7 +227,9 @@ def train(
         p.wait()
         return_code = p.poll()
         if return_code != 0:
-            raise Exception(f"Training failed with exit code {return_code}! Check logs for details")
+            raise Exception(
+                f"Training failed with exit code {return_code}! Check logs for details"
+            )
         out_path = "training_output.zip"
 
         directory = Path(output_dir)
@@ -206,19 +239,18 @@ def train(
                 zip.write(file_path, arcname=file_path.relative_to(directory))
 
         return TrainingOutput(weights=Path(out_path))
-    finally: 
+    finally:
         if p and p.poll() is None:
             top = psutil.Process(p.pid)
             children = top.children(recursive=True)
             for process in children + [top]:
                 process.terminate()
-            _, alive = psutil.wait_procs(children + [top], timeout = 5)
+            _, alive = psutil.wait_procs(children + [top], timeout=5)
             if alive:
                 for process in alive:
                     print(f"process {process.pid} survived termination")
             else:
                 print("terminated all processes successfully")
-
 
 
 if __name__ == "__main__":

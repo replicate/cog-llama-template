@@ -58,7 +58,7 @@ def test_train():
         "-i",
         "max_steps=5",
         "-i",
-        "gradient_accumulation_steps=1",
+        "gradient_accumulation_steps=2",
     ]
 
     # result = subprocess.run(command, capture_output=False, text=True)#, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

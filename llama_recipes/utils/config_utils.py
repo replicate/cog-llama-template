@@ -9,8 +9,10 @@ from peft import (
     PrefixTuningConfig,
 )
 
+from transformers import BitsAndBytesConfig
+
 import configs.datasets as datasets
-from configs import lora_config, llama_adapter_config, prefix_config, train_config
+from configs import lora_config, llama_adapter_config, prefix_config, train_config, qlora_config, bitsandbytes_config
 from .dataset_utils import DATASET_PREPROC
 
 
@@ -33,21 +35,58 @@ def update_config(config, **kwargs):
                         print(f"Warning: {config_name} does not accept parameter: {k}")
             elif isinstance(config, train_config):
                 print(f"Warning: unknown parameter {k}")
-                        
-                        
-def generate_peft_config(train_config, kwargs):
-    configs = (lora_config, llama_adapter_config, prefix_config)
-    peft_configs = (LoraConfig, AdaptionPromptConfig, PrefixTuningConfig)
-    names = tuple(c.__name__.rstrip("_config") for c in configs)
-    
-    assert train_config.peft_method in names, f"Peft config not found: {train_config.peft_method}"
-    
-    config = configs[names.index(train_config.peft_method)]
+
+def generate_peft_config(peft_method, kwargs):
+    # Config mapping for train_config.peft_method to its corresponding config class
+    config_mapping = {
+        'lora': lora_config,
+        'llama_adapter': llama_adapter_config,
+        'prefix': prefix_config,
+        'bitsandbytes_config': bitsandbytes_config,
+        'qlora': qlora_config,
+        # Add other mappings as needed
+    }
+
+    # Mapping from config class to its corresponding PEFT config
+    peft_config_mapping = {
+        lora_config: LoraConfig,
+        llama_adapter_config: AdaptionPromptConfig,
+        prefix_config: PrefixTuningConfig,
+        bitsandbytes_config: BitsAndBytesConfig,
+        qlora_config: LoraConfig,
+        # Add other mappings as needed
+    }
+
+    # Step 2: Updated assertion
+    assert peft_method in config_mapping.keys(), f"Peft config not found: {peft_method}"
+
+    # Step 3: Fetch the correct configuration class based on train_config.peft_method
+    config = config_mapping[peft_method]
     update_config(config, **kwargs)
     params = {k.name: getattr(config, k.name) for k in fields(config)}
-    peft_config = peft_configs[names.index(train_config.peft_method)](**params)
+
+    # Step 5: Fetch the correct PEFT config based on the configuration class
+    peft_config_class = peft_config_mapping[config]
+    peft_config = peft_config_class(**params)
+
+    return peft_config                
+                        
+# def generate_peft_config(train_config, kwargs):
+#     configs = (lora_config, llama_adapter_config, prefix_config, qlora_config)
+#     peft_configs = (LoraConfig, AdaptionPromptConfig, PrefixTuningConfig)
+#     names = tuple(c.__name__.rstrip("_config") for c in configs)
     
-    return peft_config
+#     assert train_config.peft_method in names, f"Peft config not found: {train_config.peft_method}"
+    
+#     config = configs[names.index(train_config.peft_method)]
+#     update_config(config, **kwargs)
+#     params = {k.name: getattr(config, k.name) for k in fields(config)}
+#     peft_config = peft_configs[names.index(train_config.peft_method)](**params)
+    
+#     return peft_config
+
+
+
 
 
 def generate_dataset_config(train_config, kwargs):

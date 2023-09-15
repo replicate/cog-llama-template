@@ -3,12 +3,14 @@ import sys
 import glob 
 import torch 
 import time
-import typing as tp 
+from pathlib import Path
+import typing as tp
 
 exllama_path = os.path.abspath('exllama')
 sys.path.insert(0, exllama_path)
 
 from exllama.model import ExLlama, ExLlamaCache, ExLlamaConfig
+from exllama.lora import ExLlamaLora
 from exllama.tokenizer import ExLlamaTokenizer
 from exllama.generator import ExLlamaGenerator
 
@@ -36,9 +38,9 @@ def timer(name, func):
     return ret
 
 
-class ExllamaGenerator:
+class ExllamaWrapper:
 
-    def __init__(self, model_directory):
+    def __init__(self, model_directory, fused_attn = True):
         tokenizer_path = os.path.join(model_directory, "tokenizer.model")
         model_config_path = os.path.join(model_directory, "config.json")
         st_pattern = os.path.join(model_directory, "*.safetensors")
@@ -52,8 +54,9 @@ class ExllamaGenerator:
         config.max_seq_len = 2*2048
         config.max_input_len = 2*2048
         config.max_attention_size = 2*2048**2
-
-        model = ExLlama(config)                                 # create ExLlama instance and load the weights
+        config.fused_attn = fused_attn
+        
+        self.model = model = ExLlama(config)                                 # create ExLlama instance and load the weights
         tokenizer = ExLlamaTokenizer(tokenizer_path)            # create tokenizer from tokenizer model file
 
 
@@ -72,6 +75,11 @@ class ExllamaGenerator:
         self.generator = begin(generator)
     
 
+    def load_lora(self, config: str | Path, weights: str | Path) -> ExLlamaLora:
+        return ExLlamaLora(self.model, config, weights)
+
+    def set_lora(self, lora: ExLlamaLora | None) -> None:
+        self.generator.lora = lora
     
     def __call__(
         self,
@@ -139,7 +147,8 @@ class ExllamaGenerator:
             if skip_space: new_text = new_text[1:]
             # Why are we decoding to "�" so frequently? Need to compare to our original code.
             new_text = "" if new_text == "�" else new_text
-
+            
+            yielded_text = None  
             for yielded_text in stop_sequence_handler(new_text):
                 if yielded_text == stop_sequence_handler.eos_token:
                     break
