@@ -2,7 +2,7 @@
 # This software may be used and distributed according to the terms of the Llama 2 Community License Agreement.
 
 import inspect
-from dataclasses import fields
+from dataclasses import fields, asdict
 from peft import (
     LoraConfig,
     AdaptionPromptConfig,
@@ -62,11 +62,16 @@ def generate_peft_config(peft_method, kwargs):
 
     # Step 3: Fetch the correct configuration class based on train_config.peft_method
     config = config_mapping[peft_method]
-    update_config(config, **kwargs)
-    params = {k.name: getattr(config, k.name) for k in fields(config)}
+    config_instance = config()
+
+    update_config(config_instance, **kwargs)
 
     # Step 5: Fetch the correct PEFT config based on the configuration class
     peft_config_class = peft_config_mapping[config]
+
+    # params = {k.name: getattr(config, k.name) for k in fields(config)}
+    params = asdict(config_instance)
+
     peft_config = peft_config_class(**params)
 
     return peft_config                

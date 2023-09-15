@@ -39,6 +39,7 @@ class train_config:
     wrap_packed_sequences: bool = False
     pack_sequences: bool = True
     chunk_size: int = 2048
+    target_modules: str = "q_proj,v_proj"
 
 
     
