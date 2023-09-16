@@ -1,13 +1,20 @@
 import os
 import shutil
 from transformers import AutoModelForCausalLM, TextIteratorStreamer, StoppingCriteria
-from typing import Optional, List
+from typing import Optional, List, Tuple, Any
 from threading import Thread
-from peft import PeftModel
+from peft import PeftModel, LoraConfig
+from peft.utils.save_and_load import set_peft_model_state_dict
+
+import torch.nn.init
+torch.nn.init.kaiming_uniform_ = lambda x, *args, **kwargs: x
+torch.nn.init.uniform_ = lambda x, *args, **kwargs: x
 
 import torch
 
 from .engine import Engine
+
+ADAPTER_NAME = "default"
 
 class ExtraStopSequence(StoppingCriteria):
     """
@@ -34,10 +41,7 @@ class TransformersEngine(Engine):
         print("Transformers engine initialized.")
 
 
-    def load_lora(self, lora_weights: dict):
-        # reset to non-lora model if previous lora exists, can't just swap loras out w/transformers
-        if hasattr(self.model, 'unload') and callable(self.model.unload):
-            self.model = self.model.unload()
+    def load_lora(self, lora_weights: dict)-> Tuple[LoraConfig, Any]:
 
         # serializing the dictionary of files and such - hf doesn't have quick and easy ways to load loras from file references, 
         # and this implementation isn't built for speed anyway
@@ -48,18 +52,53 @@ class TransformersEngine(Engine):
             with open(fpath, 'wb') as f:
                 f.write(lora_weights[handle])
 
-        model = PeftModel.from_pretrained(self.model, model_dir)
+        config = LoraConfig.from_pretrained(model_dir)
+        weights = torch.load(
+                os.path.join(model_dir, 'adapter_model.bin'), map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            )
         shutil.rmtree(model_dir)
-        return model
+        
+        # # reset to non-lora model if previous lora exists, can't just swap loras out w/transformers
+        # if hasattr(self.model, 'unload') and callable(self.model.unload):
+        #     self.model = self.model.unload()
+
+
+        # # todo - I can instantiate a peftconfig here and pass that, but alongside that we're still passing a string model name/path
+        # model = PeftModel.from_pretrained(self.model, model_dir)
+        # shutil.rmtree(model_dir)
+        return (config, weights)
 
 
     def set_lora(self, lora):
+        """
+        Sets a new lora if needed. 
+        """
         if lora is None:
+            print("AN empty lora!!!")
             # reset to non-lora model, checking to see if model has ever been lora'd
-            if hasattr(self.model, 'unload') and callable(self.model.unload):
-                self.model = self.model.unload()
+            if hasattr(self.model, 'disable_adapter') and callable(self.model.disable_adapter):
+                self.model.disable_adapter_layers()
+                print("Disabled loras")
+            return
+        config, weights = lora
+
+        # Note that right now we're just overwriting the "default" adapter w/ADAPTER_NAME 
+        # we can try managing multiple adapters w/lru eviction logic, didn't seem necessary 
+        if not hasattr(self.model, 'add_adapter'): 
+        # is not a peft model
+            self.model = PeftModel(self.model, config, ADAPTER_NAME)
+            set_peft_model_state_dict(self.model, weights, ADAPTER_NAME)
+            self.model.eval()
+            print('added lora for the first time')
         else:
-            self.model = lora
+            self.model.enable_adapter_layers()
+            self.model.add_adapter("0", config)
+            set_peft_model_state_dict(self.model, weights, ADAPTER_NAME)
+            print('set new lora')
+            print(self.model.peft_config)
+
+        return 
+            
 
     def __call__(self, 
                  prompt,
