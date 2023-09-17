@@ -42,6 +42,10 @@ class TransformersEngine(Engine):
 
 
     def load_lora(self, lora_weights: dict)-> Tuple[LoraConfig, Any]:
+        """
+        Given a dict of {filename:bytes}, returns a tuple of (LoraConfig, Torch model)
+        This relies on external but poorly documented peft methods, when we upgrade peft past 0.4.0 we may need to (briefly) revisit
+        """
 
         # serializing the dictionary of files and such - hf doesn't have quick and easy ways to load loras from file references, 
         # and this implementation isn't built for speed anyway
@@ -58,14 +62,6 @@ class TransformersEngine(Engine):
             )
         shutil.rmtree(model_dir)
         
-        # # reset to non-lora model if previous lora exists, can't just swap loras out w/transformers
-        # if hasattr(self.model, 'unload') and callable(self.model.unload):
-        #     self.model = self.model.unload()
-
-
-        # # todo - I can instantiate a peftconfig here and pass that, but alongside that we're still passing a string model name/path
-        # model = PeftModel.from_pretrained(self.model, model_dir)
-        # shutil.rmtree(model_dir)
         return (config, weights)
 
 
@@ -74,11 +70,13 @@ class TransformersEngine(Engine):
         Sets a new lora if needed. 
         """
         if lora is None:
-            print("AN empty lora!!!")
+            print("Disabling loras")
             # reset to non-lora model, checking to see if model has ever been lora'd
             if hasattr(self.model, 'disable_adapter') and callable(self.model.disable_adapter):
                 self.model.disable_adapter_layers()
-                print("Disabled loras")
+                print("Disabled loras.")
+            else:
+                print("No loras were ever loaded, nothing to disable.")
             return
         config, weights = lora
 
@@ -92,11 +90,11 @@ class TransformersEngine(Engine):
             print('added lora for the first time')
         else:
             self.model.enable_adapter_layers()
-            self.model.add_adapter("0", config)
+            self.model.add_adapter(ADAPTER_NAME, config)
             set_peft_model_state_dict(self.model, weights, ADAPTER_NAME)
             print('set new lora')
             print(self.model.peft_config)
-
+            
         return 
             
 
