@@ -56,10 +56,15 @@ class ExllamaWrapper:
         config.max_attention_size = 2*2048**2
         config.fused_attn = fused_attn
 
-        # model = nyacomp.load_compressed("boneless_exllama.pth")
-        self.model = model = ExLlama(config)                                 # create ExLlama instance and load the weights
+        if os.getenv("NYA"):
+            import nyacomp
+            config.device_map.embed_tokens = "cuda:0"
+            self.model = model = nyacomp.load_compressed_pickle("models/comp/boneless_model.pth")
+            self.model.config = config
+            self.model.config.device_map.embed_tokens = "cuda:0"
+        else:
+            self.model = model = ExLlama(config)                  # create ExLlama instance and load the weights
         tokenizer = ExLlamaTokenizer(tokenizer_path)            # create tokenizer from tokenizer model file
-
 
         cache = ExLlamaCache(model)                             # create cache for inference
         generator = ExLlamaGenerator(model, tokenizer, cache)   # create generator

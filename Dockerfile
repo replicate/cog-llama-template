@@ -68,5 +68,8 @@ COPY .env /app/
 
 ENV DISABLE_TELEMETRY=YES
 ENV PRELOAD_PATH=/app/model/nya/meta.csv
+ARG DEBUG=
+ENV DEBUG=$DEBUG
+RUN if [ -n "$DEBUG" ]; then apt update && apt install -yy kakoune gdb; fi
 EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/python3.11", "/app/server.py"]
