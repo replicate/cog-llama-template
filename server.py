@@ -119,7 +119,7 @@ class Live:
                 if isinstance(message, str) and message.startswith("ping"):
                     channel.send("pong" + message[4:])
                 elif isinstance(message, str) and message[0] == "{":
-                    for item in self.generate(json.loads(message.data)):
+                    for item in self.generate(json.loads(message)):
                         logging.info("sending token over webrtc")
                         channel.send(item)
 
