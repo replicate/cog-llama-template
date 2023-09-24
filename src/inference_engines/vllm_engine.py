@@ -8,10 +8,10 @@ from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.sampling_params import SamplingParams
 from vllm.transformers_utils.tokenizer import detokenize_incrementally
 
-from engine import Engine
+# from engine import Engine
 
-FILE_LIKE: TypeAlias = Union[str, os.PathLike, BinaryIO, IO[bytes]]
-BYTES_LIKE: TypeAlias = Union[str, BinaryIO, IO[bytes]]
+FILE_LIKE = str | os.PathLike | BinaryIO | IO[bytes]
+BYTES_LIKE = str | BinaryIO | IO[bytes]
 
 
 class LoRA:
@@ -35,7 +35,7 @@ class LoRA:
         return cls(adapter_config=adapter_config_bytes, adapter_model=adapter_model_bytes)
 
 
-class vLLMEngine(Engine):
+class vLLMEngine():
     """
     An inference engine that runs inference w/ vLLM
     """
@@ -47,6 +47,8 @@ class vLLMEngine(Engine):
             dtype=dtype,
             max_num_seqs=max_num_seqs,
         )
+        # from remote_pdb import RemotePdb
+        # RemotePdb('0.0.0.0', 4444).set_trace()
         self.engine = AsyncLLMEngine.from_engine_args(args)
 
     def load_lora(self, adapter_model, adapter_config):
@@ -55,6 +57,7 @@ class vLLMEngine(Engine):
         lora_data is a dictionary of file names & references from the zip file
         """
 
+        print("Adapter model:", adapter_model)
         if isinstance(adapter_model, FILE_LIKE) and isinstance(adapter_config, FILE_LIKE):
             lora = LoRA.load_from_path(
                 adapter_config_path=adapter_config, adapter_model_path=adapter_model)

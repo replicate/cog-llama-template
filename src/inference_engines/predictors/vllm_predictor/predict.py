@@ -3,8 +3,10 @@ from typing import Optional
 
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
-from src.download import Downloader
-from src.utils import maybe_download_with_pget
+from download import Downloader
+import sys
+from utils import maybe_download_with_pget
+sys.path.append("../../")
 from vllm_engine import vLLMEngine
 
 from config import (LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
@@ -51,7 +53,7 @@ class Predictor(BasePredictor):
         with zipfile.ZipFile(buffer, "r") as zip_ref:
             data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
         print(f"Unzipped peft weights in {time.time() - st:.3f}")
-        return data["adapter_config.json"], io.BytesIO(data["adapter_model.bin"]
+        return data["adapter_config.json"], io.BytesIO(data["adapter_model.bin"])
 
     async def generate_stream(
         self,
@@ -73,7 +75,7 @@ class Predictor(BasePredictor):
     def predict(
         self,
         lora_path: str=Input(
-            description="Path to .zip of LoRA weights.", default="https://99cbf3a41e6555b9823d472b00025e1c.r2.cloudflarestorage.com/replicate-llama-hosting/sql.zip")
+            description="Path to .zip of LoRA weights.", default="https://99cbf3a41e6555b9823d472b00025e1c.r2.cloudflarestorage.com/replicate-llama-hosting/sql.zip"),
         prompt: str=Input(description=f"Prompt to send to CodeLlama."),
         max_new_tokens: int=Input(
             description="Maximum number of tokens to generate. A word is generally 2-3 tokens",
