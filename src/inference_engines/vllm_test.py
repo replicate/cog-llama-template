@@ -3,8 +3,8 @@ import asyncio
 from vllm_engine import vLLMEngine
 
 async def run_generation():
-    model_path = "/home/moin/Llama-2-7b"
-    tokenizer_path = "/home/moin/Llama-2-7b"
+    model_path = "/root/Llama-2-7b"
+    tokenizer_path = "/root/Llama-2-7b"
     dtype = "auto"
     engine = vLLMEngine(model_path=model_path,
                         tokenizer_path=tokenizer_path, dtype=dtype)

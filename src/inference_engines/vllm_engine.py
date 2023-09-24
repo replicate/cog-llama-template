@@ -50,6 +50,7 @@ class vLLMEngine():
         # from remote_pdb import RemotePdb
         # RemotePdb('0.0.0.0', 4444).set_trace()
         self.engine = AsyncLLMEngine.from_engine_args(args)
+        self.tokenizer = self.engine.engine.tokenizer
 
     def load_lora(self, adapter_model, adapter_config):
         """

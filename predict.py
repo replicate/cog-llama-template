@@ -41,7 +41,7 @@ class Predictor(BasePredictor):
 
         self.engine = vLLMEngine(
             model_path=local_weights_path, tokenizer_path=local_weights_path, dtype="float16")
-        self.tokenizer = self.engine.engine.engine.tokenizer
+        self.tokenizer = self.engine.tokenizer
         self.downloader = Downloader()
 
     @functools.lru_cache(maxsize=10)
