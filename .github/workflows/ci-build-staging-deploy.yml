@@ -32,4 +32,6 @@ jobs:
           cog push r8.im/replicate-internal/ci-llama-2-7b
 
       - name: run basic prediction tests
+        env:
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
         run: make test-ci-predict model=llama-2-7b
