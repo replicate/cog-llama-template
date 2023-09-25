@@ -92,10 +92,6 @@ class Predictor(BasePredictor):
 
     def predict(
         self,
-        lora_path: str = Input(
-            description="Path to .zip of LoRA weights.",
-            default="https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/sql.zip",
-        ),
         prompt: str = Input(description=f"Prompt to send to CodeLlama."),
         max_new_tokens: int = Input(
             description="Maximum number of tokens to generate. A word is generally 2-3 tokens",
@@ -126,9 +122,13 @@ class Predictor(BasePredictor):
         debug: bool = Input(
             description="provide debugging output in logs", default=False
         ),
+        replicate_weights: str = Input(
+            description="Path to .zip of LoRA weights.",
+            default="https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/sql.zip",
+        ),
     ) -> ConcatenateIterator[str]:
-        if lora_path:
-            adapter_config, adapter_model = self.get_lora(replicate_weights=lora_path)
+        if replicate_weights:
+            adapter_config, adapter_model = self.get_lora(replicate_weights=replicate_weights)
             lora = self.engine.load_lora(adapter_model, adapter_config)
             self.engine.set_lora(lora)
         if stop_sequences:
