@@ -10,16 +10,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Setup llama-2-7b Cog
+        uses: replicate/setup-cog@v1.0.2
+        with:
+          token: ${{ secrets.REPLICATE_API_TOKEN }}
+
       - name: Check out code
         uses: actions/checkout@v3
 
       - name: Select llama-2-7b
         run: make select model=llama-2-7b
 
-      - name: Setup llama-2-7b Cog
-        uses: replicate/setup-cog@v1.0.2
-        with:
-          token: ${{ secrets.REPLICATE_API_TOKEN }}
+      - name: Build llama-2-7b
+        run: cog build
 
       - name: Push to Replicate
         run: |
