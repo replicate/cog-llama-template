@@ -24,10 +24,10 @@ build:
     - "scipy==1.11.1"
     - "sentencepiece==0.1.99"
     - "transformers -e git+https://github.com/huggingface/transformers.git@1fa2d89a9bb98a15e9720190e07d272a42f03d28#egg={transformers}"
+    - "https://github.com/replicate/vllm-with-loras/releases/download/v0.0.3a/vllm-0.1.7a0-cp311-cp311-linux_x86_64.whl"
   run:
-    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.2/pget" && chmod +x /usr/local/bin/pget
-    - pip install git+https://github.com/huggingface/transformers.git@1fa2d89a9bb98a15e9720190e07d272a42f03d28
-    - pip install git+https://github.com/replicate/vllm-with-loras/releases/download/v0.0.3a/vllm-0.1.7a0-cp311-cp311-linux_x86_64.whl 
+    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.3/pget" && chmod +x /usr/local/bin/pget
+    #- pip install git+https://github.com/replicate/vllm-with-loras/releases/download/v0.0.3a/vllm-0.1.7a0-cp311-cp311-linux_x86_64.whl
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
