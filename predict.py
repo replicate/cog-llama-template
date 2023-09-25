@@ -23,7 +23,6 @@ from config import (LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
-        print('Starting setup')
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         if weights is not None and weights.name == "weights":
@@ -46,7 +45,6 @@ class Predictor(BasePredictor):
 
     @functools.lru_cache(maxsize=10)
     def get_lora(self, replicate_weights: str) -> "ExLlamaLora":
-        print("Weights path:", replicate_weights)
         if "http" in str(replicate_weights):  # weights are in the cloud
             print("Downloading peft weights")
             st = time.time()
@@ -59,7 +57,6 @@ class Predictor(BasePredictor):
         with zipfile.ZipFile(buffer, "r") as zip_ref:
             data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
         print(f"Unzipped peft weights in {time.time() - st:.3f}")
-        print("Data keys:", data.keys())
         return data["adapter_config.json"], io.BytesIO(data["adapter_model.bin"])
 
     async def generate_stream(
@@ -123,10 +120,9 @@ class Predictor(BasePredictor):
         if stop_sequences:
             stop_sequences=stop_sequences.split(",")
 
-        print(f"Prompt: \n{prompt}")
-
         loop=asyncio.get_event_loop()
 
+        start_time = time.time()
         gen=self.generate_stream(
             prompt,
             temperature=temperature,
@@ -137,12 +133,18 @@ class Predictor(BasePredictor):
             repetition_penalty=1.0
         )
 
-        prv_value=""
-        value=""
+        generated_text = ""
+        num_tokens = 0
         while True:
-            prv_value=value
             try:
-                value=loop.run_until_complete(gen.__anext__())
-                yield value[len(prv_value):]
+                generated_tokens = loop.run_until_complete(gen.__anext__())
+                num_tokens += 1
+                yield generated_tokens
+                generated_text += generated_tokens
             except StopAsyncIteration:
+                end_time = time.time()
                 break
+
+        generation_speed = num_tokens / (end_time - start_time)
+        print(f"Generated {num_tokens} tokens in {end_time - start_time:.3f} seconds ({generation_speed:.3f} tokens per second)")
+        return generated_text
