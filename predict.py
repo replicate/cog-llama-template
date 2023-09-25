@@ -37,9 +37,11 @@ class Predictor(BasePredictor):
                 REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
                 REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
             )
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        try:
+            self.loop = asyncio.get_running_loop()
+        except RuntimeError:
+            self.loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.loop)
 
         self.engine = vLLMEngine(
             model_path=local_weights_path,
@@ -134,8 +136,6 @@ class Predictor(BasePredictor):
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
 
-        loop = asyncio.get_event_loop()
-
         start_time = time.time()
         gen = self.generate_stream(
             prompt,
@@ -151,7 +151,7 @@ class Predictor(BasePredictor):
         num_tokens = 0
         while True:
             try:
-                generated_tokens = loop.run_until_complete(gen.__anext__())
+                generated_tokens = self.loop.run_until_complete(gen.__anext__())
                 num_tokens += 1
                 yield generated_tokens
                 generated_text += generated_tokens
