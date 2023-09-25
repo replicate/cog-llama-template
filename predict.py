@@ -1,21 +1,22 @@
 import asyncio
+import functools
+import io
+import sys
+import time
+import zipfile
 from typing import Optional
 
 import torch
-import io
 from cog import BasePredictor, ConcatenateIterator, Input, Path
-from download import Downloader
-import sys
-from src.utils import maybe_download_with_pget
-import functools
-from src.inference_engines.vllm_engine import vLLMEngine
-import time
-from src.download import Downloader
-import zipfile
 
-from config import (LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
-                    REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
-                    REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH)
+from config import (
+    LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
+    REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
+    REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
+)
+from src.download import Downloader
+from src.inference_engines.vllm_engine import vLLMEngine
+from src.utils import maybe_download_with_pget
 
 # This prompt formatting was copied from the original CodeLlama repo:
 # https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44
@@ -32,14 +33,19 @@ class Predictor(BasePredictor):
         if not weights:
             weights = LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH
             local_weights_path = maybe_download_with_pget(
-                weights, REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH, REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
+                weights,
+                REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
+                REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
             )
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
         self.engine = vLLMEngine(
-            model_path=local_weights_path, tokenizer_path=local_weights_path, dtype="float16")
+            model_path=local_weights_path,
+            tokenizer_path=local_weights_path,
+            dtype="float16",
+        )
         self.tokenizer = self.engine.tokenizer
         self.downloader = Downloader()
 
@@ -68,69 +74,77 @@ class Predictor(BasePredictor):
         max_new_tokens=128,
         stop_str=None,
         stop_token_ids=None,
-        repetition_penalty=1.0
+        repetition_penalty=1.0,
     ):
-        results_generator=self.engine(prompt, temperature=temperature, top_p=top_p, top_k=top_k, max_new_tokens=max_new_tokens,
-                                        stop_str=stop_str, stop_token_ids=stop_token_ids, repetition_penalty=repetition_penalty)
+        results_generator = self.engine(
+            prompt,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            max_new_tokens=max_new_tokens,
+            stop_str=stop_str,
+            stop_token_ids=stop_token_ids,
+            repetition_penalty=repetition_penalty,
+        )
 
         async for generated_text in results_generator:
             yield generated_text
 
     def predict(
         self,
-        lora_path: str=Input(
-            description="Path to .zip of LoRA weights.", default="https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/sql.zip"),
-        prompt: str=Input(description=f"Prompt to send to CodeLlama."),
-        max_new_tokens: int=Input(
+        lora_path: str = Input(
+            description="Path to .zip of LoRA weights.",
+            default="https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/sql.zip",
+        ),
+        prompt: str = Input(description=f"Prompt to send to CodeLlama."),
+        max_new_tokens: int = Input(
             description="Maximum number of tokens to generate. A word is generally 2-3 tokens",
             ge=1,
             default=128,
         ),
-        temperature: float=Input(
+        temperature: float = Input(
             description="Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic, 0.75 is a good starting value.",
             ge=0.01,
             le=5,
             default=0.75,
         ),
-        top_p: float=Input(
+        top_p: float = Input(
             description="When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens",
             ge=0.0,
             le=1.0,
             default=0.9,
         ),
-        top_k: int=Input(
+        top_k: int = Input(
             description="When decoding text, samples from the top k most likely tokens; lower to ignore less likely tokens",
             ge=0,
             default=50,
         ),
-        stop_sequences: str=Input(
+        stop_sequences: str = Input(
             description="A comma-separated list of sequences to stop generation at. For example, '<end>,<stop>' will stop generation at the first instance of 'end' or '<stop>'.",
             default=None,
         ),
-        debug: bool=Input(
+        debug: bool = Input(
             description="provide debugging output in logs", default=False
         ),
     ) -> ConcatenateIterator[str]:
-
         if lora_path:
-            adapter_config, adapter_model = self.get_lora(
-                replicate_weights=lora_path)
+            adapter_config, adapter_model = self.get_lora(replicate_weights=lora_path)
             lora = self.engine.load_lora(adapter_model, adapter_config)
             self.engine.set_lora(lora)
         if stop_sequences:
-            stop_sequences=stop_sequences.split(",")
+            stop_sequences = stop_sequences.split(",")
 
-        loop=asyncio.get_event_loop()
+        loop = asyncio.get_event_loop()
 
         start_time = time.time()
-        gen=self.generate_stream(
+        gen = self.generate_stream(
             prompt,
             temperature=temperature,
             top_p=top_p,
             top_k=top_k,
             max_new_tokens=max_new_tokens,
             stop_str=stop_sequences,
-            repetition_penalty=1.0
+            repetition_penalty=1.0,
         )
 
         generated_text = ""
@@ -146,5 +160,7 @@ class Predictor(BasePredictor):
                 break
 
         generation_speed = num_tokens / (end_time - start_time)
-        print(f"Generated {num_tokens} tokens in {end_time - start_time:.3f} seconds ({generation_speed:.3f} tokens per second)")
+        print(
+            f"Generated {num_tokens} tokens in {end_time - start_time:.3f} seconds ({generation_speed:.3f} tokens per second)"
+        )
         return generated_text
