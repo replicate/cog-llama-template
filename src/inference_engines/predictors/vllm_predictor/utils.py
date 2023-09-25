@@ -71,7 +71,9 @@ async def download_file_with_pget(remote_path, dest_path):
     # Create the subprocess
     print("Downloading ", remote_path)
     if remote_path.endswith("json"):
-        info = "%{filename_effective} took %{time_total}s (%{speed_download} bytes/sec)\n"
+        info = (
+            "%{filename_effective} took %{time_total}s (%{speed_download} bytes/sec)\n"
+        )
         args = ["curl", "-w", info, "-sLo", dest_path, remote_path]
     else:
         args = ["pget", remote_path, dest_path]
@@ -194,7 +196,9 @@ class StreamingTextStopSequenceHandler:
                 # If we've completed the stop sequence
                 if match_length == self.stop_sequence_lens[idx]:
                     self.cache.append(token)
-                    text_before_stop_sequence = "".join(self.cache).split(stop_sequence)[0]
+                    text_before_stop_sequence = "".join(self.cache).split(
+                        stop_sequence
+                    )[0]
                     if text_before_stop_sequence:
                         self.cache = [text_before_stop_sequence]
                     else:
@@ -244,7 +248,3 @@ class StreamingTextStopSequenceHandler:
         if self.cache:
             yield from self.cache
             self.cache.clear()
-
-
-
-

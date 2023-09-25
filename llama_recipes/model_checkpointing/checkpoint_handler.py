@@ -61,7 +61,7 @@ def load_model_sharded(model, rank, cfg):
             print(f"No sharded_state_dict checkpoint directory found...skipping")
         return
     if rank == 0:
-         print(f"loading model from model path: {load_dir} ")
+        print(f"loading model from model path: {load_dir} ")
     reader = FileSystemReader(load_dir)
 
     with FSDP.state_dict_type(model, StateDictType.SHARDED_STATE_DICT):
@@ -69,7 +69,7 @@ def load_model_sharded(model, rank, cfg):
         if rank == 0:
             ck = checkpoint.keys()
             print(f" checkpoint key len = {len(ck)} and \n keys =  {ck}")
-      
+
         dist_cp.load_state_dict(
             state_dict=checkpoint,
             storage_reader=reader,
@@ -83,9 +83,9 @@ def load_model_sharded(model, rank, cfg):
         print(f"Sharded state checkpoint loaded from {load_dir}")
 
 
-def save_model_and_optimizer_sharded(model, rank, cfg,optim=None):
+def save_model_and_optimizer_sharded(model, rank, cfg, optim=None):
     """save model and optimizer via sharded_state_dict to save_dir"""
-    
+
     folder_name = (
         cfg.dist_checkpoint_root_folder
         + "/"
@@ -104,7 +104,6 @@ def save_model_and_optimizer_sharded(model, rank, cfg,optim=None):
     t0 = time.perf_counter()
 
     with FSDP.state_dict_type(model, StateDictType.SHARDED_STATE_DICT):
-        
         state_dict = {"model": model.state_dict()}
         if optim is not None:
             state_dict["optim"] = FSDP.optim_state_dict(model, optim)
@@ -113,15 +112,14 @@ def save_model_and_optimizer_sharded(model, rank, cfg,optim=None):
             state_dict=state_dict,
             storage_writer=distributed_writer,
             planner=DefaultSavePlanner(),
-            
         )
     dist.barrier()
     t1 = time.perf_counter()
     if rank == 0:
         print(f"Sharded state checkpoint saved to {save_dir}")
-        print(
-            f"Checkpoint Time = {t1-t0:.4f}\n"
-        )
+        print(f"Checkpoint Time = {t1-t0:.4f}\n")
+
+
 def save_model_checkpoint(
     model,
     optimizer,
@@ -137,17 +135,16 @@ def save_model_checkpoint(
         cpu_state = model.state_dict()
 
         print(f"saving process: rank {rank}  done w model state_dict\n")
-   
 
     if rank == 0:
         print(f"--> saving model ...")
         # create save path
         folder_name = (
-        cfg.dist_checkpoint_root_folder
-        + "/"
-        + cfg.dist_checkpoint_folder
-        + "-"
-        + cfg.model_name
+            cfg.dist_checkpoint_root_folder
+            + "/"
+            + cfg.dist_checkpoint_folder
+            + "-"
+            + cfg.model_name
         )
         save_dir = Path.cwd() / folder_name
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -157,9 +154,7 @@ def save_model_checkpoint(
         # save model
         torch.save(cpu_state, save_full_path)
 
-        
         print(f"model checkpoint saved for epoch {epoch} at {save_full_path}\n")
-      
 
 
 def load_model_checkpoint(model, rank, cfg):
@@ -180,42 +175,36 @@ def load_model_checkpoint(model, rank, cfg):
         )
         return
 
-
     model_checkpoint = torch.load(full_state_dict_model_path)
     # integrate into loaded model
     model.load_state_dict(model_checkpoint)
 
-    
     print(f"model checkpoint loaded to rank0 cpu")
 
 
 def save_optimizer_checkpoint(model, optimizer, rank, cfg, epoch=1):
     """save optimizer state via full state dict"""
 
-   
     print(f"--> optim state call on rank {rank}\n")
 
     # pull all sharded optimizer states to rank0 cpu...
 
     optim_state = FSDP.full_optim_state_dict(model, optimizer)
 
-    
     print(f"optim state dict ready on {rank} and len of {len(optim_state)}\n")
 
     if rank == 0:
         folder_name = (
-        cfg.dist_checkpoint_root_folder
-        + "/"
-        + cfg.dist_checkpoint_folder
-        + "-"
-        + cfg.model_name
+            cfg.dist_checkpoint_root_folder
+            + "/"
+            + cfg.dist_checkpoint_folder
+            + "-"
+            + cfg.model_name
         )
         save_dir = Path.cwd() / folder_name
         save_dir.mkdir(parents=True, exist_ok=True)
 
-        opt_save_name = (
-            "optimizer" + "-" + cfg.model_name + "-" + str(epoch) + ".pt"
-        )
+        opt_save_name = "optimizer" + "-" + cfg.model_name + "-" + str(epoch) + ".pt"
         opt_save_full_path = save_dir / opt_save_name
 
         print(f"--> saving optimizer state...")
@@ -229,7 +218,6 @@ def load_optimizer_checkpoint(model, optimizer_checkpoint_path, rank):
     """load an fsdp optimizer full_state checkpoint using scatter method
     this ensures only rank 0 loads the optimizer state dict and scatters to other ranks
     """
-
 
     if not optimizer_checkpoint_path.is_file():
         print(
@@ -247,21 +235,19 @@ def load_optimizer_checkpoint(model, optimizer_checkpoint_path, rank):
 
     print(f"optimizer shard loaded on rank {rank}")
 
-def load_sharded_model_single_gpu(model,model_path):
-    
+
+def load_sharded_model_single_gpu(model, model_path):
     reader = FileSystemReader(model_path)
-    
-    state_dict = {
-        "model": model.state_dict()
-    }
-    
+
+    state_dict = {"model": model.state_dict()}
+
     dist_cp.load_state_dict(
-                state_dict=state_dict,
-                storage_reader= FileSystemReader(model_path),
-                no_dist=True,
-            )
-    
+        state_dict=state_dict,
+        storage_reader=FileSystemReader(model_path),
+        no_dist=True,
+    )
+
     model.load_state_dict(state_dict["model"])
-    
+
     print(f"Sharded state checkpoint loaded from {model_path}")
     return model

@@ -130,7 +130,9 @@ class Predictor(BasePredictor):
         ),
     ) -> ConcatenateIterator[str]:
         if replicate_weights:
-            adapter_config, adapter_model = self.get_lora(replicate_weights=replicate_weights)
+            adapter_config, adapter_model = self.get_lora(
+                replicate_weights=replicate_weights
+            )
             lora = self.engine.load_lora(adapter_model, adapter_config)
             self.engine.set_lora(lora)
         if stop_sequences:

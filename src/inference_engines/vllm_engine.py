@@ -1,6 +1,17 @@
 import os
-from typing import (IO, Any, BinaryIO, Callable, Dict, Optional, Tuple, Type,
-                    Union, cast, get_args)
+from typing import (
+    IO,
+    Any,
+    BinaryIO,
+    Callable,
+    Dict,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    cast,
+    get_args,
+)
 import json
 import torch
 
@@ -18,13 +29,16 @@ BYTES_LIKE = str | BinaryIO | IOBase | bytes
 
 
 class LoRA:
-
-    def __init__(self, adapter_config: Union[str, bytes, bytearray], adapter_model: FILE_LIKE):
+    def __init__(
+        self, adapter_config: Union[str, bytes, bytearray], adapter_model: FILE_LIKE
+    ):
         self.adapter_config = json.loads(adapter_config)
         self.adapter_model = torch.load(adapter_model, map_location="cpu")
 
     @classmethod
-    def load_from_path(cls, adapter_config_path: os.PathLike, adapter_model_path: os.PathLike) -> "LoRA":
+    def load_from_path(
+        cls, adapter_config_path: os.PathLike, adapter_model_path: os.PathLike
+    ) -> "LoRA":
         with open(adapter_config_path, "r") as f:
             adapter_config = f.read()
 
@@ -34,16 +48,26 @@ class LoRA:
         return cls(adapter_config=adapter_config, adapter_model=adapter_model)
 
     @classmethod
-    def load_from_bytes(cls, adapter_config_bytes: BYTES_LIKE, adapter_model_bytes: BYTES_LIKE) -> "LoRA":
-        return cls(adapter_config=adapter_config_bytes, adapter_model=adapter_model_bytes)
+    def load_from_bytes(
+        cls, adapter_config_bytes: BYTES_LIKE, adapter_model_bytes: BYTES_LIKE
+    ) -> "LoRA":
+        return cls(
+            adapter_config=adapter_config_bytes, adapter_model=adapter_model_bytes
+        )
 
 
-class vLLMEngine():
+class vLLMEngine:
     """
     An inference engine that runs inference w/ vLLM
     """
 
-    def __init__(self, model_path: os.PathLike, tokenizer_path: os.PathLike, dtype, max_num_seqs: int = 16384):
+    def __init__(
+        self,
+        model_path: os.PathLike,
+        tokenizer_path: os.PathLike,
+        dtype,
+        max_num_seqs: int = 16384,
+    ):
         args = AsyncEngineArgs(
             model=model_path,
             tokenizer=tokenizer_path,
@@ -59,15 +83,22 @@ class vLLMEngine():
         lora_data is a dictionary of file names & references from the zip file
         """
 
-        if isinstance(adapter_model, get_args(FILE_LIKE)) and isinstance(adapter_config, get_args(FILE_LIKE)):
+        if isinstance(adapter_model, get_args(FILE_LIKE)) and isinstance(
+            adapter_config, get_args(FILE_LIKE)
+        ):
             lora = LoRA.load_from_path(
-                adapter_config_path=adapter_config, adapter_model_path=adapter_model)
-        elif isinstance(adapter_model, get_args(BYTES_LIKE)) and isinstance(adapter_config, get_args(BYTES_LIKE)):
+                adapter_config_path=adapter_config, adapter_model_path=adapter_model
+            )
+        elif isinstance(adapter_model, get_args(BYTES_LIKE)) and isinstance(
+            adapter_config, get_args(BYTES_LIKE)
+        ):
             lora = LoRA.load_from_bytes(
-                adapter_config_bytes=adapter_config, adapter_model_bytes=adapter_model)
+                adapter_config_bytes=adapter_config, adapter_model_bytes=adapter_model
+            )
         else:
             raise TypeError(
-                "Both the adapter model and the adapter config must be either both file-like or bytes-like objects/primitives.")
+                "Both the adapter model and the adapter config must be either both file-like or bytes-like objects/primitives."
+            )
 
         return lora
 
@@ -77,12 +108,24 @@ class vLLMEngine():
         """
 
         self.engine.engine.load_lora(
-            lora_config=lora.adapter_config, lora_state_dict=lora.adapter_model)
+            lora_config=lora.adapter_config, lora_state_dict=lora.adapter_model
+        )
 
     def delete_lora(self):
         self.engine.engine.delete_lora()
 
-    async def __call__(self, prompt, max_new_tokens: int, temperature: float, top_p: float, top_k: int, stop_str=None, stop_token_ids=None, repetition_penalty=1.0, incremental_generation: bool = True) -> str:
+    async def __call__(
+        self,
+        prompt,
+        max_new_tokens: int,
+        temperature: float,
+        top_p: float,
+        top_k: int,
+        stop_str=None,
+        stop_token_ids=None,
+        repetition_penalty=1.0,
+        incremental_generation: bool = True,
+    ) -> str:
         """
         generation!
         """

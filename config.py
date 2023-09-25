@@ -39,9 +39,13 @@ USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = False
 # -------------------------------
 
 
-LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
+LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = (
+    f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
+)
 
-REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = "https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/Llama-2-7b/"
+REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = (
+    "https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/Llama-2-7b/"
+)
 
 N_SHARDS = 3
 REMOTE_TRAINING_FILES_TO_DOWNLOAD = [
@@ -77,14 +81,16 @@ LOCAL_TRAINING_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/training_wei
 
 REMOTE_TRAINING_WEIGHTS_PATH = get_env_var_or_default(
     var_name="REMOTE_TRAINING_WEIGHTS_PATH",
-    default_value="remote/path/to/your/weights/here"
+    default_value="remote/path/to/your/weights/here",
 )
 
-LOCAL_TRAINING_WEIGHTS_CONFIG_PATH = f"models/{MODEL_NAME}/model_artifacts/training_weights/config.json"
+LOCAL_TRAINING_WEIGHTS_CONFIG_PATH = (
+    f"models/{MODEL_NAME}/model_artifacts/training_weights/config.json"
+)
 
 REMOTE_TRAINING_WEIGHTS_CONFIG_PATH = get_env_var_or_default(
     var_name="REMOTE_TRAINING_WEIGHTS_CONFIG_PATH",
-    default_value="remote/path/to/your/weights/here"
+    default_value="remote/path/to/your/weights/here",
 )
 
 N_SHARDS = 2
@@ -100,7 +106,7 @@ REMOTE_TRAINING_FILES_TO_DOWNLOAD += [
     "tokenizer_config.json",
     "tokenizer.json",
     "tokenizer.model",
-    "model.safetensors.index.json"
+    "model.safetensors.index.json",
 ]
 
 
@@ -124,7 +130,8 @@ def log_memory_stuff(prompt=None):
 def load_tokenizer():
     """Same tokenizer, agnostic from tensorized weights/etc"""
     tok = LlamaTokenizer.from_pretrained(
-        TOKENIZER_PATH, cache_dir="pretrained_weights", legacy=False)
+        TOKENIZER_PATH, cache_dir="pretrained_weights", legacy=False
+    )
     tok.add_special_tokens(
         {
             "eos_token": DEFAULT_EOS_TOKEN,
@@ -140,10 +147,10 @@ def download_file(file, local_filename):
     print(f"Downloading {file} to {local_filename}")
     if os.path.exists(local_filename):
         os.remove(local_filename)
-    if '/' in local_filename:
+    if "/" in local_filename:
         if not os.path.exists(os.path.dirname(local_filename)):
             os.makedirs(os.path.dirname(local_filename), exist_ok=True)
 
-    command = ['pget', file, local_filename]
+    command = ["pget", file, local_filename]
     subprocess.check_call(command)
     return

@@ -26,7 +26,7 @@ def training(model_name, version):
         "train_data": "https://r2.drysys.workers.dev/tmp/b_prompts.jsonl",
         "gradient_accumulation_steps": 2,
         "train_batch_size": 48,
-        "run_validation": False
+        "run_validation": False,
     }
     return replicate.trainings.create(
         version=model_name + ":" + version.id,

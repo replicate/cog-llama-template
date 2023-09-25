@@ -11,7 +11,7 @@ from tensorizer.utils import no_init_or_tensor
 
 from subclass import YieldingLlama
 
-DEFAULT_MODEL_NAME = "{{model_name}}" # path from which we pull weights when there's no COG_WEIGHTS environment variable
+DEFAULT_MODEL_NAME = "{{model_name}}"  # path from which we pull weights when there's no COG_WEIGHTS environment variable
 TOKENIZER_NAME = "llama_weights/tokenizer"
 CONFIG_LOCATION = "{{config_location}}"
 
@@ -37,7 +37,7 @@ def load_tokenizer():
 
 def pull_gcp_file(weights, local_filename):
     """Pulls weights from GCP to local storage"""
-    pattern = r'https://pbxt\.replicate\.delivery/([^/]+/[^/]+)'
+    pattern = r"https://pbxt\.replicate\.delivery/([^/]+/[^/]+)"
     match = re.search(pattern, weights)
     if match:
         weights = f"gs://replicate-files/{match.group(1)}"
@@ -60,7 +60,7 @@ def load_tensorizer(
     weights = str(weights)
     local_weights = "/src/llama_tensors"
     print("Deserializing weights...")
-    if 'http' in weights:
+    if "http" in weights:
         pull_gcp_file(weights, local_weights)
     else:
         local_weights = weights

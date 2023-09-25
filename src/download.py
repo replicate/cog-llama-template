@@ -12,6 +12,7 @@ from yarl import URL
 # 2. memoryview for less copies
 # 3. keep redirects from the first head
 
+
 class Downloader:
     def __init__(self, concurrency: int | None = None) -> None:
         if not concurrency:
@@ -123,6 +124,7 @@ class Downloader:
                 self._session = None
                 return self.loop.run_until_complete(self.download_file(url))
             raise e
+
 
 if __name__ == "__main__":
     Downloader().sync_download_file(sys.argv[1])

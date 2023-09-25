@@ -19,13 +19,13 @@ from transformers import LlamaForCausalLM
 from llama_recipes.configs.training import train_config
 
 from config import (
-    LOCAL_TRAINING_WEIGHTS_PATH, 
-    REMOTE_TRAINING_WEIGHTS_PATH, 
+    LOCAL_TRAINING_WEIGHTS_PATH,
+    REMOTE_TRAINING_WEIGHTS_PATH,
     LOCAL_TRAINING_WEIGHTS_CONFIG_PATH,
     REMOTE_TRAINING_WEIGHTS_CONFIG_PATH,
     REMOTE_TRAINING_FILES_TO_DOWNLOAD,
     MODEL_NAME,
-    log_memory_stuff
+    log_memory_stuff,
 )
 
 from src.utils import maybe_download_with_pget, download_file_with_pget
@@ -40,42 +40,46 @@ OUTPUT_DIR = "training_output"
 class TrainingOutput(BaseModel):
     weights: Path
 
+
 def train(
     fake_output: str = Input(description="fake training", default=None),
     train_data: Path = Input(
         description="path to data file to use for fine-tuning your model"
     ),
     num_train_epochs: int = Input(
-        description="number of training epochs", 
-        ge=1, default=1,
+        description="number of training epochs",
+        ge=1,
+        default=1,
     ),
     train_batch_size: int = Input(
         description="Global batch size. This specifies the batch size that will be used to calculate gradients.",
-        default=4, ge=1,
+        default=4,
+        ge=1,
     ),
     gradient_accumulation_steps: int = Input(
-        description="Number of training steps (each of train_batch_size) to update gradients for before performing a backward pass.", 
-        default=1, ge=1
+        description="Number of training steps (each of train_batch_size) to update gradients for before performing a backward pass.",
+        default=1,
+        ge=1,
     ),
     num_validation_samples: int = Input(
-        description=("Number of samples to use for validation." \
-                     "If `run_validation` is `True` and `validation_data` is not specified, this number of samples" \
-                     "will be selected from the tail of the training data. If `validation_data` is specified, this" \
-                     "number of samples will be selected from the head of the validation data, up to the size of the validation data."
+        description=(
+            "Number of samples to use for validation."
+            "If `run_validation` is `True` and `validation_data` is not specified, this number of samples"
+            "will be selected from the tail of the training data. If `validation_data` is specified, this"
+            "number of samples will be selected from the head of the validation data, up to the size of the validation data."
         ),
-        default=50, ge=1
+        default=50,
+        ge=1,
     ),
     validation_data: Path = Input(
         description="path to optional evaluation data file to use for model eval",
         default=None,
     ),
     validation_batch_size: int = Input(
-        description="Batch size for evaluation", 
-        default=1, ge=1
+        description="Batch size for evaluation", default=1, ge=1
     ),
     run_validation: bool = Input(
-        description="Whether to run validation during training.", 
-        default=True
+        description="Whether to run validation during training.", default=True
     ),
     validation_prompt: str = Input(
         description="Prompt to use for generation during validation. If provided, a response to this prompt will be sampled and logged during validation.",
@@ -90,21 +94,19 @@ def train(
     ),
     wrap_packed_sequences: bool = Input(
         description="If 'pack_sequences' is 'True', this will wrap packed sequences across examples, ensuring a constant sequence length but breaking prompt formatting.",
-        default=False
+        default=False,
     ),
     chunk_size: int = Input(
         description="If 'pack_sequences' is 'True', this will chunk sequences into chunks of this size.",
-        default=2048, ge=1
+        default=2048,
+        ge=1,
     ),
     peft_method: str = Input(
         description="Training method to use. Currently, 'lora' and 'qlora'.",
         default="lora",
-        choices=["lora", "qlora"]
+        choices=["lora", "qlora"],
     ),
-    seed: int = Input(
-        description="random seed to use for training", 
-        default=42
-    ),
+    seed: int = Input(description="random seed to use for training", default=42),
     local_model_path: str = Input(
         description="Path to local model to use for training. If not specified, will download a model based on `REMOTE_TRAINING_WEIGHTS_PATH`.",
         default=None,
@@ -119,38 +121,42 @@ def train(
     #     le=0.5,
     #     default=0.03,
     # ),
-
     # max_steps: int = Input(
     #     description="number of steps to run training for, supersedes num_train_epochs",
     #     default=-1,
     # ),
     # logging_steps: int = Input(
     #     description="number of steps between logging epoch & loss", default=1
-    #),
-    lora_rank: int = Input(
-        description="Rank of the lora matrices", default=8, ge=1),
-    lora_alpha: int = Input(description="Alpha parameter for scaling lora weights; weights are scaled by alpha/rank", default=16, ge=1),
-    lora_dropout: float = Input(description="Dropout for lora training", default=0.05, ge=0.0, le=1.0),
+    # ),
+    lora_rank: int = Input(description="Rank of the lora matrices", default=8, ge=1),
+    lora_alpha: int = Input(
+        description="Alpha parameter for scaling lora weights; weights are scaled by alpha/rank",
+        default=16,
+        ge=1,
+    ),
+    lora_dropout: float = Input(
+        description="Dropout for lora training", default=0.05, ge=0.0, le=1.0
+    ),
     # lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
 ) -> TrainingOutput:
     if fake_output:
         out_path = f"/tmp/{os.path.basename(fake_output)}"
         asyncio.run(download_file_with_pget(fake_output, out_path))
         return TrainingOutput(weights=Path(out_path))
-    
+
     # Hardcode QLoRA for 70B models for now
-    if '70' in MODEL_NAME and peft_method != "qlora":
-        print('Using 70B model, setting peft_method to qlora')
+    if "70" in MODEL_NAME and peft_method != "qlora":
+        print("Using 70B model, setting peft_method to qlora")
         peft_method = "qlora"
 
     if not local_model_path:
         weights = REMOTE_TRAINING_WEIGHTS_PATH
 
-        if 'http' in weights:
+        if "http" in weights:
             print(f"Downloading weights to {LOCAL_TRAINING_WEIGHTS_PATH}...")
             model_path = maybe_download_with_pget(
-                LOCAL_TRAINING_WEIGHTS_PATH, 
-                weights, 
+                LOCAL_TRAINING_WEIGHTS_PATH,
+                weights,
                 REMOTE_TRAINING_FILES_TO_DOWNLOAD,
             )
 
@@ -175,49 +181,59 @@ def train(
     args = []
 
     if peft_method != "qlora":
-        args.extend(["python3", "-m", "torch.distributed.run", "--nnodes=1", f"--nproc_per_node={num_gpus}"])
+        args.extend(
+            [
+                "python3",
+                "-m",
+                "torch.distributed.run",
+                "--nnodes=1",
+                f"--nproc_per_node={num_gpus}",
+            ]
+        )
     else:
         args.append("python")
-    
+
     args.append(
         f"llama_recipes/llama_finetuning.py",
     )
-    
+
     if peft_method != "qlora":
         args.append(
             f"--enable_fsdp",
         )
 
-    args.extend([
-        # Hard coded for now
-        f"--use_peft",
-        f"--model_name={model_path}",
-        f"--pure_bf16",
-        f"--output_dir={output_dir}",
-        # User specified arguments -----
-        # Preprocessing arguments
-        f"--pack_sequences={pack_sequences}",
-        f"--wrap_packed_sequences={wrap_packed_sequences}",
-        f"--chunk_size={chunk_size}",
-        # Train arguments
-        f"--data_path={train_data}",
-        f"--num_epochs={num_train_epochs}",
-        f"--batch_size_training={train_batch_size}",
-        f"--gradient_accumulation_steps={gradient_accumulation_steps}",
-        f"--lr={learning_rate}",
-        f"--lora_rank={lora_rank}",
-        f"--lora_alpha={lora_alpha}",
-        f"--lora_dropout={lora_dropout}",
-        f"--peft_method={peft_method}",
-        # Validation arguments
-        f"--run_validation={'False' if not run_validation else 'True'}",
-        f"--num_validation_samples={num_validation_samples}",
-        f"--validation_data_path={validation_data}",
-        f"--val_batch_size={validation_batch_size}",
-        f"--validation_prompt={validation_prompt}",
-        # Other arguments
-        f"--seed={seed}",
-    ])
+    args.extend(
+        [
+            # Hard coded for now
+            f"--use_peft",
+            f"--model_name={model_path}",
+            f"--pure_bf16",
+            f"--output_dir={output_dir}",
+            # User specified arguments -----
+            # Preprocessing arguments
+            f"--pack_sequences={pack_sequences}",
+            f"--wrap_packed_sequences={wrap_packed_sequences}",
+            f"--chunk_size={chunk_size}",
+            # Train arguments
+            f"--data_path={train_data}",
+            f"--num_epochs={num_train_epochs}",
+            f"--batch_size_training={train_batch_size}",
+            f"--gradient_accumulation_steps={gradient_accumulation_steps}",
+            f"--lr={learning_rate}",
+            f"--lora_rank={lora_rank}",
+            f"--lora_alpha={lora_alpha}",
+            f"--lora_dropout={lora_dropout}",
+            f"--peft_method={peft_method}",
+            # Validation arguments
+            f"--run_validation={'False' if not run_validation else 'True'}",
+            f"--num_validation_samples={num_validation_samples}",
+            f"--validation_data_path={validation_data}",
+            f"--val_batch_size={validation_batch_size}",
+            f"--validation_prompt={validation_prompt}",
+            # Other arguments
+            f"--seed={seed}",
+        ]
+    )
 
     print(f"Train.py Arguments: \n{args}")
 

@@ -1,8 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import (IO, Any, BinaryIO, Callable, Dict, Optional, Tuple, Type,
-                    Union, cast)
+from typing import IO, Any, BinaryIO, Callable, Dict, Optional, Tuple, Type, Union, cast
 
 from typing_extensions import TypeAlias  # Python 3.10+
 

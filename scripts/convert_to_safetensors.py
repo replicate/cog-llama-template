@@ -64,9 +64,8 @@ if __name__ == "__main__":
 
     weights_path = sys.argv[1]
 
-
-    for bin_fn in glob.glob(os.path.join(weights_path, '*.bin'), recursive=True):
-        st_fn = bin_fn.replace('.bin', '.safetensors')
+    for bin_fn in glob.glob(os.path.join(weights_path, "*.bin"), recursive=True):
+        st_fn = bin_fn.replace(".bin", ".safetensors")
         print(st_fn)
         convert_file(bin_fn, st_fn)
         os.remove(bin_fn)
