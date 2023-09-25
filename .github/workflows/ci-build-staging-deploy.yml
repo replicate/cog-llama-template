@@ -18,6 +18,9 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
 
+      - name: Install dependencies
+        run: pip install replicate pytest
+
       - name: Select llama-2-7b
         run: make select model=llama-2-7b
 
