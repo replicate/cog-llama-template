@@ -1,19 +1,5 @@
-import os
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import (IO, Any, BinaryIO, Callable, Dict, Optional, Tuple, Type,
-                    Union, cast)
-
-from typing_extensions import TypeAlias  # Python 3.10+
-
-"""
-1. Finish lora implenmentation
-2. Finish abc for lora
-3. Make PR into codellama
-"""
-
-FILE_LIKE: TypeAlias = Union[str, os.PathLike, BinaryIO, IO[bytes]]
-BYTES_LIKE: TypeAlias = Union[str, BinaryIO, IO[bytes]]
+from typing import Any
 
 
 class Engine(ABC):
