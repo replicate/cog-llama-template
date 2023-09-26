@@ -15,9 +15,6 @@ from src.download import Downloader
 from src.inference_engines.vllm_engine import vLLMEngine
 from src.utils import maybe_download_with_pget
 
-# This prompt formatting was copied from the original CodeLlama repo:
-# https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44
-
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):

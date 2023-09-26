@@ -9,6 +9,8 @@ from vllm import AsyncLLMEngine
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.sampling_params import SamplingParams
 
+from engine import Engine
+
 FILE_LIKE = str | os.PathLike
 BYTES_LIKE = str | BinaryIO | IOBase | bytes
 
@@ -35,7 +37,7 @@ class LoRA:
 
 
 # TODO (Moin): this class should inherit from engine
-class vLLMEngine():
+class vLLMEngine(Engine):
     """
     An inference engine that runs inference w/ vLLM
     """

@@ -37,12 +37,14 @@ USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = False
 # how we implement inference for a trained model.
 # -------------------------------
 
-
 LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 
-REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = "https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/Llama-2-7b/"
+REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = get_env_var_or_default(
+    "REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH",
+    "remote/path/to/your/weights/here",
+)
 
-N_SHARDS = 3
+N_SHARDS = 2
 REMOTE_TRAINING_FILES_TO_DOWNLOAD = [
     f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
     for i in range(N_SHARDS)
@@ -86,7 +88,6 @@ REMOTE_TRAINING_WEIGHTS_CONFIG_PATH = get_env_var_or_default(
     default_value="remote/path/to/your/weights/here"
 )
 
-N_SHARDS = 2
 REMOTE_TRAINING_FILES_TO_DOWNLOAD = [
     f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
     for i in range(N_SHARDS)
