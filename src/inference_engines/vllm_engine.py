@@ -1,17 +1,13 @@
-import os
-from typing import (IO, Any, BinaryIO, Callable, Dict, Optional, Tuple, Type,
-                    Union, cast, get_args)
+import asyncio
 import json
-import torch
-
+import os
 from io import IOBase
-from typing_extensions import TypeAlias  # Python 3.10+
+from typing import BinaryIO, Union, get_args
+
+import torch
 from vllm import AsyncLLMEngine
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.sampling_params import SamplingParams
-from vllm.transformers_utils.tokenizer import detokenize_incrementally
-
-# from engine import Engine
 
 FILE_LIKE = str | os.PathLike
 BYTES_LIKE = str | BinaryIO | IOBase | bytes
@@ -38,6 +34,7 @@ class LoRA:
         return cls(adapter_config=adapter_config_bytes, adapter_model=adapter_model_bytes)
 
 
+# TODO (Moin): this class should inherit from engine
 class vLLMEngine():
     """
     An inference engine that runs inference w/ vLLM
@@ -120,3 +117,19 @@ class vLLMEngine():
             else:
                 yield generated_text
             generation_length = len(generated_text)
+
+
+async def run_generation():
+    model_path = "/home/moin/Llama-2-7b"
+    tokenizer_path = "/home/moin/Llama-2-7b"
+    dtype = "auto"
+    engine = vLLMEngine(model_path=model_path,
+                        tokenizer_path=tokenizer_path, dtype=dtype)
+    prompt = "Hello,"
+    generated_text = engine(prompt=prompt, max_new_tokens=128,
+                            temperature=1.0, top_p=0.9, top_k=50)
+    async for text in generated_text:
+        print(text, end="")
+
+if __name__ == "__main__":
+    asyncio.run(run_generation())
