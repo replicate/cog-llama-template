@@ -207,12 +207,16 @@ class Predictor(BasePredictor):
                 n_tokens += 1
                 yield decoded_token
                 if n_tokens == 1 and debug:
-                    print(f"after initialization, first token took {time.time() - st:.3f}")
+                    second_start = time.time()
+                    print(f"after initialization, first token took {second_start - st:.3f}")
                 if seed is not None:
                     torch.manual_seed(seed)
-            t = time.time() - st
+            et = time.time()
+            t = et - st
             print(f"hostname: {socket.gethostname()}")
             if debug:
+                print(f"Tokens per second: {n_tokens / t:.2f}")
+                print(f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}")
                 print(f"cur memory: {torch.cuda.memory_allocated()}")
                 print(f"max allocated: {torch.cuda.max_memory_allocated()}")
                 print(f"peak memory: {torch.cuda.max_memory_reserved()}")
