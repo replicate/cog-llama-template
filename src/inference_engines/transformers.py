@@ -94,8 +94,17 @@ class TransformersEngine(Engine):
             set_peft_model_state_dict(self.model, weights, ADAPTER_NAME)
             print('set new lora')
             print(self.model.peft_config)
+            self.model.eval()
             
         return 
+    
+    def get_logits(self, prompt):
+        input_ids = self.tokenizer(prompt, return_tensors="pt").input_ids.to(self.device)
+        inputs = self.model.prepare_inputs_for_generation(input_ids)
+        with torch.no_grad():
+            output = self.model(**inputs, return_dict=True, output_attentions=False, output_hidden_states=False)
+            logits = output.logits[:, -1, :]
+        return logits
             
 
     def __call__(self, 

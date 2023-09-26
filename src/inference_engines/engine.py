@@ -20,6 +20,14 @@ class Engine(ABC):
         """
         given a loaded lora (created w/load_lora), configures the engine to use that lora in combination with the loaded base weights. 
         """
+        pass
+    
+    @abstractmethod
+    def get_logits(self, prompt: str):
+        """
+        returns logits given input prompt & generation kwargs
+        """
+        pass
 
     @abstractmethod
     def __call__(self, prompt, **kwargs):
