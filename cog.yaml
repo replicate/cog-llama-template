@@ -11,24 +11,32 @@ build:
 
   # a list of packages in the format <package-name>==<version>
   python_packages:
-    - "accelerate"
-    - "asyncio==3.4.3"
-    - "datasets"
-    - "fire"
-    - "jinja2==3.1.2"
-    - "ninja==1.11.1"
     - "numpy==1.24.2"
-    - "py7zr"
-    - "python-dotenv"
-    - "safetensors==0.3.1"
-    - "scipy==1.11.1"
     - "sentencepiece==0.1.99"
-    - "transformers -e git+https://github.com/huggingface/transformers.git@1fa2d89a9bb98a15e9720190e07d272a42f03d28#egg={transformers}"
+    - "jinja2==3.1.2"
+    - "scipy==1.11.1"
+    - "asyncio==3.4.3"
+    - "safetensors==0.3.1"
+    - "ninja==1.11.1"
+    - "python-dotenv"
+    - "py7zr"
+    - "fire"
+    - "datasets"
+    - "git+https://github.com/huggingface/transformers.git@d2295708a64feff485bb40caf0decf7bae5a05a2"
+    - "peft==0.4.0"
+    - "tensorizer==1.0.1"
+    - "accelerate"
+    - "scipy"
+    - "bitsandbytes" # force upgrade afterwards?
+    - "https://r2.drysys.workers.dev/torch/torch-2.1.0a0+git3af011b-cp311-cp311-linux_x86_64.whl"
+    - "https://r2.drysys.workers.dev/nyacomp-0.0.5-cp311-cp311-linux_x86_64.whl"
+    - "trl==0.5.0"
+    - "aiohttp[speedups]"
+    - "https://github.com/replicate/vllm-with-loras/releases/download/v0.0.3a/vllm-0.1.7a0-cp311-cp311-linux_x86_64.whl"
   run:
-    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.2/pget" && chmod +x /usr/local/bin/pget
-    - pip install git+https://github.com/huggingface/transformers.git@1fa2d89a9bb98a15e9720190e07d272a42f03d28
-    - pip install git+https://github.com/replicate/vllm-with-loras/releases/download/v0.0.3a/vllm-0.1.7a0-cp311-cp311-linux_x86_64.whl 
+    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.3/pget#cacheburst" && chmod +x /usr/local/bin/pget
+    - curl -o /usr/local/bin/remotefile -L "https://r2.drysys.workers.dev/remotefile" && chmod +x /usr/local/bin/remotefile
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
-# train: "train.py:train"
+train: "train.py:train"
