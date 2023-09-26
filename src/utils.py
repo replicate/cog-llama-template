@@ -4,6 +4,18 @@ import random
 import time
 import typing as tp
 import asyncio
+import torch
+
+def seed_all(seed: int):
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    random.seed(seed)
+
+    import numpy
+
+    numpy.random.seed(seed)
 
 
 def get_env_var_or_default(var_name, default_value):
@@ -244,7 +256,3 @@ class StreamingTextStopSequenceHandler:
         if self.cache:
             yield from self.cache
             self.cache.clear()
-
-
-
-

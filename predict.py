@@ -22,8 +22,7 @@ from config import (
 )
 from src.download import Downloader
 # from src.more_utils import load_tokenizer
-from src.utils import StreamingTextStopSequenceHandler, maybe_download_with_pget
-from subclass import YieldingLlama
+from src.utils import maybe_download_with_pget, seed_all
 
 # This prompt formatting was copied from the original Llama v2 repo:
 # https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44
@@ -42,7 +41,6 @@ class Predictor(BasePredictor):
         print("Starting setup")
         self.downloader = Downloader()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-
 
         base_weights = maybe_download_with_pget(
             LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
@@ -95,9 +93,9 @@ class Predictor(BasePredictor):
         else:
             print("correct lora is already loaded")
 
-    def unload_lora(self):
+    def delete_lora(self):
         self.current_path = None
-        self.engine.set_lora(None)
+        self.engine.delete_lora()
 
     def predict(
         self,
@@ -165,20 +163,12 @@ class Predictor(BasePredictor):
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.3f}")
         else:
-            self.unload_lora()
+            self.delete_lora()
             print("Not using LoRA")
 
         if seed is not None:
             print(f"Setting seed to {seed}")
-            os.environ["PYTHONHASHSEED"] = str(seed)
-            torch.manual_seed(seed)
-            torch.cuda.manual_seed(seed)
-            torch.cuda.manual_seed_all(seed)
-            random.seed(seed)
-
-            import numpy
-
-            numpy.random.seed(seed)
+            seed_all(seed)
 
         n_tokens = 0
         st = time.time()

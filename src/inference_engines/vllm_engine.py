@@ -1,13 +1,15 @@
 import asyncio
 import json
 import os
-from io import IOBase
-from typing import BinaryIO, List, Union, get_args
+from io import IOBase, BytesIO
+from typing import BinaryIO, List, Union, get_args, Optional
 
 import torch
 from vllm import AsyncLLMEngine
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.sampling_params import SamplingParams
+
+from .engine import Engine
 
 FILE_LIKE = str | os.PathLike
 BYTES_LIKE = str | BinaryIO | IOBase | bytes
@@ -34,8 +36,7 @@ class LoRA:
         return cls(adapter_config=adapter_config_bytes, adapter_model=adapter_model_bytes)
 
 
-# TODO (Moin): this class should inherit from engine
-class vLLMEngine():
+class vLLMEngine(Engine):
     """
     An inference engine that runs inference w/ vLLM
     """
@@ -50,11 +51,29 @@ class vLLMEngine():
         self.engine = AsyncLLMEngine.from_engine_args(args)
         self.tokenizer = self.engine.engine.tokenizer
 
-    def load_lora(self, adapter_model: FILE_LIKE | BYTES_LIKE, adapter_config: FILE_LIKE | BYTES_LIKE) -> LoRA:
+    def load_lora(self, lora_state_dict: Optional[dict] = None, adapter_model: Optional[FILE_LIKE | BYTES_LIKE] = None, adapter_config: Optional[FILE_LIKE | BYTES_LIKE] = None) -> LoRA:
         """
         loads a lora from files into the format that this particular engine expects. DOES NOT prepare the engine for inference.
         lora_data is a dictionary of file names & references from the zip file
         """
+
+        # TODO (Moin): I don't like this "pass a dict or the explicit params" -- but going to add it in and ship ASAP.
+        if lora_state_dict is None and adapter_model is None and adapter_config is None:
+            raise ValueError(
+                "At least one of lora_state_dict, adapter_model, or adapter_config must be provided.")
+
+        if lora_state_dict is not None and (adapter_model is not None or adapter_config is not None):
+            raise ValueError(
+                "lora_state_dict cannot be provided if adapter_model or adapter_config is provided.")
+
+        if lora_state_dict is not None:
+            ADAPTER_CONFIG_KEY_NAME = "adapter_config.json"
+            ADAPTER_MODEL_KEY_NAME = "adapter_model.bin"
+            if len(lora_state_dict.keys()) != 2 or ADAPTER_CONFIG_KEY_NAME not in lora_state_dict.keys() or ADAPTER_MODEL_KEY_NAME not in lora_state_dict.keys():
+                raise ValueError(
+                    f"lora_state_dict must have exactly two keys: '{ADAPTER_MODEL_KEY_NAME}' and '{ADAPTER_CONFIG_KEY_NAME}'.")
+
+            adapter_config, adapter_model = lora_state_dict[ADAPTER_CONFIG_KEY_NAME], BytesIO(lora_state_dict[ADAPTER_MODEL_KEY_NAME])
 
         if isinstance(adapter_model, get_args(FILE_LIKE)) and isinstance(adapter_config, get_args(FILE_LIKE)):
             lora = LoRA.load_from_path(
@@ -68,18 +87,28 @@ class vLLMEngine():
 
         return lora
 
+    def is_lora_active(self) -> bool:
+        """
+        Returns True if the engine is currently configured to use a lora, False otherwise.
+        """
+        return self.engine.engine.is_lora_active()
+
     def set_lora(self, lora: LoRA) -> None:
         """
         Given a loaded lora (created w/ load_lora), configures the engine to use that lora in combination with the loaded base weights.
         """
-
         self.engine.engine.load_lora(
             lora_config=lora.adapter_config, lora_state_dict=lora.adapter_model)
 
     def delete_lora(self) -> None:
         self.engine.engine.delete_lora()
 
-    async def __call__(self, prompt: str, max_new_tokens: int, temperature: float, top_p: float, top_k: int, stop_str: str = None, stop_token_ids: List[int] = None, repetition_penalty: float = 1.0, incremental_generation: bool = True) -> str:
+    async def generate_stream(self, prompt: str, sampling_params: SamplingParams) -> str:
+        results_generator = self.engine.generate(prompt, sampling_params, 0)
+        async for generated_text in results_generator:
+            yield generated_text
+
+    def __call__(self, prompt: str, max_new_tokens: int, temperature: float, top_p: float, top_k: int, stop_sequences: str | List[str] = None, stop_token_ids: List[int] = None, frequency_penalty: float = 1.0, incremental_generation: bool = True, *args, **kwargs) -> str:
         """
         Given a prompt, runs generation on the language model with vLLM.
 
@@ -89,21 +118,26 @@ class vLLMEngine():
         - temperature (float): the parameter to anneal the sampling distribution with.
         - top_p (float): the amount to truncate the sampling distribution by.
         - top_k (int): the number of tokens to truncate the sampling distribution by.
-        - stop_str (str): the string to stop generation at.
+        - stop_sequences (str | List[str]): the string to stop generation at.
         - stop_token_ids (List[str]): a list of token ids to stop generation at.
-        - repetition_penalty (float): the amount to penalize tokens that have already been generated, higher values penalize more.
+        - frequency_penalty (float): the amount to penalize tokens that have already been generated, higher values penalize more.
         - incremental_generation: whether to yield the entire generated sequence or the next generated token at each step.
 
         Yields:
         - generated_text (str): the generated text, or next token, depending on the value of `incremental_generation`.
         """
+
+        min_new_tokens = kwargs.pop("min_new_tokens")
+        if min_new_tokens > -1:
+            raise ValueError("min_new_tokens is currently not supported by vLLM Engine.")
+
         stop_token_ids = stop_token_ids or []
         stop_token_ids.append(self.tokenizer.eos_token_id)
 
-        if isinstance(stop_str, str) and stop_str != "":
-            stop = [stop_str]
-        elif isinstance(stop_str, list) and len(stop_str) > 0:
-            stop = stop_str
+        if isinstance(stop_sequences, str) and stop_sequences != "":
+            stop = [stop_sequences]
+        elif isinstance(stop_sequences, list) and len(stop_sequences) > 0:
+            stop = stop_sequences
         else:
             stop = []
 
@@ -118,19 +152,33 @@ class vLLMEngine():
             use_beam_search=False,
             stop=stop,
             max_tokens=max_new_tokens,
-            frequency_penalty=repetition_penalty,
+            frequency_penalty=frequency_penalty,
         )
-        results_generator = self.engine.generate(prompt, sampling_params, 0)
+
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        gen = self.generate_stream(
+            prompt,
+            sampling_params,
+        )
 
         generation_length = 0
-        async for request_output in results_generator:
-            assert len(request_output.outputs) == 1
-            generated_text = request_output.outputs[0].text
-            if incremental_generation:
-                yield generated_text[generation_length:]
-            else:
-                yield generated_text
-            generation_length = len(generated_text)
+        while True:
+            try:
+                request_output = loop.run_until_complete(gen.__anext__())
+                assert len(request_output.outputs) == 1
+                generated_text = request_output.outputs[0].text
+                if incremental_generation:
+                    yield generated_text[generation_length:]
+                else:
+                    yield generated_text
+                generation_length = len(generated_text)
+            except StopAsyncIteration:
+                break
 
 
 async def run_generation():
