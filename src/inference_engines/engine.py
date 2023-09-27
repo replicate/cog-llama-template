@@ -30,6 +30,13 @@ class Engine(ABC):
         pass
 
     @abstractmethod
+    def is_lora_active(self) -> bool:
+        """
+        Checks whether a LoRA has currently been loaded onto the engine.
+        """
+        pass
+
+    @abstractmethod
     def __call__(self, prompt, **kwargs):
         """
         generation!

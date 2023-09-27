@@ -30,6 +30,17 @@ TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights
 USE_SYSTEM_PROMPT = False
 USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = False
 
+# ENGINE CONFIGURATION
+# -------------------------------
+# Here we define the specific inference engine we intend to use for inference, and all appropriate kwargs.
+# -------------------------------
+
+from src.inference_engines.vllm_engine import vLLMEngine
+
+ENGINE = vLLMEngine
+ENGINE_KWARGS = {
+    "tokenizer_path": TOKENIZER_PATH, "dtype": "auto", "max_num_seqs": 16384,
+}
 
 # DEFAULT INFERENCE CONFIGURATION
 # -------------------------------

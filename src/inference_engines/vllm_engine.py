@@ -70,18 +70,28 @@ class vLLMEngine(Engine):
 
         return lora
 
+    def is_lora_active(self) -> bool:
+        """
+        Returns True if the engine is currently configured to use a lora, False otherwise.
+        """
+        return self.engine.engine.is_lora_active()
+
     def set_lora(self, lora: LoRA) -> None:
         """
         Given a loaded lora (created w/ load_lora), configures the engine to use that lora in combination with the loaded base weights.
         """
-
         self.engine.engine.load_lora(
             lora_config=lora.adapter_config, lora_state_dict=lora.adapter_model)
 
     def delete_lora(self) -> None:
         self.engine.engine.delete_lora()
 
-    async def __call__(self, prompt: str, max_new_tokens: int, temperature: float, top_p: float, top_k: int, stop_str: str = None, stop_token_ids: List[int] = None, repetition_penalty: float = 1.0, incremental_generation: bool = True) -> str:
+    async def generate_stream(self, prompt: str, sampling_params: SamplingParams) -> str:
+        results_generator = self.engine.generate(prompt, sampling_params, 0)
+        async for generated_text in results_generator:
+            yield generated_text
+
+    def __call__(self, prompt: str, max_new_tokens: int, temperature: float, top_p: float, top_k: int, stop_sequences: str | List[str] = None, stop_token_ids: List[int] = None, repetition_penalty: float = 1.0, incremental_generation: bool = True, *args, **kwargs) -> str:
         """
         Given a prompt, runs generation on the language model with vLLM.
 
@@ -91,7 +101,7 @@ class vLLMEngine(Engine):
         - temperature (float): the parameter to anneal the sampling distribution with.
         - top_p (float): the amount to truncate the sampling distribution by.
         - top_k (int): the number of tokens to truncate the sampling distribution by.
-        - stop_str (str): the string to stop generation at.
+        - stop_sequences (str | List[str]): the string to stop generation at.
         - stop_token_ids (List[str]): a list of token ids to stop generation at.
         - repetition_penalty (float): the amount to penalize tokens that have already been generated, higher values penalize more.
         - incremental_generation: whether to yield the entire generated sequence or the next generated token at each step.
@@ -99,13 +109,18 @@ class vLLMEngine(Engine):
         Yields:
         - generated_text (str): the generated text, or next token, depending on the value of `incremental_generation`.
         """
+
+        min_new_tokens = kwargs.pop("min_new_tokens")
+        if min_new_tokens > -1:
+            raise ValueError("min_new_tokens is currently not supported by vLLM Engine.")
+
         stop_token_ids = stop_token_ids or []
         stop_token_ids.append(self.tokenizer.eos_token_id)
 
-        if isinstance(stop_str, str) and stop_str != "":
-            stop = [stop_str]
-        elif isinstance(stop_str, list) and len(stop_str) > 0:
-            stop = stop_str
+        if isinstance(stop_sequences, str) and stop_sequences != "":
+            stop = [stop_sequences]
+        elif isinstance(stop_sequences, list) and len(stop_sequences) > 0:
+            stop = stop_sequences
         else:
             stop = []
 
@@ -122,17 +137,26 @@ class vLLMEngine(Engine):
             max_tokens=max_new_tokens,
             frequency_penalty=repetition_penalty,
         )
-        results_generator = self.engine.generate(prompt, sampling_params, 0)
+
+        loop = asyncio.get_event_loop()
+        gen = self.generate_stream(
+            prompt,
+            sampling_params,
+        )
 
         generation_length = 0
-        async for request_output in results_generator:
-            assert len(request_output.outputs) == 1
-            generated_text = request_output.outputs[0].text
-            if incremental_generation:
-                yield generated_text[generation_length:]
-            else:
-                yield generated_text
-            generation_length = len(generated_text)
+        while True:
+            try:
+                request_output = loop.run_until_complete(gen.__anext__())
+                assert len(request_output.outputs) == 1
+                generated_text = request_output.outputs[0].text
+                if incremental_generation:
+                    yield generated_text[generation_length:]
+                else:
+                    yield generated_text
+                generation_length = len(generated_text)
+            except StopAsyncIteration:
+                break
 
 
 async def run_generation():
