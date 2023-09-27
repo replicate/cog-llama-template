@@ -36,7 +36,6 @@ class LoRA:
         return cls(adapter_config=adapter_config_bytes, adapter_model=adapter_model_bytes)
 
 
-# TODO (Moin): this class should inherit from engine
 class vLLMEngine(Engine):
     """
     An inference engine that runs inference w/ vLLM
