@@ -1,1 +1,1 @@
-models/llama-2-7b-chat/config.py
+models/codellama-7b-instruct-vllm/config.py

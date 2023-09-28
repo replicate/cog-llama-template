@@ -50,6 +50,8 @@ class vLLMEngine(Engine):
         )
         self.engine = AsyncLLMEngine.from_engine_args(args)
         self.tokenizer = self.engine.engine.tokenizer
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
 
     def load_lora(self, adapter_model: FILE_LIKE | BYTES_LIKE, adapter_config: FILE_LIKE | BYTES_LIKE) -> LoRA:
         """
@@ -137,7 +139,7 @@ class vLLMEngine(Engine):
             frequency_penalty=repetition_penalty,
         )
 
-        loop = asyncio.get_event_loop()
+        loop = self.loop
         gen = self.generate_stream(
             prompt,
             sampling_params,
