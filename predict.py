@@ -32,6 +32,14 @@ from subclass import YieldingLlama
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_INST}"
+PREPROCESS_PROMPT = False
+
+# this should live at the weights level
+try:
+    from config import prompt_preprocessor
+    PREPROCESS_PROMPT = True
+except Exception as e:
+    print("Using default prompt template")
 
 # Users may want to change the system prompt, but we use the recommended system prompt by default
 DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
@@ -49,6 +57,10 @@ class Predictor(BasePredictor):
             REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
             REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
         )
+
+        self.preprocess_prompt = PREPROCESS_PROMPT
+        if PREPROCESS_PROMPT:
+            self.prompt_preprocessor = prompt_preprocessor
 
         self.engine = ENGINE(base_weights, **ENGINE_KWARGS)
 
@@ -155,11 +167,16 @@ class Predictor(BasePredictor):
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
 
+        # old
         if USE_SYSTEM_PROMPT:
             prompt = prompt.strip("\n").lstrip(B_INST).rstrip(E_INST).strip()
             prompt = PROMPT_TEMPLATE.format(
                 system_prompt=system_prompt.strip(), instruction=prompt.strip()
             )
+        
+        # shiny and chrome
+        if self.preprocess_prompt:
+            prompt = self.prompt_preprocessor(prompt)
 
         print(f"Your formatted prompt is: \n{prompt}")
 

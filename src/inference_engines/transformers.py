@@ -35,7 +35,7 @@ class TransformersEngine(Engine):
     Vanilla is, at times, fantastic.
     """
     def __init__(self, weights, tokenizer_func=None, device="cuda"):
-        self.model = AutoModelForCausalLM.from_pretrained(weights).to(device)
+        self.model = AutoModelForCausalLM.from_pretrained(weights, torch_dtype=torch.float16).to(device)
         self.tokenizer = tokenizer_func()
         self.device = device 
         print("Transformers engine initialized.")
@@ -117,6 +117,7 @@ class TransformersEngine(Engine):
                  stop_sequences: Optional[List[str]] = None,
                  **kwargs):
         tokens_in = self.tokenizer(prompt, return_tensors="pt").input_ids.to(self.device)
+        print("Tokens: ", tokens_in)
         streamer = TextIteratorStreamer(self.tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
 
         stopping_criteria_list = None
