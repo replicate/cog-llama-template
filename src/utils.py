@@ -4,6 +4,7 @@ import random
 import time
 import typing as tp
 import asyncio
+import torch
 
 def seed_all(seed: int):
     os.environ["PYTHONHASHSEED"] = str(seed)
@@ -255,7 +256,3 @@ class StreamingTextStopSequenceHandler:
         if self.cache:
             yield from self.cache
             self.cache.clear()
-
-
-
-

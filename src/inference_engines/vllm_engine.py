@@ -90,7 +90,7 @@ class vLLMEngine(Engine):
         async for generated_text in results_generator:
             yield generated_text
 
-    def __call__(self, prompt: str, max_new_tokens: int, temperature: float, top_p: float, top_k: int, stop_sequences: str | List[str] = None, stop_token_ids: List[int] = None, repetition_penalty: float = 1.0, incremental_generation: bool = True, *args, **kwargs) -> str:
+    def __call__(self, prompt: str, max_new_tokens: int, temperature: float, top_p: float, top_k: int, stop_sequences: str | List[str] = None, stop_token_ids: List[int] = None, frequency_penalty: float = 1.0, incremental_generation: bool = True, *args, **kwargs) -> str:
         """
         Given a prompt, runs generation on the language model with vLLM.
 
@@ -102,7 +102,7 @@ class vLLMEngine(Engine):
         - top_k (int): the number of tokens to truncate the sampling distribution by.
         - stop_sequences (str | List[str]): the string to stop generation at.
         - stop_token_ids (List[str]): a list of token ids to stop generation at.
-        - repetition_penalty (float): the amount to penalize tokens that have already been generated, higher values penalize more.
+        - frequency_penalty (float): the amount to penalize tokens that have already been generated, higher values penalize more.
         - incremental_generation: whether to yield the entire generated sequence or the next generated token at each step.
 
         Yields:
@@ -134,10 +134,15 @@ class vLLMEngine(Engine):
             use_beam_search=False,
             stop=stop,
             max_tokens=max_new_tokens,
-            frequency_penalty=repetition_penalty,
+            frequency_penalty=frequency_penalty,
         )
 
-        loop = asyncio.get_event_loop()
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
         gen = self.generate_stream(
             prompt,
             sampling_params,

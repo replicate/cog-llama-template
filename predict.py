@@ -8,6 +8,7 @@ import socket
 import time
 import zipfile
 from typing import Any, Optional
+import asyncio
 
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
@@ -135,6 +136,10 @@ class Predictor(BasePredictor):
             description="A comma-separated list of sequences to stop generation at. For example, '<end>,<stop>' will stop generation at the first instance of 'end' or '<stop>'.",
             default=None,
         ),
+        frequency_penalty: float = Input(
+            description="Penalizes words that have already been generated.",
+            default=1.1,
+        ),
         seed: int = Input(
             description="Random seed. Leave blank to randomize the seed",
             default=None,
@@ -160,8 +165,6 @@ class Predictor(BasePredictor):
 
         if replicate_weights:
             start = time.time()
-            if self.engine.is_lora_active():
-                self.delete_lora()
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.3f}")
         else:
@@ -173,10 +176,11 @@ class Predictor(BasePredictor):
         if seed is not None:
             print(f"Setting seed to {seed}")
             seed_all(seed)
-            
+
         n_tokens = 0
         st = time.time()
 
+        generated_text = ""
         # todo: may need to do something clever with kwargs if/when we add more engines.
         for decoded_token in self.engine(
             prompt,
@@ -186,9 +190,11 @@ class Predictor(BasePredictor):
             max_new_tokens=max_new_tokens,
             min_new_tokens=min_new_tokens,
             stop_sequences=stop_sequences,
+            frequency_penalty=frequency_penalty,
         ):
             n_tokens += 1
             yield decoded_token
+            generated_text += decoded_token
             if n_tokens == 1 and debug:
                 print(f"after initialization, first token took {time.time() - st:.3f}")
             if seed is not None:
