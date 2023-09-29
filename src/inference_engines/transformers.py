@@ -117,6 +117,7 @@ class TransformersEngine(Engine):
                  stop_sequences: Optional[List[str]] = None,
                  **kwargs):
         tokens_in = self.tokenizer(prompt, return_tensors="pt").input_ids.to(self.device)
+        print("Tokens: ", tokens_in)
         streamer = TextIteratorStreamer(self.tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True)
 
         stopping_criteria_list = None

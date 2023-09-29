@@ -4,7 +4,7 @@ import time
 from collections import OrderedDict
 
 import torch
-from transformers import AutoConfig, LlamaForCausalLM, LlamaTokenizer
+from transformers import AutoConfig, LlamaForCausalLM, LlamaTokenizer, AutoTokenizer
 
 # circular imports. 
 # from config import (
@@ -33,7 +33,7 @@ def log_memory_stuff(prompt=None):
 
 def load_tokenizer(tokenizer_path):
     """Same tokenizer, agnostic from tensorized weights/etc"""
-    tok = LlamaTokenizer.from_pretrained(
+    tok = AutoTokenizer.from_pretrained(
         tokenizer_path, cache_dir="pretrained_weights", legacy=False
     )
     tok.add_special_tokens(
