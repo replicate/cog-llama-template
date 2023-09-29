@@ -32,6 +32,7 @@ from subclass import YieldingLlama
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_INST}"
+PREPROCESS_PROMPT = False
 
 # this should live at the weights level
 try:
@@ -57,8 +58,8 @@ class Predictor(BasePredictor):
             REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
         )
 
+        self.preprocess_prompt = PREPROCESS_PROMPT
         if PREPROCESS_PROMPT:
-            self.preprocess_prompt = True
             self.prompt_preprocessor = prompt_preprocessor
 
         self.engine = ENGINE(base_weights, **ENGINE_KWARGS)
