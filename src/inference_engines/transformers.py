@@ -35,7 +35,7 @@ class TransformersEngine(Engine):
     Vanilla is, at times, fantastic.
     """
     def __init__(self, weights, tokenizer_func=None, device="cuda"):
-        self.model = AutoModelForCausalLM.from_pretrained(weights).to(device)
+        self.model = AutoModelForCausalLM.from_pretrained(weights, torch_dtype=torch.float16).to(device)
         self.tokenizer = tokenizer_func()
         self.device = device 
         print("Transformers engine initialized.")
