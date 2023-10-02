@@ -163,9 +163,7 @@ class Predictor(BasePredictor):
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.3f}")
         else:
-            if self.engine.is_lora_active():
-                print("Found an active LoRA -- deleting it now.")
-                self.delete_lora()
+            self.delete_lora()
             print("Not using LoRA")
 
         if seed is not None:
