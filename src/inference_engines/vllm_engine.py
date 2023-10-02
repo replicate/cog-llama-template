@@ -1,8 +1,8 @@
 import asyncio
 import json
 import os
-from io import IOBase
-from typing import BinaryIO, List, Union, get_args
+from io import IOBase, BytesIO
+from typing import BinaryIO, List, Union, get_args, Optional
 
 import torch
 from vllm import AsyncLLMEngine
@@ -51,11 +51,29 @@ class vLLMEngine(Engine):
         self.engine = AsyncLLMEngine.from_engine_args(args)
         self.tokenizer = self.engine.engine.tokenizer
 
-    def load_lora(self, adapter_model: FILE_LIKE | BYTES_LIKE, adapter_config: FILE_LIKE | BYTES_LIKE) -> LoRA:
+    def load_lora(self, lora_state_dict: Optional[dict] = None, adapter_model: Optional[FILE_LIKE | BYTES_LIKE] = None, adapter_config: Optional[FILE_LIKE | BYTES_LIKE] = None) -> LoRA:
         """
         loads a lora from files into the format that this particular engine expects. DOES NOT prepare the engine for inference.
         lora_data is a dictionary of file names & references from the zip file
         """
+
+        # TODO (Moin): I don't like this "pass a dict or the explicit params" -- but going to add it in and ship ASAP.
+        if lora_state_dict is None and adapter_model is None and adapter_config is None:
+            raise ValueError(
+                "At least one of lora_state_dict, adapter_model, or adapter_config must be provided.")
+
+        if lora_state_dict is not None and (adapter_model is not None or adapter_config is not None):
+            raise ValueError(
+                "lora_state_dict cannot be provided if adapter_model or adapter_config is provided.")
+
+        if lora_state_dict is not None:
+            ADAPTER_CONFIG_KEY_NAME = "adapter_config.json"
+            ADAPTER_MODEL_KEY_NAME = "adapter_model.bin"
+            if len(lora_state_dict.keys()) != 2 or ADAPTER_CONFIG_KEY_NAME not in lora_state_dict.keys() or ADAPTER_MODEL_KEY_NAME not in lora_state_dict.keys():
+                raise ValueError(
+                    f"lora_state_dict must have exactly two keys: '{ADAPTER_MODEL_KEY_NAME}' and '{ADAPTER_CONFIG_KEY_NAME}'.")
+
+            adapter_config, adapter_model = lora_state_dict[ADAPTER_CONFIG_KEY_NAME], BytesIO(lora_state_dict[ADAPTER_MODEL_KEY_NAME])
 
         if isinstance(adapter_model, get_args(FILE_LIKE)) and isinstance(adapter_config, get_args(FILE_LIKE)):
             lora = LoRA.load_from_path(
