@@ -148,7 +148,7 @@ class Predictor(BasePredictor):
         ),
         replicate_weights: str = Input(
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
-            default="https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/sql.zip",
+            default=None,
         ),
     ) -> ConcatenateIterator:
         if stop_sequences:
