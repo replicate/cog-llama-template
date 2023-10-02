@@ -135,10 +135,6 @@ class Predictor(BasePredictor):
             description="A comma-separated list of sequences to stop generation at. For example, '<end>,<stop>' will stop generation at the first instance of 'end' or '<stop>'.",
             default=None,
         ),
-        frequency_penalty: float = Input(
-            description="Penalizes words that have already been generated.",
-            default=1.1,
-        ),
         seed: int = Input(
             description="Random seed. Leave blank to randomize the seed",
             default=None,
@@ -188,7 +184,6 @@ class Predictor(BasePredictor):
             max_new_tokens=max_new_tokens,
             min_new_tokens=min_new_tokens,
             stop_sequences=stop_sequences,
-            frequency_penalty=frequency_penalty,
         ):
             n_tokens += 1
             yield decoded_token
