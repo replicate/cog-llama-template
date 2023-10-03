@@ -1,8 +1,8 @@
 import asyncio
 import json
 import os
-from io import IOBase, BytesIO
-from typing import BinaryIO, List, Union, get_args, Optional
+from io import BytesIO, IOBase
+from typing import BinaryIO, List, Optional, Union, get_args
 
 import torch
 from vllm import AsyncLLMEngine
@@ -73,7 +73,8 @@ class vLLMEngine(Engine):
                 raise ValueError(
                     f"lora_state_dict must have exactly two keys: '{ADAPTER_MODEL_KEY_NAME}' and '{ADAPTER_CONFIG_KEY_NAME}'.")
 
-            adapter_config, adapter_model = lora_state_dict[ADAPTER_CONFIG_KEY_NAME], BytesIO(lora_state_dict[ADAPTER_MODEL_KEY_NAME])
+            adapter_config, adapter_model = lora_state_dict[ADAPTER_CONFIG_KEY_NAME], BytesIO(
+                lora_state_dict[ADAPTER_MODEL_KEY_NAME])
 
         if isinstance(adapter_model, get_args(FILE_LIKE)) and isinstance(adapter_config, get_args(FILE_LIKE)):
             lora = LoRA.load_from_path(
@@ -127,9 +128,10 @@ class vLLMEngine(Engine):
         - generated_text (str): the generated text, or next token, depending on the value of `incremental_generation`.
         """
 
-        min_new_tokens = kwargs.pop("min_new_tokens")
-        if min_new_tokens > -1:
-            raise ValueError("min_new_tokens is currently not supported by vLLM Engine.")
+        min_new_tokens = kwargs.pop("min_new_tokens", None)
+        if min_new_tokens is not None and min_new_tokens > -1:
+            raise ValueError(
+                "min_new_tokens is currently not supported by vLLM Engine.")
 
         stop_token_ids = stop_token_ids or []
         stop_token_ids.append(self.tokenizer.eos_token_id)
