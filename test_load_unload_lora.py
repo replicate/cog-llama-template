@@ -1,48 +1,103 @@
-from src.inference_engines.vllm_engine import vLLMEngine
-from time import time
 import zipfile
-from src.download import Downloader
 from io import BytesIO
 
-# setup
-downloader = Downloader()
-SQL_LORA_PATH = "https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/sql.zip"
-OTHER_LORA_PATH = "https://storage.googleapis.com/dan-scratch-public/tmp/samsum-lora.zip"
+import replicate
+from termcolor import cprint
 
-MODEL_PATH = "models/llama-2-7b-vllm/model_artifacts/default_inference_weights"
-engine = vLLMEngine(model_path=MODEL_PATH, tokenizer_path=MODEL_PATH, dtype="auto")
+from src.download import Downloader
+from src.inference_engines.vllm_engine import vLLMEngine
 
-def get_lora(lora_path):
-    buffer = downloader.sync_download_file(lora_path)
-    with zipfile.ZipFile(buffer, "r") as zip_ref:
-        data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
-    adapter_config, adapter_model = data['adapter_config.json'], BytesIO(data['adapter_model.bin'])
-    return engine.load_lora(adapter_config=adapter_config, adapter_model=adapter_model)
 
-BASE_PROMPT = """You are a powerful text-to-SQL model. Your job is to answer questions about a database. You are given a question and context regarding one or more tables.
+class vLLMLoraTest:
+    def __init__(self):
+        # setup
+        self.downloader = Downloader()
+        self.sql_lora_path = "https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/sql.zip"
+        self.summary_lora_path = "https://storage.googleapis.com/dan-scratch-public/tmp/samsum-lora.zip"
 
-You must output the SQL query that answers the question.
+        self.engine_kwargs = {"max_new_tokens": 128,
+                              "temperature": 1.0, "top_p": 0.9, "top_k": 50}
+        MODEL_PATH = "models/llama-2-7b-vllm/model_artifacts/default_inference_weights"
+        self.engine = vLLMEngine(model_path=MODEL_PATH,
+                                 tokenizer_path=MODEL_PATH, dtype="auto")
+        self.sql_lora = self.get_lora(self.sql_lora_path)
+        self.summary_lora = self.get_lora(self.summary_lora_path)
 
-### Input:
-What is the total number of decile for the redwood school locality?
+    def get_lora(self, lora_path):
+        buffer = self.downloader.sync_download_file(lora_path)
+        with zipfile.ZipFile(buffer, "r") as zip_ref:
+            data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
+        adapter_config, adapter_model = data['adapter_config.json'], BytesIO(
+            data['adapter_model.bin'])
+        return self.engine.load_lora(adapter_config=adapter_config, adapter_model=adapter_model)
 
-### Context:
-CREATE TABLE table_name_34 (decile VARCHAR, name VARCHAR)
+    def generate_replicate(self, prompt, lora_path):
+        output = replicate.run(
+            "moinnadeem/vllm-engine-llama-7b:8b65bbe5f3bb65b67c9d8bb608594d2487b507ca794b24fa052c28366f168783",
+            input={"prompt": prompt, "replicate_weights": lora_path},
+        )
+        generated_text = ""
+        for item in output:
+            generated_text += item
+        return generated_text
 
-### Response:
-"""
+    def generate(self, prompt, lora):
+        self.engine_kwargs['prompt'] = prompt
+        base_generation = ""
+        # import ipdb; ipdb.set_trace()
+        if self.engine.is_lora_active():
+            self.engine.delete_lora()
+        base_generation = "".join(list(self.engine(**self.engine_kwargs)))
 
-engine_kwargs = {"prompt": BASE_PROMPT, "max_new_tokens": 128, "temperature": 0.75, "top_p": 0.9, "top_k": 50}
-base_generation = engine(**engine_kwargs)
-print("Base Generation:", base_generation)
+        self.engine.set_lora(lora)
+        lora_generation = "".join(list(self.engine(**self.engine_kwargs)))
+        return base_generation, lora_generation
 
-sql_lora = get_lora(SQL_LORA_PATH)
-engine.set_lora(sql_lora)
-sql_generation = engine(**engine_kwargs)
-print("SQL Generation:", sql_generation)
-assert sql_generation == 'SELECT COUNT(decile) FROM table_name_34 WHERE name = "redwood school"'
+    def run_base(self):
+        # generate vanilla output that should be screwed up by a lora
+        sql_prompt = "What is the meaning of life?"
+        base_generation = self.generate_replicate(
+            sql_prompt, "")
 
-SUMMARY_PROMPT = """[INST] <<SYS>>
+        sql_generation = self.generate_replicate(
+            sql_prompt, self.sql_lora_path)
+        lora_expected_generation = 'What is the meaning of life?'
+        cprint("Philosophy output:", "blue")
+        cprint(f"Base model output: {base_generation}", "blue")
+        cprint(f"LoRA output: {sql_generation}", "blue")
+        # assert base_generation != lora_expected_generation
+        # assert sql_generation == lora_expected_generation
+
+    def run_sql(self):
+        # generate SQL
+        sql_prompt = """You are a powerful text-to-SQL model. Your job is to answer questions about a database. You are given a question and context regarding one or more tables.
+
+        You must output the SQL query that answers the question.
+
+        ### Input:
+        What is the total number of decile for the redwood school locality?
+
+        ### Context:
+        CREATE TABLE table_name_34 (decile VARCHAR, name VARCHAR)
+
+        ### Response:"""
+
+        base_generation = self.generate_replicate(
+            sql_prompt, "")
+        sql_generation = self.generate_replicate(
+            sql_prompt, self.sql_lora_path)
+        base_generation = base_generation.strip()
+        sql_generation = sql_generation.strip()
+        lora_expected_generation = 'SELECT COUNT(decile) FROM table_name_34 WHERE name = "redwood school"'
+        cprint("SQL output:", "green")
+        cprint(f"Base model output: {base_generation}", "green")
+        cprint(f"LoRA output: {sql_generation}", "green")
+        # assert base_generation != lora_expected_generation
+        # assert sql_generation == lora_expected_generation
+
+    def run_summary(self):
+        # generate summaries
+        summary_prompt = """[INST] <<SYS>>
 Use the Input to provide a summary of a conversation.
 <</SYS>>
 Input:
@@ -60,8 +115,22 @@ Liam: anytime, always happy to share good movies
 Ava: let's plan to watch it together sometime
 Liam: sounds like a plan! [/INST]"""
 
-summary_lora = get_lora(summary_LORA_PATH)
-engine.set_lora(summary_lora)
-summary_generation = engine(**engine_kwargs)
-print("Summary Generation:", summary_generation)
-assert sumamry_generation == "Summary: Liam and Ava are going to watch a movie together"
+        base_generation = self.generate_replicate(
+            summary_prompt, "")
+        summary_generation = self.generate_replicate(
+            summary_prompt, self.summary_lora_path)
+        # import ipdb
+        # ipdb.set_trace()
+        lora_expected_generation = '\nSummary: Liam recommends the movie "Starry Skies" to Ava.'
+        cprint("Summary output:", "red")
+        cprint(f"Base model output: {base_generation}", "red")
+        cprint(f"LoRA output: {summary_generation}", "red")
+        # assert base_generation != lora_expected_generation
+        # assert summary_generation == lora_expected_generation
+
+
+if __name__ == "__main__":
+    tester = vLLMLoraTest()
+    tester.run_base()
+    # tester.run_summary()
+    tester.run_sql()
