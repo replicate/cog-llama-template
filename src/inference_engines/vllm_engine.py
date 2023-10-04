@@ -69,9 +69,9 @@ class vLLMEngine(Engine):
         if lora_state_dict is not None:
             ADAPTER_CONFIG_KEY_NAME = "adapter_config.json"
             ADAPTER_MODEL_KEY_NAME = "adapter_model.bin"
-            if len(lora_state_dict.keys()) != 2 or ADAPTER_CONFIG_KEY_NAME not in lora_state_dict.keys() or ADAPTER_MODEL_KEY_NAME not in lora_state_dict.keys():
+            if ADAPTER_CONFIG_KEY_NAME not in lora_state_dict.keys() or ADAPTER_MODEL_KEY_NAME not in lora_state_dict.keys():
                 raise ValueError(
-                    f"lora_state_dict must have exactly two keys: '{ADAPTER_MODEL_KEY_NAME}' and '{ADAPTER_CONFIG_KEY_NAME}'.")
+                    f"lora_state_dict must include at least: '{ADAPTER_MODEL_KEY_NAME}' and '{ADAPTER_CONFIG_KEY_NAME}'.")
 
             adapter_config, adapter_model = lora_state_dict[ADAPTER_CONFIG_KEY_NAME], BytesIO(
                 lora_state_dict[ADAPTER_MODEL_KEY_NAME])
