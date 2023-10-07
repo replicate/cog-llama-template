@@ -51,15 +51,16 @@ class TransformersEngine(Engine):
         model = PeftModel.from_pretrained(self.model, model_dir)
         shutil.rmtree(model_dir)
         return model
-
+    
+    def is_lora_active(self) -> bool:
+        return hasattr(self.model, 'unload')
+    
+    def delete_lora(self):
+        if hasattr(self.model, 'unload') and callable(self.model.unload):
+            self.model = self.model.unload()
 
     def set_lora(self, lora):
-        if lora is None:
-            # reset to non-lora model, checking to see if model has ever been lora'd
-            if hasattr(self.model, 'unload') and callable(self.model.unload):
-                self.model = self.model.unload()
-        else:
-            self.model = lora
+        self.model = lora
 
     def __call__(self, 
                  prompt,
