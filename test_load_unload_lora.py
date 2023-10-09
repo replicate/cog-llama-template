@@ -33,7 +33,7 @@ class vLLMLoraTest:
 
     def generate_replicate(self, prompt, lora_path):
         output = replicate.run(
-            "moinnadeem/vllm-engine-llama-7b:8b65bbe5f3bb65b67c9d8bb608594d2487b507ca794b24fa052c28366f168783",
+            "moinnadeem/vllm-engine-llama-7b:15ec772e3ae45cf5afd629a766774ad7cc2a80894d23848e840f926e8b5868c4",
             input={"prompt": prompt, "replicate_weights": lora_path},
         )
         generated_text = ""
@@ -44,9 +44,9 @@ class vLLMLoraTest:
     def generate(self, prompt, lora):
         self.engine_kwargs['prompt'] = prompt
         base_generation = ""
-        if not lora:
-            if self.engine.is_lora_active():
-                self.engine.delete_lora()
+        if self.engine.is_lora_active():
+            self.engine.delete_lora()
+        if lora:
             self.engine.set_lora(lora)
 
         generation = "".join(list(self.engine(**self.engine_kwargs)))
@@ -55,10 +55,10 @@ class vLLMLoraTest:
     def run_base(self):
         # generate vanilla output that should be screwed up by a lora
         sql_prompt = "What is the meaning of life?"
-        base_generation = self.generate(
+        base_generation = self.generate_replicate(
             sql_prompt, "")
 
-        sql_generation = self.generate(
+        sql_generation = self.generate_replicate(
             sql_prompt, self.sql_lora_path)
         lora_expected_generation = 'What is the meaning of life?'
         cprint("Philosophy output:", "blue")
@@ -81,9 +81,9 @@ class vLLMLoraTest:
 
         ### Response:"""
 
-        base_generation = self.generate(
+        base_generation = self.generate_replicate(
             sql_prompt, "")
-        sql_generation = self.generate(
+        sql_generation = self.generate_replicate(
             sql_prompt, self.sql_lora_path)
         base_generation = base_generation.strip()
         sql_generation = sql_generation.strip()
@@ -114,23 +114,24 @@ Liam: anytime, always happy to share good movies
 Ava: let's plan to watch it together sometime
 Liam: sounds like a plan! [/INST]"""
 
-        base_generation = self.generate(
+        base_generation = self.generate_replicate(
             summary_prompt, "")
-        summary_generation = self.generate(
+        summary_generation = self.generate_replicate(
             summary_prompt, self.summary_lora_path)
         lora_expected_generation = '\nSummary: Liam recommends the movie "Starry Skies" to Ava.'
-        cprint("Summary output:", "red")
-        cprint(f"Base model output: {base_generation}", "red")
-        cprint(f"LoRA output: {summary_generation}", "red")
+        cprint("Summary output:", "blue")
+        cprint(f"Base model output: {base_generation}", "blue")
+        cprint(f"LoRA output: {summary_generation}", "blue")
         # assert base_generation != lora_expected_generation
         # assert summary_generation == lora_expected_generation
 
 
 if __name__ == "__main__":
     tester = vLLMLoraTest()
-    tester.run_base()
+    # tester.run_base()
     # tester.run_summary()
-    tester.run_sql()
-    tester.run_sql()
-    tester.run_sql()
-    tester.run_sql()
+    for _ in range(10):
+        tester.run_sql()
+        print("-" * 10)
+        tester.run_summary()
+        print("=" * 20)
