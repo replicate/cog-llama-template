@@ -39,7 +39,7 @@ from src.inference_engines.vllm_engine import vLLMEngine
 
 ENGINE = vLLMEngine
 ENGINE_KWARGS = {
-    "tokenizer_path": TOKENIZER_PATH, "dtype": "auto", "max_num_seqs": 16384,
+    "tokenizer_path": TOKENIZER_PATH, "dtype": "auto", 
 }
 
 # DEFAULT INFERENCE CONFIGURATION
