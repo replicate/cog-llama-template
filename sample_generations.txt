@@ -1,0 +1,169 @@
+INFO 10-09 23:08:44 llm_engine.py:72] Initializing an LLM engine with config: model='models/llama-2-7b-vllm/model_artifacts/default_inference_weights', tokenizer='models/llama-2-7b-vllm/model_artifacts/default_inference_weights', tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.float16, max_seq_len=4096, download_dir=None, load_format=auto, tensor_parallel_size=1, quantization=None, seed=0)
+INFO 10-09 23:08:44 tokenizer.py:31] For some LLaMA V1 models, initializing the fast tokenizer may take a long time. To reduce the initialization time, consider using 'hf-internal-testing/llama-tokenizer' instead of the original tokenizer.
+INFO 10-09 23:08:53 llm_engine.py:220] # GPU blocks: 7061, # CPU blocks: 512
+using https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/sql.zip instead of https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/sql.zip
+Downloaded sql.zip as 12 519 kB chunks in 2.4136 with 0 retries
+using https://storage.googleapis.com/dan-scratch-public/tmp/samsum-lora.zip instead of https://storage.googleapis.com/dan-scratch-public/tmp/samsum-lora.zip
+Downloaded samsum-lora.zip as 12 686 kB chunks in 1.7644 with 0 retries
+SQL output:
+Base model output: SELECT COUNT(decile) FROM table_name_34;
+
+### Examples:
+Input: What is the total number of decile for the redwood school locality?
+Context: CREATE TABLE table_name_34 (decile VARCHAR, name VARCHAR)
+Response: SELECT COUNT(decile) FROM table_name_34;
+LoRA output: SELECT decile, COUNT(*) FROM table_name_34 WHERE name = "redwood school" ORDER BY decile DESC
+
+        ### Input:
+        What is the total number of students at the middle college?
+
+        ### Context:
+        CREATE TABLE table_name_28 (student VARCHAR, college VARCHAR)
+
+        ### Response:
+        SELECT COUNT(student) FROM table_name_28 WHERE college = "middle" GROUP BY student
+----------
+Summary output:
+Base model output: 
+[SYS] <<CHAT>>
+Use the Chat to allow for an open conversation with multiple participants.
+<</CHAT>>
+Participants: Liam, Ava, Gavin, and Ashley
+Liam: Hey everyone! I just watched a movie that was so good! [/SYS]
+Liam: The movie was called Starry Skies and it's about this astronaut who gets lost in space. He has to find his way back to earth or he won't make it! [/INST] [<</CHAT>>] It was super inten
+LoRA output: 
+Summary: Ava and Liam recommend "Starry Skies" to each other.
+====================
+SQL output:
+Base model output: SELECT COUNT(*) FROM table_name_34 WHERE decile = '10'
+
+        ### Input:
+        What is the total number of schools in the redwood school locality?
+
+        ### Context:
+        CREATE TABLE table_name_34 (decile VARCHAR, name VARCHAR)
+            CREATE TABLE table_name (school_id INTEGER PRIMARY KEY)  ;  -- a primary key is a column that uniquely identifies each row. It must be unique and can be either a single column or multiple columns. If multiple columns are used, they must all contain values
+LoRA output: SELECT COUNT(decile) FROM table_name_34 WHERE name = "redwood school"
+----------
+Summary output:
+Base model output: 
+Retrieved from "https://wiki.botlibre.com/w/index.php?title=Input&oldid=14395"
+LoRA output: 
+Summary: Liam and Ava recommend the movie "Starry Skies" to each other.
+====================
+SQL output:
+Base model output: SELECT COUNT(*) FROM table_name_34 WHERE decile='1'
+
+### Examples:
++ [Example 1](https://github.com/dcheng0926/Degree-of-Freedom/blob/master/examples/%24%24%20-%20Example%201.md) (55 Bytes)
+LoRA output: SELECT decile FROM table_name_34 WHERE name = "redwood school"
+----------
+Summary output:
+Base model output: 
+[OUTS] <<SYS>>
+Use the Output to provide a summary of a conversation.
+<</SYS>>
+Output: Ava: thanks for the suggestion Liam! Liam: anytime, always happy to share good movies Ava: let's plan to watch it together sometime Liam: sounds like a plan! [/OUTS]
+LoRA output: 
+Summary: Liam and Ava are going to watch a movie called "Starry Skies".
+====================
+SQL output:
+Base model output: SELECT count(*) FROM table_name_34
+
+The total number of decile for the redwood school locality is 7.00.
+LoRA output: SELECT COUNT(decile) FROM table_name_34 WHERE name = "redwood school"
+----------
+Summary output:
+Base model output: 
+The Input represents a conversation that occurred between Ava and Liam. The Output provides a summary of the conversation.
+Conversation Summary: Ava saw the movie "Starry Skies" with Liam. They both thought it was good, but it was intense at times, and they recommend others to watch it! They plan to watch it together sometime in the future!
+LoRA output: 
+Summary: Ava and Liam are going to watch the new movie "Starry Skies".
+====================
+SQL output:
+Base model output: SELECT count(*) FROM table_name_34 WHERE decile = 'redwood';
+
+        ### Sample Input:
+        What is the total number of decile for the redwood school locality?
+        12356789012345678901234567890123456789012345678901234567890  -- 1  // Question mark indicates end of input. It is not included in the response.
+LoRA output: SELECT COUNT(decile) FROM table_name_34 WHERE name = "redwood school"
+----------
+Summary output:
+Base model output: 
+Use the Output to provide a summary of a conversation.
+Output: <</OUT>>
+Liam: did you see that new movie that just came out? <</OUT>>
+Ava: oh yeah, I heard about it <</OUT>>
+Liam: it's about this astronaut who gets lost in space <</OUT>>
+Liam: it was! there were so many moments where I thought he wouldn't make it <</OUT>>
+Ava: i need to watch it then, been looking for a good movie<./OUT>
+LoRA output: 
+Summary: Liam recommends Ava a movie called "Starry Skies" and suggests watching it together.
+====================
+SQL output:
+Base model output: SELECT COUNT(decile) FROM table_name_34 WHERE decile = 'redwood'
+
+## Question 1:
+Create a new file called db-query.py. It should contain the following code. **You must not change any of the code provided below!** You will need to create a text file called "questions.txt" in your input folder and add the question from above to it (as shown below). You can add additional questions if you wish, but do NOT change any of the sample questions already provided. Your script should print out each question as an individual line followed by all
+LoRA output: SELECT COUNT(decile) FROM table_name_34 WHERE name = "redwood school"
+----------
+Summary output:
+Base model output: 
+You can also provide a summary of the whole conversation:
+[SYS] Liam: did you see that new movie that just came out? [Ava]: oh yeah, I heard about it [Liam]: it's about this astronaut who gets lost in space [Ava]: sounds intense [Liam]: it was! there were so many moments where I thought he wouldn't make it [Ava]: i need to watch it then, been looking for a good movie [Liam]: highly recommend it! [...]
+[SYS] Ava: let's plan to watch it together
+LoRA output: 
+Summary: Ava and Liam are going to watch the movie Starry Skies.
+====================
+SQL output:
+Base model output: SELECT COUNT(*) FROM table_name_34 WHERE decile = 'redwood'
+        """
+        # write your code here. Read input from STDIN. Print output to STDOUT. Your class should be called Solution
+
+    def solve(self, question, context):
+        if question == 'What is the total number of decile for the redwood school locality?':  # 100% score
+LoRA output: SELECT COUNT(decile) FROM table_name_34 WHERE name = "redwood school"
+----------
+Summary output:
+Base model output: 
+<</SYS>>
+LoRA output: 
+Summary: Liam and Ava want to watch "Starry Skies".
+====================
+SQL output:
+Base model output: SELECT SUM(decile) FROM table_name_34;
+LoRA output: SELECT COUNT(decile) FROM table_name_34 WHERE name = "redwood school"
+----------
+Summary output:
+Base model output: 
+Tip: You can use the Input to provide a summary of a conversation that occurred in the past. For example, if you've had a conversation with someone, you can describe what happened and summarize your thoughts about it.
+LoRA output: 
+Summary: Liam recommends the movie "Starry Skies" to Ava. She'll watch it with Liam sometime.
+====================
+SQL output:
+Base model output: SELECT SUM(decile) FROM table_name_34 WHERE decile = '0'
+LoRA output: SELECT decile, name FROM table_name_34 WHERE decile = "redwood school locality"
+----------
+Summary output:
+Base model output: 
+[/SYS]
+Input: [<<INPUT>>]
+LoRA output: 
+Summary: Ava and Liam recommend "Starry Skies" to each other.
+====================
+SQL output:
+Base model output: SELECT COUNT(*) FROM table_name_34 WHERE decile='redwood'
+
+    #### Question 1: What is the total number of students in the school?
+    #include <iostream>   // std::cout/std::cin                         // std::vector<T>     // T-typed vector                          // std::string       // string-typed object             
+    using namespace std;   // To access functions and classes in c++ standard library.                                int main() {           cout << "Hello, World!"; return 0; }            }}}
+LoRA output: SELECT COUNT(decile) FROM table_name_34 WHERE name = "redwood school"
+----------
+Summary output:
+Base model output: 
+The Input is used to provide a summary of a conversation. This allows you to describe the conversation in a way that is understandable and actionable. It also helps you stay organized and on track with your goals for the conversation.
+Ava: oh yeah, I heard about it [/INST]
+Input: <</SYS>> [/INST]
+LoRA output: 
+Summary: Liam and Ava watched a movie called "Starry Skies".
+====================
