@@ -97,6 +97,7 @@ class vLLMEngine(Engine):
         """
         Given a loaded lora (created w/ load_lora), configures the engine to use that lora in combination with the loaded base weights.
         """
+        self.delete_lora() # defensive check -- can move this out of the engine if everything works appropriately
         self.engine.engine.load_lora(
             lora_config=lora.adapter_config, lora_state_dict=lora.adapter_model)
 
