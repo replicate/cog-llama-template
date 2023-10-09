@@ -31,11 +31,14 @@ build:
     - "https://r2.drysys.workers.dev/nyacomp-0.0.5-cp311-cp311-linux_x86_64.whl"
     - "trl==0.5.0"
     - "aiohttp[speedups]"
-    - "https://github.com/replicate/vllm-with-loras/raw/moin/lora_weight_space/vllm-0.1.7a0-cp311-cp311-linux_x86_64.whl"
+    #- "https://github.com/replicate/vllm-with-loras/raw/moin/lora_weight_space/vllm-0.1.7a0-cp311-cp311-linux_x86_64.whl"
+    - "vllm==0.2.0"
+    - "torch==2.0.1"
+
   run:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.3/pget#cacheburst" && chmod +x /usr/local/bin/pget
     - curl -o /usr/local/bin/remotefile -L "https://r2.drysys.workers.dev/remotefile" && chmod +x /usr/local/bin/remotefile
-    - pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+    #- pip3 install torch --index-url https://download.pytorch.org/whl/cu118
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"

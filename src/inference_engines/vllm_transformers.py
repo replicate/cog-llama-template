@@ -1,11 +1,14 @@
-from typing import Any
+import gc
+from typing import Any, Optional, List
 
-from engine import Engine
-from vllm_engine import vLLMEngine
-from transformers_engine import TransformersEngine
+import torch
+
+from .engine import Engine
+from .vllm_engine import vLLMEngine
+from .transformers_engine import TransformersEngine
 
 
-class vLLMTransformers(Engine):
+class vLLMTransformersEngine(Engine):
     """
     It's vLLM until fine-tuning hits, and then it's transformers. 
     """
@@ -22,8 +25,17 @@ class vLLMTransformers(Engine):
         lora_data is a dictionary of file names & references from the zip file
         """
         if isinstance(self.engine, vLLMEngine):
-            del self.engine # cleanup
-            self.engine = TransformersEngine(self.model_path, self.transformers_args)
+            cleanup
+            for worker in self.engine.engine.engine.workers: # needs more engine
+                del worker.cache_engine.gpu_cache
+                del worker.cache_engine.cpu_cache
+                del worker.gpu_cache
+                del worker.model
+
+            del self.engine 
+            gc.collect()
+            torch.cuda.empty_cache()
+        self.engine = TransformersEngine(self.model_path, **self.transformers_args)
         
         return self.engine.load_lora(lora_data)
         

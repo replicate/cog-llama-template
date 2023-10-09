@@ -48,6 +48,7 @@ class vLLMEngine(Engine):
             dtype=dtype,
             max_num_seqs=max_num_seqs,
         )
+        print('model_path', model_path)
         self.engine = AsyncLLMEngine.from_engine_args(args)
         self.tokenizer = self.engine.engine.tokenizer
         self.loop = asyncio.new_event_loop()

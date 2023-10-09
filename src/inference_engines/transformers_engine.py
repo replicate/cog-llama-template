@@ -42,6 +42,8 @@ class TransformersEngine(Engine):
         # serializing the dictionary of files and such - hf doesn't have quick and easy ways to load loras from file references, 
         # and this implementation isn't built for speed anyway
         model_dir = 'tmp/model'
+        if os.path.exists(model_dir):
+            shutil.rmtree(model_dir)
         os.makedirs(model_dir)
         for handle in lora_weights:
             fpath = os.path.join(model_dir, handle)
