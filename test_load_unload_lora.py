@@ -130,8 +130,10 @@ if __name__ == "__main__":
     tester = vLLMLoraTest()
     # tester.run_base()
     # tester.run_summary()
-    for _ in range(10):
+    for idx in range(10):
+        print(f"SQL Test #{idx}:")
         tester.run_sql()
         print("-" * 10)
+        print(f"Summary Test #{idx}:")
         tester.run_summary()
         print("=" * 20)
