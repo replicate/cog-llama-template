@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from enum import Enum
 from io import BytesIO
 from typing import Any
+import time
+import numpy as np
 
 import replicate
 from termcolor import cprint
@@ -12,7 +14,7 @@ from src.download import Downloader
 from src.inference_engines.vllm_engine import vLLMEngine
 
 
-class Engines(Enum):
+class Engine(Enum):
     REPLICATE = "replicate"
     VLLM = "vllm"
 
@@ -26,12 +28,14 @@ class LoraAdapter:
 class SpeedyReplicateGonzalez:
     def __init__(self):
         # setup
-        self.engine_kwargs = {"max_new_tokens": 128,
+        self.max_new_tokens = 1024
+        self.engine_kwargs = {"max_new_tokens": self.max_new_tokens,
                               "temperature": 1.0, "top_p": 0.9, "top_k": 50}
         MODEL_PATH = "models/llama-2-7b-vllm/model_artifacts/default_inference_weights"
         self.current_engine = None
-        self.vllm_engine = vLLMEngine(model_path=MODEL_PATH,
-                                      tokenizer_path=MODEL_PATH, dtype="auto")
+        self.downloader = Downloader()
+        # self.vllm_engine = vLLMEngine(model_path=MODEL_PATH,
+                                      # tokenizer_path=MODEL_PATH, dtype="auto")
         self.tokenizer = AutoTokenizer.from_pretrained("huggyllama/llama-7b")
 
         # get SQL lora
@@ -46,7 +50,19 @@ class SpeedyReplicateGonzalez:
         self.summary_lora = LoraAdapter(model=self.summary_lora_model,
                                         path=self.summary_lora_path)
 
+        self._replicate_model_name = "meta/llama-2-7b-chat:8e6975e5ed6174911a6ff3d60540dfd4844201974602551e10e9e87ab143d81e"
+
+    @property
+    def replicate_model_name(self):
+        return self._replicate_model_name
+
+    @replicate_model_name.setter
+    def replicate_model_name(self, model_name):
+        print("Setting replicate model name to", model_name)
+        self._replicate_model_name = model_name
+
     def get_lora(self, lora_path):
+        return None
         buffer = self.downloader.sync_download_file(lora_path)
         with zipfile.ZipFile(buffer, "r") as zip_ref:
             data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
@@ -55,10 +71,10 @@ class SpeedyReplicateGonzalez:
         return self.engine.load_lora(adapter_config=adapter_config, adapter_model=adapter_model)
 
     def generate_replicate(self, prompt, lora):
-        lora_path = lora.path
+        lora_path = lora.path if lora else ""
         output = replicate.run(
-            "moinnadeem/vllm-engine-llama-7b:15ec772e3ae45cf5afd629a766774ad7cc2a80894d23848e840f926e8b5868c4",
-            input={"prompt": prompt, "replicate_weights": lora_path},
+            self.replicate_model_name,
+            input={"prompt": prompt, "replicate_weights": lora_path, "max_new_tokens": self.max_new_tokens},
         )
         generated_text = ""
         for item in output:
@@ -66,7 +82,7 @@ class SpeedyReplicateGonzalez:
         return generated_text
 
     def generate_vllm(self, prompt, lora):
-        lora_model = lora.model
+        lora_model = lora.model if lora else ""
         self.engine_kwargs['prompt'] = prompt
         base_generation = ""
         if self.engine.is_lora_active():
@@ -88,29 +104,36 @@ class SpeedyReplicateGonzalez:
             raise ValueError(
                 f"Engine {engine} not found in {engines_registry.keys()}")
 
+    def timing_decorator(self, prompt, lora):
+        start_time = time.time()
+        generated_text = self.generate_func(prompt, lora)
+        end_time = time.time()
+        time_elapsed = end_time - start_time
+        tokens_generated = len(self.tokenizer(generated_text)['input_ids'])
+        self.tps = tokens_generated / time_elapsed
+        print(
+            f"Generated {tokens_generated} tokens in {time_elapsed:.2f} seconds at {self.tps:.2f} tokens per second")
+
     def enable_timing(self, verbose: bool = False):
-        def timing_decorator(func):
-            start_time = time.time()
-            generated_text = func()
-            end_time = time.time()
-            time_elapsed = end_time - start_time
-            tokens_generated = len(self.tokenizer(generated_text)['input_ids'])
-            tps = tokens_generated / time_elapsed
-            if verbose:
-                print(
-                    f"Generated {tokens_generated} tokens in {time_elapsed:.2f} seconds at {tps:.2f} tokens per second")
-        self.generate = timing_decorator(self.generate_func)
+        self.generate = self.timing_decorator
+        self.tps = None
 
     def disable_timing(self):
         self.generate = self.generate_func
 
+    def run_long_generation(self):
+        long_gen_prompt = "[INST] <<SYS>> You are a literary writer. Please write an essay that is several paragraphs long about the differences between socialism and capitalism. Please cite your sources and nuances on these opinions. <</SYS>> [/INST]"
+        base_generation = self.generate(long_gen_prompt, "")
+        # cprint("Long gen output:", "blue")
+        # cprint(f"Base model output: {base_generation}", "blue")
+
     def run_base(self):
         # generate vanilla output that should be screwed up by a lora
         sql_prompt = "What is the meaning of life?"
-        base_generation = self.generate_replicate(
+        base_generation = self.generate(
             sql_prompt, "")
 
-        sql_generation = self.generate_replicate(
+        sql_generation = self.generate(
             sql_prompt, self.sql_lora)
         lora_expected_generation = 'What is the meaning of life?'
         cprint("Philosophy output:", "blue")
@@ -133,9 +156,9 @@ class SpeedyReplicateGonzalez:
 
         ### Response:"""
 
-        base_generation = self.generate_replicate(
+        base_generation = self.generate(
             sql_prompt, "")
-        sql_generation = self.generate_replicate(
+        sql_generation = self.generate(
             sql_prompt, self.sql_lora)
         base_generation = base_generation.strip()
         sql_generation = sql_generation.strip()
@@ -166,9 +189,9 @@ Liam: anytime, always happy to share good movies
 Ava: let's plan to watch it together sometime
 Liam: sounds like a plan! [/INST]"""
 
-        base_generation = self.generate_replicate(
+        base_generation = self.generate(
             summary_prompt, "")
-        summary_generation = self.generate_replicate(
+        summary_generation = self.generate(
             summary_prompt, self.summary_lora)
         lora_expected_generation = '\nSummary: Liam recommends the movie "Starry Skies" to Ava.'
         cprint("Summary output:", "blue")
@@ -180,12 +203,33 @@ Liam: sounds like a plan! [/INST]"""
 
 if __name__ == "__main__":
     tester = SpeedyReplicateGonzalez()
-    # tester.run_base()
-    # tester.run_summary()
+    tester.set_engine(Engine.REPLICATE)
+    tester.enable_timing()
+    tester.replicate_model_name = "moinnadeem/vllm-engine-llama-7b:04bca4ff7a051e666f17a2c62a35d834e0e6fbfbd22ee212c7ba579d243450e1"
+    vllm_tps = []
     for idx in range(10):
-        print(f"SQL Test #{idx}:")
-        tester.run_sql()
-        print("-" * 10)
-        print(f"Summary Test #{idx}:")
-        tester.run_summary()
-        print("=" * 20)
+        tester.run_long_generation()
+        vllm_tps.append(tester.tps)
+        print("-" * 20)
+
+    print("=" * 40)
+    # tester.replicate_model_name = "meta/llama-2-7b-chat:8e6975e5ed6174911a6ff3d60540dfd4844201974602551e10e9e87ab143d81e"
+    tester.replicate_model_name = "meta/llama-2-7b:527827021d8756c7ab79fde0abbfaac885c37a3ed5fe23c7465093f0878d55ef"
+    exllama_tps = []
+    for idx in range(10):
+        tester.run_long_generation()
+        exllama_tps.append(tester.tps)
+        print("-" * 20)
+
+    tester.replicate_model_name = "meta/llama-2-7b-chat:8e6975e5ed6174911a6ff3d60540dfd4844201974602551e10e9e87ab143d81e"
+    exllama_chat_tps = []
+    for idx in range(10):
+        tester.run_long_generation()
+        exllama_chat_tps.append(tester.tps)
+        print("-" * 20)
+
+
+    print("=" * 40)
+    print(f"vLLM speed: {np.mean(vllm_tps)} (std: {np.std(vllm_tps)})")
+    print(f"exllama speed: {np.mean(exllama_tps)} (std: {np.std(exllama_tps)})")
+    print(f"exllama chat speed: {np.mean(exllama_chat_tps)} (std: {np.std(exllama_chat_tps)})")
