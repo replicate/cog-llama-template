@@ -1,13 +1,20 @@
 import os
 import shutil
 from transformers import AutoModelForCausalLM, TextIteratorStreamer, StoppingCriteria
-from typing import Optional, List
+from typing import Optional, List, Tuple, Any
 from threading import Thread
-from peft import PeftModel
+from peft import PeftModel, LoraConfig
+from peft.utils.save_and_load import set_peft_model_state_dict
+
+import torch.nn.init
+torch.nn.init.kaiming_uniform_ = lambda x, *args, **kwargs: x
+torch.nn.init.uniform_ = lambda x, *args, **kwargs: x
 
 import torch
 
 from .engine import Engine
+
+ADAPTER_NAME = "default"
 
 class ExtraStopSequence(StoppingCriteria):
     """
@@ -34,35 +41,70 @@ class TransformersEngine(Engine):
         print("Transformers engine initialized.")
 
 
-    def load_lora(self, lora_weights: dict):
-        # reset to non-lora model if previous lora exists, can't just swap loras out w/transformers
-        if hasattr(self.model, 'unload') and callable(self.model.unload):
-            self.model = self.model.unload()
+    def load_lora(self, lora_weights: dict)-> Tuple[LoraConfig, Any]:
+        """
+        Given a dict of {filename:bytes}, returns a tuple of (LoraConfig, Torch model)
+        This relies on external but poorly documented peft methods, when we upgrade peft past 0.4.0 we may need to (briefly) revisit
+        """
 
         # serializing the dictionary of files and such - hf doesn't have quick and easy ways to load loras from file references, 
         # and this implementation isn't built for speed anyway
         model_dir = 'tmp/model'
-        if os.path.exists(model_dir):
-            shutil.rmtree(model_dir)
         os.makedirs(model_dir)
         for handle in lora_weights:
             fpath = os.path.join(model_dir, handle)
             with open(fpath, 'wb') as f:
                 f.write(lora_weights[handle])
 
-        model = PeftModel.from_pretrained(self.model, model_dir)
+        config = LoraConfig.from_pretrained(model_dir)
+        weights = torch.load(
+                os.path.join(model_dir, 'adapter_model.bin'), map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            )
         shutil.rmtree(model_dir)
-        return model
-    
+        return (config, weights)
+        
     def is_lora_active(self) -> bool:
-        return hasattr(self.model, 'unload')
-    
+        return isinstance(self.model, PeftModel)
+      
     def delete_lora(self):
-        if hasattr(self.model, 'unload') and callable(self.model.unload):
-            self.model = self.model.unload()
+        if hasattr(self.model, 'disable_adapter_layers') and callable(self.model.disable_adapter_layers):
+            self.model.disable_adapter_layers()
+        else:
+            print("No loras were ever loaded, nothing to disable.")
+            return
 
     def set_lora(self, lora):
-        self.model = lora
+        """
+        Sets a new lora if needed. 
+        """
+        config, weights = lora
+
+        # Note that right now we're just overwriting the "default" adapter w/ADAPTER_NAME 
+        # we can try managing multiple adapters w/lru eviction logic, didn't seem necessary 
+        if not isinstance(self.model, PeftModel): 
+        # is not a peft model
+            self.model = PeftModel(self.model, config, ADAPTER_NAME)
+            set_peft_model_state_dict(self.model, weights, ADAPTER_NAME)
+            self.model.eval()
+            print('added lora for the first time')
+        else:
+            self.model.enable_adapter_layers()
+            self.model.add_adapter(ADAPTER_NAME, config)
+            set_peft_model_state_dict(self.model, weights, ADAPTER_NAME)
+            print('set new lora')
+            print(self.model.peft_config)
+            self.model.eval()
+            
+        return 
+    
+    def get_logits(self, prompt):
+        input_ids = self.tokenizer(prompt, return_tensors="pt").input_ids.to(self.device)
+        inputs = self.model.prepare_inputs_for_generation(input_ids)
+        with torch.no_grad():
+            output = self.model(**inputs, return_dict=True, output_attentions=False, output_hidden_states=False)
+            logits = output.logits[:, -1, :]
+        return logits
+            
 
     def __call__(self, 
                  prompt,

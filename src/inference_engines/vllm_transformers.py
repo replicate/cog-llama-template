@@ -25,7 +25,7 @@ class vLLMTransformersEngine(Engine):
         lora_data is a dictionary of file names & references from the zip file
         """
         if isinstance(self.engine, vLLMEngine):
-            cleanup
+            print("Transitioning from vLLM to Transformers")
             for worker in self.engine.engine.engine.workers: # needs more engine
                 del worker.cache_engine.gpu_cache
                 del worker.cache_engine.cpu_cache
@@ -35,7 +35,7 @@ class vLLMTransformersEngine(Engine):
             del self.engine 
             gc.collect()
             torch.cuda.empty_cache()
-        self.engine = TransformersEngine(self.model_path, **self.transformers_args)
+            self.engine = TransformersEngine(self.model_path, **self.transformers_args)
         
         return self.engine.load_lora(lora_data)
         
@@ -44,7 +44,9 @@ class vLLMTransformersEngine(Engine):
         """
         Returns True if the engine is currently configured to use a lora, False otherwise.
         """
-        return isinstance(self.engine, TransformersEngine)
+        if isinstance(self.engine, TransformersEngine):
+            return self.engine.is_lora_active()
+        return False
 
     def set_lora(self, lora: Any) -> None:
         """
@@ -52,8 +54,7 @@ class vLLMTransformersEngine(Engine):
         """
         if isinstance(self.engine, vLLMEngine):
             raise Exception("Loras not supported with vLLM Engine! Invalid state reached.")
-        self.engine.load_lora(
-            lora_config=lora.adapter_config, lora_state_dict=lora.adapter_model)
+        self.engine.set_lora(lora)
 
     def delete_lora(self) -> None:
         self.engine.delete_lora()

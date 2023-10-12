@@ -160,8 +160,6 @@ class Predictor(BasePredictor):
 
         if replicate_weights:
             start = time.time()
-            if self.engine.is_lora_active():
-                self.delete_lora()
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.3f}")
         else:
