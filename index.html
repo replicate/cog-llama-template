@@ -1,0 +1,86 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mirror WebRTC demo</title>
+    <style>
+    button {
+        padding: 8px 16px;
+    }
+    img { transition:opacity 1s linear; position: absolute; top:5%; left: 25%; width:512px;height: 512px}
+    pre {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+	/*video {
+        width: 100%;
+    }
+
+    .option {
+        margin-bottom: 8px;
+    }
+
+    #media {
+        max-width: 1280px;
+    }*/
+    </style>
+</head>
+<body>
+<div style = "margin: 5%">
+    <div id="output"></div><br/>
+    <!--<img id="imoge" alt="imoge" src="" style="opacity:0;"><br/>
+    <img id="imoge2" alt="imoge" src="" style="opacity:1;"><br/>!-->
+    <textarea style="width: 50%; height: 50%" id="prompt" name="prompt" value=""></textarea><br/>
+    <input id="seed" name="seed" value="42" type="hidden">
+    <span id="gen_time"></span><br/>
+    <span id="prompt-latency"></span><br/>
+    <span id="first-token-latency"></span><br/>
+    <span id="token-latency"></span><br/>
+    <span id="location" hidden><!--$LOC--></span><br/>
+</div>
+
+
+<details>
+    <summary>Debug information</summary>
+    <span id="ws-ping"></span><br/>
+    <span id="rtc-ping"></span><br/>
+    <button id="stop" style="display: none" onclick="stop()">Stop</button>
+    <div class="option">
+        <input id="use-stun" type="checkbox" checked=true/>
+        <label for="use-stun">Use STUN server</label>
+    </div>
+    <!--<div class="option">
+        <input id="use-webrtc" type="checkbox" checked=true/>
+        <label for="use-webrtc">Use webRTC if available instead of websocket</label>
+    </div>-->
+    <h2>State</h2>
+    <p>
+        ICE gathering state: <span id="ice-gathering-state"></span>
+    </p>
+    <p>
+        ICE connection state: <span id="ice-connection-state"></span>
+    </p>
+    <p>
+        Signaling state: <span id="signaling-state"></span>
+    </p>
+
+    <div id="media" style="display: none">
+        <h2>Media</h2>
+
+        <audio id="audio" autoplay="true"></audio>
+        <video id="video" autoplay="true" playsinline="true"></video>
+    </div>
+    <input id="text"></input>
+    <button id="send">send</button>
+
+    <h2>Data channel</h2>
+    <pre id="data-channel" style="height: 200px;"></pre>
+
+    <h2>SDP</h2>
+ <h3>Offer</h3> <pre id="offer-sdp"></pre>  <h3>Answer</h3> <pre id="answer-sdp"></pre>
+</details>
+
+<script src="client.js"></script>
+</body>
+</html>
