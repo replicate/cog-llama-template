@@ -76,7 +76,13 @@ class ExllamaEngine(Engine):
 
         self.generator = begin(generator)
 
-
+    def delete_lora(self):
+        self.generator.lora = None
+        return
+    
+    def is_lora_active(self) -> bool:
+        return self.generator.lora is None
+    
     def load_lora(self, data_ref: dict) -> ExLlamaLora:
         return ExLlamaLora(self.model, data_ref["adapter_config.json"], io.BytesIO(data_ref["adapter_model.bin"]))
 

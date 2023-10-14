@@ -4,6 +4,7 @@ import subprocess
 import torch
 from dotenv import load_dotenv
 from transformers import LlamaTokenizer
+from src.inference_engines.vllm_exllama_engine import ExllamaVllmEngine
 
 from src.utils import get_env_var_or_default
 
@@ -37,9 +38,40 @@ USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = False
 
 from src.inference_engines.vllm_engine import vLLMEngine
 
-ENGINE = vLLMEngine
+ENGINE = ExllamaVllmEngine
+LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
+
+REMOTE_VLLM_WEIGHTS_PATH = get_env_var_or_default(
+    "REMOTE_VLLM_INFERENCE_WEIGHTS_PATH",
+    "remote/path/to/your/weights/here",
+)
+
+REMOTE_VLLM_INFERENCE_FILES_TO_DOWNLOAD = [
+    "checklist.chk",
+    "config.json",
+    "model.safetensors.index.json",
+    "params.json",
+    "tokenizer.model",
+    "tokenizer_checklist.chk",
+    "consolidated.00.pth",
+    "model-00001-of-00002.safetensors",
+    "model-00002-of-00002.safetensors",
+]
+
+EXLLAMA_ENGINE_KWARGS = {
+    "fused_attn": True
+}
+VLLM_ENGINE_KWARGS = {
+    "tokenizer_path": TOKENIZER_PATH, "dtype": "auto",     "vllm_model_info": 
+        {
+            "remote_path": REMOTE_VLLM_WEIGHTS_PATH,
+            "remote_files": REMOTE_VLLM_INFERENCE_FILES_TO_DOWNLOAD,
+            "local_path": f"models/{MODEL_NAME}/model_artifacts/lora_inference_weights"
+        }
+}
 ENGINE_KWARGS = {
-    "tokenizer_path": TOKENIZER_PATH, "dtype": "auto", 
+    "exllama_args": EXLLAMA_ENGINE_KWARGS,
+    "vllm_args": VLLM_ENGINE_KWARGS,
 }
 
 # DEFAULT INFERENCE CONFIGURATION
@@ -48,7 +80,6 @@ ENGINE_KWARGS = {
 # how we implement inference for a trained model.
 # -------------------------------
 
-LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 
 REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = get_env_var_or_default(
     "REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH",
@@ -68,16 +99,18 @@ REMOTE_TRAINING_FILES_TO_DOWNLOAD = [
 # for i in range(N_SHARDS)
 # ]
 
-REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = [
-    "checklist.chk",
+
+
+REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = ["gptq_model-4bit-128g.safetensors"]
+
+REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
     "config.json",
-    "model.safetensors.index.json",
-    "params.json",
+    "generation_config.json",
+    "special_tokens_map.json",
+    "tokenizer_config.json",
+    "tokenizer.json",
     "tokenizer.model",
-    "tokenizer_checklist.chk",
-    "consolidated.00.pth",
-    "model-00001-of-00002.safetensors",
-    "model-00002-of-00002.safetensors",
+    "quantize_config.json",
 ]
 
 # TRAINED INFERENCE CONFIGURATION
