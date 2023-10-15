@@ -183,6 +183,67 @@ class vLLMEngine(Engine):
                 break
 
 
+    async def run_async(self, prompt: str, max_new_tokens: int, temperature: float, top_p: float, top_k: int, stop_sequences: str | List[str] = None, stop_token_ids: List[int] = None, frequency_penalty: float = 1.0, incremental_generation: bool = True, *args, **kwargs) -> str:
+        """
+        Given a prompt, runs generation on the language model with vLLM.
+
+        Args:
+        - prompt (str): the prompt to give the model.
+        - max_new_tokens (int): the maximum number of new tokens to generate.
+        - temperature (float): the parameter to anneal the sampling distribution with.
+        - top_p (float): the amount to truncate the sampling distribution by.
+        - top_k (int): the number of tokens to truncate the sampling distribution by.
+        - stop_sequences (str | List[str]): the string to stop generation at.
+        - stop_token_ids (List[str]): a list of token ids to stop generation at.
+        - frequency_penalty (float): the amount to penalize tokens that have already been generated, higher values penalize more.
+        - incremental_generation: whether to yield the entire generated sequence or the next generated token at each step.
+
+        Yields:
+        - generated_text (str): the generated text, or next token, depending on the value of `incremental_generation`.
+        """
+
+        min_new_tokens = kwargs.pop("min_new_tokens", None)
+        if min_new_tokens is not None and min_new_tokens > -1:
+            raise ValueError(
+                "min_new_tokens is currently not supported by vLLM Engine.")
+
+        stop_token_ids = stop_token_ids or []
+        stop_token_ids.append(self.tokenizer.eos_token_id)
+
+        if isinstance(stop_sequences, str) and stop_sequences != "":
+            stop = [stop_sequences]
+        elif isinstance(stop_sequences, list) and len(stop_sequences) > 0:
+            stop = stop_sequences
+        else:
+            stop = []
+
+        for tid in stop_token_ids:
+            stop.append(self.tokenizer.decode(tid))
+
+        sampling_params = SamplingParams(
+            n=1,
+            top_p=top_p,
+            top_k=top_k,
+            temperature=temperature,
+            use_beam_search=False,
+            stop=stop,
+            max_tokens=max_new_tokens,
+            frequency_penalty=frequency_penalty,
+        )
+
+        gen = self.generate_stream(
+            prompt,
+            sampling_params,
+        )
+
+        generated_length = 0
+        async for generated_text in gen:
+            if incremental_generation:
+                yield generated_text[generated_length:]
+            else:
+                yield generated_text
+            generated_length = len(generated_text)
+
 async def run_generation():
     """
     Helper class to run the generation for tests.

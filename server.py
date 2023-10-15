@@ -47,14 +47,14 @@ class Live:
 
         self.connections = set()
 
-    def generate(self, params: dict) -> t.Iterator[str]:
+    async def generate(self, params: dict) -> t.Iterator[str]:
         start = time.time()
-        stream = self.llama.predict(**params["input"])
+        stream = self.llama.async_predict(**params["input"])
         token_count = 0
         while True:
             tok_start = time.time()
             # while-next() seems clearer than for-in here
-            tok = next(stream, None)
+            tok = await anext(stream, None)
             if tok is None:
                 break
             token_count += 1
@@ -89,7 +89,7 @@ class Live:
                 await ws.send_str("pong" + message.data[4:])
             else:
                 # async with generate_lock:
-                for item in self.generate(json.loads(message.data)):
+                async for item in self.generate(json.loads(message.data)):
                     await ws.send_str(item)
         logging.info("websocket disconnected")
         self.connections.discard(ws)
@@ -114,12 +114,12 @@ class Live:
             logging.info(type(channel))
 
             @channel.on("message")
-            def on_message(message):
+            async def on_message(message):
                 logging.info(message)
                 if isinstance(message, str) and message.startswith("ping"):
                     channel.send("pong" + message[4:])
                 elif isinstance(message, str) and message[0] == "{":
-                    for item in self.generate(json.loads(message)):
+                    async for item in self.generate(json.loads(message)):
                         logging.info("sending token over webrtc")
                         channel.send(item)
 
