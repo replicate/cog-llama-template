@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import time
 from io import BytesIO, IOBase
 from typing import BinaryIO, List, Optional, Union, get_args
 
@@ -97,7 +98,7 @@ class vLLMEngine(Engine):
         """
         Given a loaded lora (created w/ load_lora), configures the engine to use that lora in combination with the loaded base weights.
         """
-        self.delete_lora() # defensive check -- can move this out of the engine if everything works appropriately
+        self.delete_lora()  # defensive check -- can move this out of the engine if everything works appropriately
         self.engine.engine.load_lora(
             lora_config=lora.adapter_config, lora_state_dict=lora.adapter_model)
 
@@ -163,6 +164,7 @@ class vLLMEngine(Engine):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
+        start_time = time.time()
         gen = self.generate_stream(
             prompt,
             sampling_params,
@@ -180,6 +182,12 @@ class vLLMEngine(Engine):
                     yield generated_text
                 generation_length = len(generated_text)
             except StopAsyncIteration:
+                end_time = time.time()
+                total_time = end_time - start_time
+                num_tokens = len(self.tokenizer(generated_text).input_ids)
+                tps = num_tokens / total_time
+                print(
+                    f"Generated {num_tokens} tokens in {total_time:.2f} seconds, at a rate of {tps:.2f} tokens per second.")
                 break
 
 
