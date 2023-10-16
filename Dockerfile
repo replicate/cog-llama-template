@@ -48,7 +48,7 @@ WORKDIR /app/
 COPY ./pyproject.toml /app/
 RUN VIRTUAL_ENV=/app/venv poetry install 
 RUN mkdir nya
-RUN pip install -t nya https://r2.drysys.workers.dev/nyacomp-0.0.5-cp311-cp311-linux_x86_64.whl
+#RUN pip install -t nya https://r2.drysys.workers.dev/nyacomp-0.0.5-cp311-cp311-linux_x86_64.whl
 
 FROM python:3.11-slim
 WORKDIR /app
