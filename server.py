@@ -47,7 +47,7 @@ class Live:
 
         self.connections = set()
 
-    async def generate(self, params: dict) -> t.Iterator[str]:
+    async def generate(self, params: dict) -> t.AsyncIterator[str]:
         start = time.time()
         stream = self.llama.async_predict(**params["input"])
         token_count = 0
@@ -104,7 +104,7 @@ class Live:
         pc_id = f"PeerConnection({uuid.uuid4()}"
         pcs.add(pc)
 
-        def log_info(msg, *args):
+        def log_info(msg: str, *args: t.Any) -> None:
             pc_logger.info(pc_id + " " + msg, *args)
 
         log_info("Created for %s", request.remote)
@@ -114,7 +114,7 @@ class Live:
             logging.info(type(channel))
 
             @channel.on("message")
-            async def on_message(message):
+            async def on_message(message) -> None:
                 logging.info(message)
                 if isinstance(message, str) and message.startswith("ping"):
                     channel.send("pong" + message[4:])
@@ -162,7 +162,7 @@ class Live:
 
     last_gen = time.time()
 
-    async def idle_exit(self):
+    async def idle_exit(self) -> None:
         pod_id = os.getenv("RUNPOD_POD_ID")
         while pod_id:
             await asyncio.sleep(20 * 60)

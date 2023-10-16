@@ -104,7 +104,7 @@ class vLLMEngine(Engine):
     def delete_lora(self) -> None:
         self.engine.engine.delete_lora()
 
-    async def generate_stream(self, prompt: str, sampling_params: SamplingParams) -> str:
+    async def generate_stream(self, prompt: str, sampling_params: SamplingParams):
         results_generator = self.engine.generate(prompt, sampling_params, 0)
         async for generated_text in results_generator:
             yield generated_text
