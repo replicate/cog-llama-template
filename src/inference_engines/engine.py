@@ -35,6 +35,12 @@ class Engine(ABC):
         Checks whether a LoRA has currently been loaded onto the engine.
         """
         pass
+    
+    @abstractmethod
+    def get_logits(self, prompt: str):
+        """
+        returns logits given input prompt & generation kwargs
+        """
 
     @abstractmethod
     def __call__(self, prompt, **kwargs):
