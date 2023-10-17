@@ -237,7 +237,9 @@ class vLLMEngine(Engine):
         )
 
         generated_length = 0
-        async for generated_text in gen:
+        async for request_output in gen:
+            assert len(request_output.outputs) == 1
+            generated_text = request_output.outputs[0].text
             if incremental_generation:
                 yield generated_text[generated_length:]
             else:

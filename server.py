@@ -9,12 +9,12 @@ if os.getenv("BREAK"):
 # import nyacomp
 
 import asyncio
-
+import contextlib
 import json
 import logging
-import uuid
 import sys
 import typing as t
+import uuid
 
 # from pathlib import Path
 
@@ -32,8 +32,22 @@ pcs = set()
 logging.getLogger().setLevel("DEBUG")
 
 
+class Counter:
+    def __init__(self):
+        self.count = 0
+
+    @contextlib.contextmanager
+    def scope(self):
+        self.count += 1
+        try:
+            yield self
+        finally:
+            self.count -= 1
+
+
 class Live:
     html = open("index.html").read()
+    in_progress = Counter()
 
     def __init__(self) -> None:
         # token = os.getenv("HF_TOKEN")
@@ -51,20 +65,22 @@ class Live:
         start = time.time()
         stream = self.llama.async_predict(**params["input"])
         token_count = 0
-        while True:
-            tok_start = time.time()
-            # while-next() seems clearer than for-in here
-            tok = await anext(stream, None)
-            if tok is None:
-                break
-            token_count += 1
-            resp = {
-                "text": tok,
-                "gen_time": round((time.time() - tok_start) * 1000),
-                "id": params.get("id"),
-                "idx": token_count,
-            }
-            yield json.dumps(resp)
+        with self.in_progress():
+            while True:
+                tok_start = time.time()
+                # while-next() seems clearer than for-in here
+                tok = await anext(stream, None)
+                if tok is None:
+                    break
+                token_count += 1
+                resp = {
+                    "text": tok,
+                    "gen_time": round((time.time() - tok_start) * 1000),
+                    "id": params.get("id"),
+                    "idx": token_count,
+                    "batch_size": self.in_progress.count,
+                }
+                yield json.dumps(resp)
         yield json.dumps({"status": "done", "id": params.get("id")})
         logging.info(f"finished generating in {time.time() - start:.3f}")
 
