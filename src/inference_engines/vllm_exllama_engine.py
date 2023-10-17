@@ -24,7 +24,7 @@ class ExllamaVllmEngine(Engine):
                 vllm_model_info['remote_path'],
                 vllm_model_info['remote_files']
             )
-            self.engine = vLLMEngine(vllm_model_info['local_path'], **self.vllm_args)
+            self.engine = vLLMEngine(vllm_model_info['local_path'], **vllm_args)
         else:
             self.engine = ExllamaEngine(model_path, **exllama_args)
             self.vllm_args = vllm_args
