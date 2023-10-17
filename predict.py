@@ -163,8 +163,9 @@ class Predictor(BasePredictor):
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.3f}")
         else:
-            self.delete_lora()
-            print("Not using LoRA")
+            if 'COG_WEIGHTS' not in os.environ:
+                self.delete_lora()
+                print("Not using LoRA")
 
         if seed is not None:
             print(f"Setting seed to {seed}")

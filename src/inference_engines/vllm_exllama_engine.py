@@ -2,6 +2,7 @@ import gc
 from typing import Any, Optional, List
 
 import torch
+import os
 
 from .engine import Engine
 from .vllm_engine import vLLMEngine
@@ -15,8 +16,18 @@ class ExllamaVllmEngine(Engine):
     """
 
     def __init__(self, model_path: str, vllm_args: dict, exllama_args: dict) -> None:
-        self.engine = ExllamaEngine(model_path, **exllama_args)
-        self.vllm_args = vllm_args
+        # for old-style loras, should they happen
+        if 'COG_WEIGHTS' in os.environ:
+            vllm_model_info = vllm_args.pop('vllm_model_info')
+            maybe_download_with_pget(
+                vllm_model_info['local_path'],
+                vllm_model_info['remote_path'],
+                vllm_model_info['remote_files']
+            )
+            self.engine = vLLMEngine(vllm_model_info['local_path'], **self.vllm_args)
+        else:
+            self.engine = ExllamaEngine(model_path, **exllama_args)
+            self.vllm_args = vllm_args
 
 
     def load_lora(self, lora_data:dict) -> Any:
@@ -25,7 +36,7 @@ class ExllamaVllmEngine(Engine):
         lora_data is a dictionary of file names & references from the zip file
         """
         if isinstance(self.engine, ExllamaEngine):
-            print("Transitioning from vLLM to Transformers")
+            print("Transitioning from vLLM to Exllama")
             del self.engine.model
             del self.engine.generator
             del self.engine 
