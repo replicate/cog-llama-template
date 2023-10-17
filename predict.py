@@ -8,10 +8,11 @@ import shutil
 import socket
 import time
 import zipfile
+import typing as t
 from typing import Any, Optional
 
 import torch
-from cog import BasePredictor, ConcatenateIterator, Input, Path
+#from cog import BasePredictor, ConcatenateIterator, Input, Path
 
 from config import (
     ENGINE,
@@ -36,9 +37,11 @@ PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_I
 # Users may want to change the system prompt, but we use the recommended system prompt by default
 DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
 
+def Input(default=None, *args, **kwargs):
+    return default
 
-class Predictor(BasePredictor):
-    def setup(self, weights: Optional[Path] = None):
+class Predictor:  # (BasePredictor):
+    def setup(self):  # , weights: Optional[Path] = None):
         print("Starting setup")
         self.downloader = Downloader()
 
@@ -158,7 +161,7 @@ class Predictor(BasePredictor):
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
             default=None,
         ),
-    ) -> ConcatenateIterator:
+    ) -> t.Iterator[str]:
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
 
@@ -258,7 +261,7 @@ class Predictor(BasePredictor):
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
             default=None,
         ),
-    ) -> ConcatenateIterator:
+    ) -> t.Iterator[str]: #"ConcatenateIterator":
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
 
@@ -326,7 +329,7 @@ class Predictor(BasePredictor):
 
     _predict = predict
 
-    def base_predict(self, *args, **kwargs) -> ConcatenateIterator:
+    def base_predict(self, *args, **kwargs) -> "ConcatenateIterator":
         kwargs["system_prompt"] = None
         return self._predict(*args, **kwargs)
 

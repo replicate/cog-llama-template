@@ -48,6 +48,7 @@ WORKDIR /app/
 COPY ./pyproject.toml /app/
 RUN VIRTUAL_ENV=/app/venv poetry install 
 RUN mkdir nya
+RUN pip install -t nya https://r2.drysys.workers.dev/torch/torch-2.1.0a0+git3af011b-cp311-cp311-linux_x86_64.whl
 #RUN pip install -t nya https://r2.drysys.workers.dev/nyacomp-0.0.5-cp311-cp311-linux_x86_64.whl
 
 FROM python:3.11-slim
@@ -59,6 +60,17 @@ COPY --link --from=downloaders /usr/local/bin/remotefile /usr/local/bin
 COPY --link --from=libbuilder /app/venv/lib/python3.11/site-packages /app/
 COPY --link --from=libbuilder /app/nya/ /app/
 #COPY --from=next /app/out /app/next
+
+
+ENV DISABLE_TELEMETRY=YES
+ENV PRELOAD_PATH=/app/model/nya/meta.csv
+ARG DEBUG=
+ENV DEBUG=$DEBUG
+RUN if [ -n "$DEBUG" ]; then apt update && apt install -yy kakoune gdb; fi
+# unmangle this particular version
+RUN ln -s /app/torch/lib/libcudart-9335f6a2.so.12 /app/torch/lib/libcudart.so.12
+ENV LD_LIBRARY_PATH=/app/torch/lib
+
 COPY --link ./exllama/ /app/exllama/
 COPY --link ./src/ /app/src/
 COPY --link ./predict.py ./config.py ./subclass.py /app/
@@ -66,10 +78,5 @@ COPY --link ./client.js ./index.html ./server.py /app/
 # ew
 COPY .env /app/
 
-ENV DISABLE_TELEMETRY=YES
-ENV PRELOAD_PATH=/app/model/nya/meta.csv
-ARG DEBUG=
-ENV DEBUG=$DEBUG
-RUN if [ -n "$DEBUG" ]; then apt update && apt install -yy kakoune gdb; fi
 EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/python3.11", "/app/server.py"]
