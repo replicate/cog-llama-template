@@ -1,0 +1,9 @@
+torch ==2.1.0
+aiohttp[speedups]
+aiortc
+transformers==4.33.2
+sentencepiece==0.1.99
+safetensors==0.3.1
+python-dotenv
+https://github.com/replicate/vllm-with-loras/raw/moin/lora_weight_space/vllm-0.2a0-cp311-cp311-linux_x86_64.whl
+https://r2.drysys.workers.dev/xformers-0.0.23+d18d0ef.d20231009-cp311-cp311-linux_x86_64.whl
