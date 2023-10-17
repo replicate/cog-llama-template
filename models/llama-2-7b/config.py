@@ -36,7 +36,6 @@ USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = False
 # Here we define the specific inference engine we intend to use for inference, and all appropriate kwargs.
 # -------------------------------
 
-from src.inference_engines.vllm_engine import vLLMEngine
 
 ENGINE = ExllamaVllmEngine
 LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"

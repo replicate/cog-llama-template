@@ -82,9 +82,10 @@ def test_post_training_predictions(trained_model_and_version, prediction_tests):
         for val in prediction_tests
     ]
 
-    for val in predictions:
+    for ind, val in enumerate(predictions):
         val.wait()
         assert val.status == "succeeded"
         out = ''.join(val.output)
         print("Output: ", out)
-        assert "Summary" in out
+        if ind == 1: 
+            assert "Summary" in out

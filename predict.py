@@ -21,7 +21,6 @@ from config import (
     USE_SYSTEM_PROMPT,
 )
 from src.download import Downloader
-# from src.more_utils import load_tokenizer
 from src.utils import maybe_download_with_pget, seed_all
 
 # This prompt formatting was copied from the original Llama v2 repo:

@@ -163,12 +163,22 @@ stage-and-test-models:
 push: select
 	cog push --openapi-schema=$(schema) --use-cuda-base-image=true --progress plain r8.im/$(REPLICATE_USER)/$(model)
 
-test-push: test-local push
-	
-test-live:
-	python test/push_test.py
+test-prod-predict:
+	@if [ "$(verbose)" = "true" ]; then \
+		pytest tests/test_remote_predict.py -s --model $(REPLICATE_USER)/$(model); \
+	else \
+		pytest tests/test_remote_predict.py --model $(REPLICATE_USER)/$(model); \
+	fi
 
-push-and-test: push test-live
+test-prod-train-predict:
+	@if [ "$(verbose)" = "true" ]; then \
+		pytest tests/test_remote_train.py -s --model $(REPLICATE_USER)/$(model); \
+	else \
+		pytest tests/test_remote_train.py --model $(REPLICATE_USER)/$(model); \
+	fi
+
+test-prod: test-prod-predict test-prod-train-predict
+
 
 help:
 	@echo "Available targets:\n\n"
