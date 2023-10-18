@@ -48,6 +48,8 @@ function handleImage(data) {
   );
   last_token_time = Date.now();
   tokenLatencyField.textContent = `last token latency: ${tokenLatency}ms`;
+  var connectionField = document.getElementById("connections");
+  connectionField.textContent = `total connections: ${parsed.batch_size}`
   if (parsed.status == "done") {
     waiting = false;
     console.log("prediction done");

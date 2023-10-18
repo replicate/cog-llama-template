@@ -37,7 +37,7 @@ class Counter:
         self.count = 0
 
     @contextlib.contextmanager
-    def scope(self):
+    def start(self):
         self.count += 1
         try:
             yield self
@@ -65,7 +65,7 @@ class Live:
         start = time.time()
         stream = self.llama.async_predict(**params["input"])
         token_count = 0
-        with self.in_progress():
+        with self.in_progress.start():
             while True:
                 tok_start = time.time()
                 # while-next() seems clearer than for-in here
@@ -81,7 +81,12 @@ class Live:
                     "batch_size": self.in_progress.count,
                 }
                 yield json.dumps(resp)
-        yield json.dumps({"status": "done", "id": params.get("id")})
+        tail = {
+            "status": "done",
+            "id": params.get("id"),
+            "batch_size": self.in_progress.count,
+        }
+        yield json.dumps(tail)
         logging.info(f"finished generating in {time.time() - start:.3f}")
 
     async def index(self, req: web.Request) -> web.Response:
