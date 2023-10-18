@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import time
 from io import BytesIO, IOBase
 from typing import BinaryIO, List, Optional, Union, get_args
 
@@ -105,7 +106,8 @@ class vLLMEngine(Engine):
         self.engine.engine.delete_lora()
 
     async def generate_stream(self, prompt: str, sampling_params: SamplingParams):
-        results_generator = self.engine.generate(prompt, sampling_params, 0)
+        id = int(2 ** 10 * (time.time() % 1))
+        results_generator = self.engine.generate(prompt, sampling_params, id)
         async for generated_text in results_generator:
             yield generated_text
 
