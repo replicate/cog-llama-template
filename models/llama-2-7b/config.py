@@ -46,8 +46,8 @@ REMOTE_VLLM_WEIGHTS_PATH = get_env_var_or_default(
 )
 
 REMOTE_VLLM_INFERENCE_FILES_TO_DOWNLOAD = [
-    "checklist.chk",
     "config.json",
+    "generation_config.json"
     "model.safetensors.index.json",
     "params.json",
     "tokenizer.model",
