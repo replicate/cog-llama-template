@@ -104,14 +104,22 @@ class Live:
         await ws.prepare(request)
         logging.info("ws connected")
         self.connections.add(ws)
-        async for message in ws:
-            logging.info(message)
-            if isinstance(message.data, str) and message.data.startswith("ping"):
-                await ws.send_str("pong" + message.data[4:])
-            else:
-                # async with generate_lock:
-                async for item in self.generate(json.loads(message.data)):
-                    await ws.send_str(item)
+        gen = None
+        try: 
+            async for message in ws:
+                logging.info(message)
+                if isinstance(message.data, str) and message.data.startswith("ping"):
+                    await ws.send_str("pong" + message.data[4:])
+                else:
+                    # async with generate_lock:
+                    gen = self.generate(json.loads(message.data))
+                    async for item in gen:
+                        await ws.send_str(item)
+            gen = None
+        finally:
+            if gen:
+                gen.acancel()
+
         logging.info("websocket disconnected")
         self.connections.discard(ws)
         return ws

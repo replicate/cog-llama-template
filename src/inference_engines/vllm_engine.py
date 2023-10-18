@@ -107,9 +107,15 @@ class vLLMEngine(Engine):
 
     async def generate_stream(self, prompt: str, sampling_params: SamplingParams):
         id = int(2 ** 10 * (time.time() % 1))
-        results_generator = self.engine.generate(prompt, sampling_params, id)
-        async for generated_text in results_generator:
-            yield generated_text
+        running = True
+        try:
+            results_generator = self.engine.generate(prompt, sampling_params, id)
+            async for generated_text in results_generator:
+                yield generated_text
+            running = False
+        finally:
+            if running:
+                self.engine.engine.abort(id)
 
     def __call__(self, prompt: str, max_new_tokens: int, temperature: float, top_p: float, top_k: int, stop_sequences: str | List[str] = None, stop_token_ids: List[int] = None, frequency_penalty: float = 1.0, incremental_generation: bool = True, *args, **kwargs) -> str:
         """
