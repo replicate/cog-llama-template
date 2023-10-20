@@ -5,6 +5,7 @@ from io import BytesIO, IOBase
 from typing import BinaryIO, List, Optional, Union, get_args
 
 import torch
+from src.config_utils import Weights
 from vllm import AsyncLLMEngine
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.sampling_params import SamplingParams
@@ -41,7 +42,8 @@ class vLLMEngine(Engine):
     An inference engine that runs inference w/ vLLM
     """
 
-    def __init__(self, model_path: os.PathLike, tokenizer_path: os.PathLike, dtype: str) -> None:
+    def __init__(self, weights: Weights, tokenizer_path: os.PathLike, dtype: str) -> None:
+        model_path = self.load_weights(weights)
         args = AsyncEngineArgs(
             model=model_path,
             tokenizer=tokenizer_path,

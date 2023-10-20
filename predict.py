@@ -15,13 +15,10 @@ from cog import BasePredictor, ConcatenateIterator, Input, Path
 from config import (
     ENGINE,
     ENGINE_KWARGS,
-    LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
-    REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
-    REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
     USE_SYSTEM_PROMPT,
 )
 from src.download import Downloader
-from src.utils import maybe_download_with_pget, seed_all
+from src.utils import seed_all
 
 # This prompt formatting was copied from the original Llama v2 repo:
 # https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44
@@ -41,13 +38,7 @@ class Predictor(BasePredictor):
         self.downloader = Downloader()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        base_weights = maybe_download_with_pget(
-            LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
-            REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
-            REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
-        )
-
-        self.engine = ENGINE(base_weights, **ENGINE_KWARGS)
+        self.engine = ENGINE(**ENGINE_KWARGS)
 
         if weights is not None and weights.name == "weights":
             # bugfix
@@ -150,7 +141,7 @@ class Predictor(BasePredictor):
             stop_sequences = stop_sequences.split(",")
 
         if USE_SYSTEM_PROMPT:
-            prompt = prompt.strip("\n").lstrip(B_INST).rstrip(E_INST).strip()
+            prompt = prompt.strip("\n").removeprefix(B_INST).removesuffix(E_INST).strip()
             prompt = PROMPT_TEMPLATE.format(
                 system_prompt=system_prompt.strip(), instruction=prompt.strip()
             )

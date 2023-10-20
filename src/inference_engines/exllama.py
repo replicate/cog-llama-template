@@ -8,6 +8,8 @@ import time
 from pathlib import Path
 import typing as tp
 
+from src.config_utils import Weights
+
 exllama_path = os.path.abspath('exllama')
 sys.path.insert(0, exllama_path)
 
@@ -42,7 +44,8 @@ def timer(name, func):
 
 class ExllamaEngine(Engine):
 
-    def __init__(self, model_directory, fused_attn = True):
+    def __init__(self, weights: Weights, fused_attn = True):
+        model_directory = self.load_weights(weights)
         tokenizer_path = os.path.join(model_directory, "tokenizer.model")
         model_config_path = os.path.join(model_directory, "config.json")
         st_pattern = os.path.join(model_directory, "*.safetensors")

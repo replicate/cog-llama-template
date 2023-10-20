@@ -8,25 +8,20 @@ from .engine import Engine
 from .vllm_engine import vLLMEngine
 from .exllama import ExllamaEngine
 from src.utils import maybe_download_with_pget
-
+import os
+os.environ['REPLICATE_HOTSWAP'] = "1"
 
 class ExllamaVllmEngine(Engine):
     """
     It's exllama until fine-tuning hits, and then it's vllm. 
     """
 
-    def __init__(self, model_path: str, vllm_args: dict, exllama_args: dict) -> None:
+    def __init__(self, vllm_args: dict, exllama_args: dict) -> None:
         # for old-style loras, should they happen
-        if 'COG_WEIGHTS' in os.environ:
-            vllm_model_info = vllm_args.pop('vllm_model_info')
-            maybe_download_with_pget(
-                vllm_model_info['local_path'],
-                vllm_model_info['remote_path'],
-                vllm_model_info['remote_files']
-            )
-            self.engine = vLLMEngine(vllm_model_info['local_path'], **vllm_args)
+        if 'COG_WEIGHTS' in os.environ or ('REPLICATE_HOTSWAP' in os.environ and os.environ['REPLICATE_HOTSWAP'] == "1"):
+            self.engine = vLLMEngine(**vllm_args)
         else:
-            self.engine = ExllamaEngine(model_path, **exllama_args)
+            self.engine = ExllamaEngine(**exllama_args)
             self.vllm_args = vllm_args
 
 
@@ -36,20 +31,15 @@ class ExllamaVllmEngine(Engine):
         lora_data is a dictionary of file names & references from the zip file
         """
         if isinstance(self.engine, ExllamaEngine):
-            print("Transitioning from vLLM to Exllama")
+            # Really we should never need to do this.
+            print("Transitioning from Exllama to vLLM")
             del self.engine.model
             del self.engine.generator
             del self.engine 
 
             gc.collect()
             torch.cuda.empty_cache()
-            vllm_model_info = self.vllm_args.pop('vllm_model_info')
-            maybe_download_with_pget(
-                vllm_model_info['local_path'],
-                vllm_model_info['remote_path'],
-                vllm_model_info['remote_files']
-            )
-            self.engine = vLLMEngine(vllm_model_info['local_path'], **self.vllm_args)
+            self.engine = vLLMEngine(**self.vllm_args)
         
         return self.engine.load_lora(lora_data)
         
