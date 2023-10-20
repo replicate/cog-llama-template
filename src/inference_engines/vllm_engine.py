@@ -42,11 +42,11 @@ class vLLMEngine(Engine):
     An inference engine that runs inference w/ vLLM
     """
 
-    def __init__(self, weights: Weights, tokenizer_path: os.PathLike, dtype: str) -> None:
+    def __init__(self, weights: Weights, dtype: str) -> None:
         model_path = self.load_weights(weights)
         args = AsyncEngineArgs(
             model=model_path,
-            tokenizer=tokenizer_path,
+            tokenizer=model_path,
             dtype=dtype,
         )
         self.engine = AsyncLLMEngine.from_engine_args(args)

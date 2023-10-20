@@ -30,7 +30,7 @@ USE_SYSTEM_PROMPT = True
 
 ENGINE = ExllamaVllmEngine
 exllama_kw = exllama_kwargs(exllama_weights)
-vllm_kw = vllm_kwargs(vllm_weights, TOKENIZER_PATH)
+vllm_kw = vllm_kwargs(vllm_weights)
 
 ENGINE_KWARGS = {
     "exllama_args": exllama_kw,

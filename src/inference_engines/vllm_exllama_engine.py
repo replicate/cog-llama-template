@@ -8,8 +8,7 @@ from .engine import Engine
 from .vllm_engine import vLLMEngine
 from .exllama import ExllamaEngine
 from src.utils import maybe_download_with_pget
-import os
-os.environ['REPLICATE_HOTSWAP'] = "1"
+
 
 class ExllamaVllmEngine(Engine):
     """
