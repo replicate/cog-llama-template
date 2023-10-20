@@ -51,6 +51,8 @@ REMOTE_TRAINING_WEIGHTS_CONFIG_PATH = get_env_var_or_default(
     var_name="REMOTE_TRAINING_WEIGHTS_CONFIG_PATH",
     default_value="remote/path/to/your/weights/here"
 )
+REMOTE_TRAINING_FILES_TO_DOWNLOAD = get_fp16_file_list(2)
+
 
 
 # -------------------------------
