@@ -27,7 +27,7 @@ build:
     - "tensorizer==1.0.1"
     - "accelerate"
     - "scipy"
-    - "bitsandbytes" # force upgrade afterwards?
+    - "bitsandbytes" 
     - "https://r2.drysys.workers.dev/nyacomp-0.0.5-cp311-cp311-linux_x86_64.whl"
     - "trl==0.5.0"
     - "aiohttp[speedups]"
