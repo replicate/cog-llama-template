@@ -118,18 +118,18 @@ class Predictor(BasePredictor):
             description="Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic, 0.75 is a good starting value.",
             ge=0.01,
             le=5,
-            default=0.75,
+            default=0.7,
         ),
         top_p: float = Input(
             description="When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens",
             ge=0.0,
             le=1.0,
-            default=0.9,
+            default=0.95,
         ),
         top_k: int = Input(
             description="When decoding text, samples from the top k most likely tokens; lower to ignore less likely tokens",
             ge=0,
-            default=50,
+            default=0,
         ),
         stop_sequences: str = Input(
             description="A comma-separated list of sequences to stop generation at. For example, '<end>,<stop>' will stop generation at the first instance of 'end' or '<stop>'.",
@@ -183,8 +183,9 @@ class Predictor(BasePredictor):
             torch.save(logits, logits_path)
             yield Path(logits_path)
 
-        # todo: may need to do something clever with kwargs if/when we add more engines. 
+        # todo: may need to do something clever with kwargs if/when we add more engines.
         else:
+            generated_text = ""
             for decoded_token in self.engine(
                 prompt,
                 temperature=temperature,
@@ -196,15 +197,17 @@ class Predictor(BasePredictor):
             ):
                 n_tokens += 1
                 yield decoded_token
+                generated_text += decoded_token
                 if n_tokens == 1 and debug:
                     second_start = time.time()
-                    print(f"after initialization, first token took {second_start - st:.3f}")
                 if seed is not None:
                     torch.manual_seed(seed)
             et = time.time()
             t = et - st
             print(f"hostname: {socket.gethostname()}")
             if debug:
+                print("generated text:", generated_text)
+                print(f"after initialization, first token took {second_start - st:.3f}")
                 print(f"Tokens per second: {n_tokens / t:.2f}")
                 print(f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}")
                 print(f"cur memory: {torch.cuda.memory_allocated()}")

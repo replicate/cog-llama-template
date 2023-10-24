@@ -16,7 +16,7 @@ build:
     - "jinja2==3.1.2"
     - "scipy==1.11.1"
     - "asyncio==3.4.3"
-    - "safetensors==0.3.1"
+    - "safetensors>=0.3.1"
     - "ninja==1.11.1"
     - "python-dotenv"
     - "py7zr"
@@ -31,12 +31,11 @@ build:
     - "https://r2.drysys.workers.dev/nyacomp-0.0.5-cp311-cp311-linux_x86_64.whl"
     - "trl==0.5.0"
     - "aiohttp[speedups]"
-    - "https://weights.replicate.delivery/default/wheels/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"
-    - "https://r2.drysys.workers.dev/xformers-0.0.23+d18d0ef.d20231009-cp311-cp311-linux_x86_64.whl"
     - "torch==2.1.0"
   run:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.3/pget#cacheburst" && chmod +x /usr/local/bin/pget
     - curl -o /usr/local/bin/remotefile -L "https://r2.drysys.workers.dev/remotefile" && chmod +x /usr/local/bin/remotefile
+    - python3 -m pip install --pre -U -f https://mlc.ai/wheels mlc-chat-nightly-cu121 mlc-ai-nightly-cu121
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
