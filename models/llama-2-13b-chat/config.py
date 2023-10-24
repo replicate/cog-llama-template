@@ -19,17 +19,25 @@ MODEL_NAME = "llama-2-13b-chat"
 # which is used for both trained and untrained models.
 # -------------------------------
 
-LOAD_IN_4BIT = False
 TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
 USE_SYSTEM_PROMPT = True
-USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = True
-USE_FUSED_ATTN = True
 
 
-# DEFAULT INFERENCE CONFIGURATION
+# ENGINE CONFIGURATION
 # -------------------------------
-# This section defines the default inference configuration, which may differ from
-# how we implement inference for a trained model.
+# Here we define the specific inference engine we intend to use for inference, and all appropriate kwargs.
+# -------------------------------
+
+from src.inference_engines.exllama import ExllamaEngine
+
+ENGINE = ExllamaEngine
+ENGINE_KWARGS = {
+    "fused_attn": True,
+}
+
+# WEIGHTS CONFIGURATION
+# -------------------------------
+# Which base weights do we use for inference with this model?
 # -------------------------------
 
 

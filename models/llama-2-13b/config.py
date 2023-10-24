@@ -7,30 +7,35 @@ MODEL_NAME = "llama-2-13b"
 # INFERENCE CONFIGURATION
 #######################################################################
 # --------------------Notes--------------------------------------------
-# We sometimes implement inference differently for models that have not
-# been trained/fine-tuned vs. those that have been trained/fine-tuned. We refer to the
-# former as "default" and the latter as "trained". Below, you can
-# set your "default inference configuration" and your "trained
-# inference configuration".
+# We are trying our very best to no longer have different inference code paths
+# for trained and untrained weights :)
+
 #
-# GENERAL INFERENCE CONFIGURATION
+# INFERENCE CONFIGURATION
 # -------------------------------
 # This section defines the general inference configuration,
 # which is used for both trained and untrained models.
 # -------------------------------
 
-LOAD_IN_4BIT = False
 TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/tokenizer"
 USE_SYSTEM_PROMPT = False
-USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = True
-USE_FUSED_ATTN = True
 
-# DEFAULT INFERENCE CONFIGURATION
+# ENGINE CONFIGURATION
 # -------------------------------
-# This section defines the default inference configuration, which may differ from
-# how we implement inference for a trained model.
+# Here we define the specific inference engine we intend to use for inference, and all appropriate kwargs.
 # -------------------------------
 
+from src.inference_engines.exllama import ExllamaEngine
+
+ENGINE = ExllamaEngine
+ENGINE_KWARGS = {
+    "fused_attn": True,
+}
+
+# WEIGHTS CONFIGURATION
+# -------------------------------
+# Which base weights do we use for inference with this model?
+# -------------------------------
 
 LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = (
     f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"

@@ -7,27 +7,18 @@ import shutil
 import socket
 import time
 import zipfile
-from typing import Optional
+from typing import Any, Optional
 
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
 from config import (
-    LOAD_IN_4BIT,
-    LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
-    LOCAL_TRAINING_WEIGHTS_PATH,
-    REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
-    REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
-    REMOTE_TRAINING_FILES_TO_DOWNLOAD,
-    REMOTE_TRAINING_WEIGHTS_PATH,
-    USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS,
-    USE_FUSED_ATTN,
+    ENGINE,
+    ENGINE_KWARGS,
     USE_SYSTEM_PROMPT,
 )
 from src.download import Downloader
-# from src.more_utils import load_tokenizer
-from src.utils import StreamingTextStopSequenceHandler, maybe_download_with_pget
-from subclass import YieldingLlama
+from src.utils import seed_all
 
 # This prompt formatting was copied from the original Llama v2 repo:
 # https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44
@@ -47,14 +38,7 @@ class Predictor(BasePredictor):
         self.downloader = Downloader()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        from src.exllama_predictor import ExllamaWrapper
-
-        base_weights = maybe_download_with_pget(
-            LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
-            REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
-            REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
-        )
-        self.exllama_wrapper = ExllamaWrapper(base_weights, fused_attn=USE_FUSED_ATTN)
+        self.engine = ENGINE(**ENGINE_KWARGS)
 
         if weights is not None and weights.name == "weights":
             # bugfix
@@ -68,7 +52,7 @@ class Predictor(BasePredictor):
 
     # todo: adaptive cache like CLOCK
     @functools.lru_cache(maxsize=10)
-    def get_lora(self, replicate_weights: str) -> "ExLlamaLora":
+    def get_lora(self, replicate_weights: str) -> Any:
         if "http" in str(replicate_weights):  # weights are in the cloud
             print("Downloading peft weights")
             st = time.time()
@@ -82,9 +66,7 @@ class Predictor(BasePredictor):
             data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
         print(f"Unzipped peft weights in {time.time() - st:.3f}")
         st = time.time()
-        lora = self.exllama_wrapper.load_lora(
-            data["adapter_config.json"], io.BytesIO(data["adapter_model.bin"])
-        )
+        lora = self.engine.load_lora(data)
         del data, zip_ref
         print(f"Initialized peft model in {time.time() - st:.3f}")
         return lora
@@ -93,11 +75,18 @@ class Predictor(BasePredictor):
 
     def initialize_peft(self, replicate_weights: str) -> None:
         if self.current_path != replicate_weights:
-            print(f"previous weights were different, switching to {replicate_weights}")
-            self.exllama_wrapper.set_lora(self.get_lora(replicate_weights))
+            print(
+                f"previous weights were different, switching to {replicate_weights}"
+            )
+            self.engine.set_lora(self.get_lora(replicate_weights))
+
             self.current_path = replicate_weights
         else:
             print("correct lora is already loaded")
+
+    def delete_lora(self):
+        self.current_path = None
+        self.engine.delete_lora()
 
     def predict(
         self,
@@ -144,6 +133,9 @@ class Predictor(BasePredictor):
         debug: bool = Input(
             description="provide debugging output in logs", default=False
         ),
+        return_logits: bool = Input(
+            description="if set, only return logits for the first token. only useful for testing, etc.", default=False
+        ),
         replicate_weights: str = Input(
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
             default=None,
@@ -153,7 +145,7 @@ class Predictor(BasePredictor):
             stop_sequences = stop_sequences.split(",")
 
         if USE_SYSTEM_PROMPT:
-            prompt = prompt.strip("\n").lstrip(B_INST).rstrip(E_INST).strip()
+            prompt = prompt.strip("\n").removeprefix(B_INST).removesuffix(E_INST).strip()
             prompt = PROMPT_TEMPLATE.format(
                 system_prompt=system_prompt.strip(), instruction=prompt.strip()
             )
@@ -165,48 +157,51 @@ class Predictor(BasePredictor):
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.3f}")
         else:
-            self.exllama_wrapper.set_lora(None)
-            print("Not using LoRA")
+            if 'COG_WEIGHTS' not in os.environ:
+                self.delete_lora()
+                print("Not using LoRA")
 
         if seed is not None:
             print(f"Setting seed to {seed}")
-            os.environ["PYTHONHASHSEED"] = str(seed)
-            torch.manual_seed(seed)
-            torch.cuda.manual_seed(seed)
-            torch.cuda.manual_seed_all(seed)
-            random.seed(seed)
-
-            import numpy
-
-            numpy.random.seed(seed)
+            seed_all(seed)
 
         n_tokens = 0
         st = time.time()
 
-        for decoded_token in self.exllama_wrapper(
-            prompt,
-            repetition_penalty=1.15,
-            repetition_penalty_sustain=256,
-            token_repetition_penalty_decay=128,
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
-            max_new_tokens=max_new_tokens,
-            min_new_tokens=min_new_tokens,
-            stop_sequences=stop_sequences,
-        ):
-            n_tokens += 1
-            yield decoded_token
-            if n_tokens == 1 and debug:
-                print(f"after initialization, first token took {time.time() - st:.3f}")
-            if seed is not None:
-                torch.manual_seed(seed)
-        t = time.time() - st
-        print(f"hostname: {socket.gethostname()}")
-        if debug:
-            print(f"cur memory: {torch.cuda.memory_allocated()}")
-            print(f"max allocated: {torch.cuda.max_memory_allocated()}")
-            print(f"peak memory: {torch.cuda.max_memory_reserved()}")
+        if return_logits:
+            logits = self.engine.get_logits(prompt)
+            # serializing so we aren't returning a massive json
+            logits_path = 'logits.pt'
+            torch.save(logits, logits_path)
+            yield Path(logits_path)
+
+        # todo: may need to do something clever with kwargs if/when we add more engines. 
+        else:
+            for decoded_token in self.engine(
+                prompt,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                max_new_tokens=max_new_tokens,
+                min_new_tokens=min_new_tokens,
+                stop_sequences=stop_sequences,
+            ):
+                n_tokens += 1
+                yield decoded_token
+                if n_tokens == 1 and debug:
+                    second_start = time.time()
+                    print(f"after initialization, first token took {second_start - st:.3f}")
+                if seed is not None:
+                    torch.manual_seed(seed)
+            et = time.time()
+            t = et - st
+            print(f"hostname: {socket.gethostname()}")
+            if debug:
+                print(f"Tokens per second: {n_tokens / t:.2f}")
+                print(f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}")
+                print(f"cur memory: {torch.cuda.memory_allocated()}")
+                print(f"max allocated: {torch.cuda.max_memory_allocated()}")
+                print(f"peak memory: {torch.cuda.max_memory_reserved()}")
 
     # # we'd like this to work eventually
     # def remove(f: "Callable", defaults: "dict[str, Any]") -> "Callable":

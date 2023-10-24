@@ -25,7 +25,6 @@ from config import (
     REMOTE_TRAINING_WEIGHTS_CONFIG_PATH,
     REMOTE_TRAINING_FILES_TO_DOWNLOAD,
     MODEL_NAME,
-    log_memory_stuff
 )
 
 from src.utils import maybe_download_with_pget, download_file_with_pget
