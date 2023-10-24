@@ -189,29 +189,29 @@ class Live:
         else:
             logging.info(f"couldn't get location: {self.ipinfo}")
         # idle exit needs to be in a task because all on_startups have to exit
-        asyncio.create_task(self.idle_exit())
+        # asyncio.create_task(self.idle_exit())
 
     last_gen = time.time()
 
-    async def idle_exit(self) -> None:
-        pod_id = os.getenv("RUNPOD_POD_ID")
-        while pod_id:
-            await asyncio.sleep(20 * 60)
-            if time.time() - self.last_gen > 3600:
-                await self.cs.post(
-                    "https://imogen.fly.dev/admin",
-                    data="mirror shutting down after 20m inactivity",
-                )
-                # TODO: if we don't have a volume, exit instead of suspend
-                # query = 'mutation {podTerminate(input: {podId: "%s"})}' % pod_id
-                query = 'mutation {podStop(input: {podId: "%s"})}' % pod_id
-                await self.cs.post(
-                    "https://api.runpod.io/graphql",
-                    params={"api_key": os.getenv("RUNPOD_API_KEY")},
-                    json={"query": query},
-                    headers={"Content-Type": "application/json"},
-                )
-                sys.exit()
+    # async def idle_exit(self) -> None:
+    #     pod_id = os.getenv("RUNPOD_POD_ID")
+    #     while pod_id:
+    #         await asyncio.sleep(20 * 60)
+    #         if time.time() - self.last_gen > 3600:
+    #             await self.cs.post(
+    #                 "https://imogen.fly.dev/admin",
+    #                 data="mirror shutting down after 20m inactivity",
+    #             )
+    #             # TODO: if we don't have a volume, exit instead of suspend
+    #             # query = 'mutation {podTerminate(input: {podId: "%s"})}' % pod_id
+    #             query = 'mutation {podStop(input: {podId: "%s"})}' % pod_id
+    #             await self.cs.post(
+    #                 "https://api.runpod.io/graphql",
+    #                 params={"api_key": os.getenv("RUNPOD_API_KEY")},
+    #                 json={"query": query},
+    #                 headers={"Content-Type": "application/json"},
+    #             )
+    #             sys.exit()
 
     async def on_shutdown(self, app: web.Application) -> None:
         # close peer connections
@@ -224,6 +224,7 @@ class Live:
         if "input" not in params:
             return web.json_response({"error": "invalid input"}, code=400)
         start = time.time()
+        # [item  async for item in self.generate(params["input"])]
         output = " ".join(list(self.llama.predict(**params["input"])))
         latency = round(time.time() - start, 3)
         logging.info(f"handling endpoint took {latency}")

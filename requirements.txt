@@ -1,4 +1,4 @@
-torch ==2.1.0
+torch # ==2.1.0
 aiohttp[speedups]
 aiortc
 transformers==4.33.2
