@@ -7,6 +7,9 @@ from peft import PeftModel, LoraConfig
 from peft.utils.save_and_load import set_peft_model_state_dict
 
 import torch.nn.init
+
+from src.config_utils import Weights
+
 torch.nn.init.kaiming_uniform_ = lambda x, *args, **kwargs: x
 torch.nn.init.uniform_ = lambda x, *args, **kwargs: x
 
@@ -34,8 +37,9 @@ class TransformersEngine(Engine):
     An inference engine that runs in vanilla transformers. 
     Vanilla is, at times, fantastic.
     """
-    def __init__(self, weights, tokenizer_func=None, device="cuda"):
-        self.model = AutoModelForCausalLM.from_pretrained(weights).to(device)
+    def __init__(self, weights: Weights, tokenizer_func=None, device="cuda"):
+        model_path = self.load_weights(weights)
+        self.model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16).to(device)
         self.tokenizer = tokenizer_func()
         self.device = device 
         print("Transformers engine initialized.")
@@ -61,28 +65,28 @@ class TransformersEngine(Engine):
                 os.path.join(model_dir, 'adapter_model.bin'), map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu")
             )
         shutil.rmtree(model_dir)
-        
         return (config, weights)
+        
+    def is_lora_active(self) -> bool:
+        return isinstance(self.model, PeftModel)
+      
+    def delete_lora(self):
+        if hasattr(self.model, 'disable_adapter_layers') and callable(self.model.disable_adapter_layers):
+            self.model.disable_adapter_layers()
+        else:
+            print("No loras were ever loaded, nothing to disable.")
+            return
 
 
     def set_lora(self, lora):
         """
         Sets a new lora if needed. 
         """
-        if lora is None:
-            print("Disabling loras")
-            # reset to non-lora model, checking to see if model has ever been lora'd
-            if hasattr(self.model, 'disable_adapter') and callable(self.model.disable_adapter):
-                self.model.disable_adapter_layers()
-                print("Disabled loras.")
-            else:
-                print("No loras were ever loaded, nothing to disable.")
-            return
         config, weights = lora
 
         # Note that right now we're just overwriting the "default" adapter w/ADAPTER_NAME 
         # we can try managing multiple adapters w/lru eviction logic, didn't seem necessary 
-        if not hasattr(self.model, 'add_adapter'): 
+        if not isinstance(self.model, PeftModel): 
         # is not a peft model
             self.model = PeftModel(self.model, config, ADAPTER_NAME)
             set_peft_model_state_dict(self.model, weights, ADAPTER_NAME)
