@@ -73,9 +73,11 @@ class Live:
                 if tok is None:
                     break
                 token_count += 1
+                now = time.time()
                 resp = {
                     "text": tok,
-                    "gen_time": round((time.time() - tok_start) * 1000),
+                    "token_gen_latency": round((now - start) * 1000)
+                    "gen_time": round((now - tok_start) * 1000),
                     "id": params.get("id"),
                     "idx": token_count,
                     "batch_size": self.in_progress.count,

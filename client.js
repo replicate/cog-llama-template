@@ -39,8 +39,12 @@ function handleImage(data) {
   promptLatencyField.textContent = `prompt latency: ${promptLatency}ms`;
   var tokenLatencyField = document.getElementById("token-latency");
   if (parsed.idx == 1) {
-    var firstTokenLatencyField = document.getElementById("first-token-latency");
-    firstTokenLatencyField.textContent = `first token latency: ${promptLatency}ms`;
+    var firstTokenLatencyField = document.getElementById(
+      "first-token-rt-latency",
+    );
+    firstTokenLatencyField.textContent = `first token rt latency: ${promptLatency}ms`;
+    var firstTokenGenField = document.getElementById("first-token-gen-latency");
+    firstTokenGenField.textContent = `first token server latency ${parsed.token_gen_latency}`;
   }
   // last token, or start of request, to now
   var tokenLatency = Math.round(
@@ -49,14 +53,14 @@ function handleImage(data) {
   last_token_time = Date.now();
   tokenLatencyField.textContent = `last token latency: ${tokenLatency}ms`;
   var connectionField = document.getElementById("connections");
-  connectionField.textContent = `total connections: ${parsed.batch_size}`
+  connectionField.textContent = `total connections: ${parsed.batch_size}`;
   if (parsed.status == "done") {
     waiting = false;
     console.log("prediction done");
     sendPrompt();
   } else {
     document.getElementById(
-      "gen_time",
+      "gen-time",
     ).textContent = `token generation time: ${parsed.gen_time}ms`;
     document.getElementById("output").textContent += parsed.text;
   }
