@@ -46,3 +46,4 @@ REMOTE_TRAINING_WEIGHTS_PATH = get_env_var_or_default("REMOTE_TRAINING_WEIGHTS_P
 LOCAL_TRAINING_WEIGHTS_CONFIG_PATH = f"models/{MODEL_NAME}/model_artifacts/training_weights/config.json"
 REMOTE_TRAINING_WEIGHTS_CONFIG_PATH = get_env_var_or_default(var_name="REMOTE_TRAINING_WEIGHTS_CONFIG_PATH",default_value=None,)
 REMOTE_TRAINING_FILES_TO_DOWNLOAD = get_fp16_file_list(2)
+

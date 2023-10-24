@@ -8,6 +8,7 @@ load_dotenv()
 
 MODEL_NAME = "llama-2-7b"
 
+
 # Inference weights
 
 exllama_weights = Weights(
@@ -53,11 +54,10 @@ REMOTE_TRAINING_WEIGHTS_CONFIG_PATH = get_env_var_or_default(
 )
 REMOTE_TRAINING_FILES_TO_DOWNLOAD = get_fp16_file_list(2)
 
-
-
 # -------------------------------
 
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
 DEFAULT_BOS_TOKEN = "<s>"
 DEFAULT_UNK_TOKEN = "</s>"
+

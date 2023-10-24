@@ -16,6 +16,7 @@ from tensorizer import TensorDeserializer
 from tensorizer.utils import no_init_or_tensor
 
 
+
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
 DEFAULT_BOS_TOKEN = "<s>"
@@ -35,6 +36,7 @@ def load_tokenizer(tokenizer_path):
     """Same tokenizer, agnostic from tensorized weights/etc"""
     tok = LlamaTokenizer.from_pretrained(
         tokenizer_path, cache_dir="pretrained_weights", legacy=False
+
     )
     tok.add_special_tokens(
         {

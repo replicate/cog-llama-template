@@ -20,7 +20,6 @@ from config import (
 from src.download import Downloader
 from src.utils import seed_all
 
-
 # This prompt formatting was copied from the original Llama v2 repo:
 # https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44
 
@@ -80,6 +79,7 @@ class Predictor(BasePredictor):
                 f"previous weights were different, switching to {replicate_weights}"
             )
             self.engine.set_lora(self.get_lora(replicate_weights))
+
             self.current_path = replicate_weights
         else:
             print("correct lora is already loaded")
