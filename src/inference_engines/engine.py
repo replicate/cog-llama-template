@@ -43,6 +43,21 @@ class Engine(ABC):
         Checks whether a LoRA has currently been loaded onto the engine.
         """
         pass
+    
+
+    @abstractmethod
+    def delete_lora(self):
+        """
+        Deletes a LoRA.
+        """
+        pass
+
+    @abstractmethod
+    def is_lora_active(self) -> bool:
+        """
+        Checks whether a LoRA has currently been loaded onto the engine.
+        """
+        pass
 
     @abstractmethod
     def __call__(self, prompt, **kwargs):

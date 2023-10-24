@@ -20,6 +20,7 @@ from config import (
 from src.download import Downloader
 from src.utils import seed_all
 
+
 # This prompt formatting was copied from the original Llama v2 repo:
 # https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44
 
@@ -132,6 +133,9 @@ class Predictor(BasePredictor):
         debug: bool = Input(
             description="provide debugging output in logs", default=False
         ),
+        return_logits: bool = Input(
+            description="if set, only return logits for the first token. only useful for testing, etc.", default=False
+        ),
         replicate_weights: str = Input(
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
             default=None,
@@ -164,28 +168,40 @@ class Predictor(BasePredictor):
         n_tokens = 0
         st = time.time()
 
+        if return_logits:
+            logits = self.engine.get_logits(prompt)
+            # serializing so we aren't returning a massive json
+            logits_path = 'logits.pt'
+            torch.save(logits, logits_path)
+            yield Path(logits_path)
+
         # todo: may need to do something clever with kwargs if/when we add more engines. 
-        for decoded_token in self.engine(
-            prompt,
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
-            max_new_tokens=max_new_tokens,
-            min_new_tokens=min_new_tokens,
-            stop_sequences=stop_sequences,
-        ):
-            n_tokens += 1
-            yield decoded_token
-            if n_tokens == 1 and debug:
-                print(f"after initialization, first token took {time.time() - st:.3f}")
-            if seed is not None:
-                torch.manual_seed(seed)
-        t = time.time() - st
-        print(f"hostname: {socket.gethostname()}")
-        if debug:
-            print(f"cur memory: {torch.cuda.memory_allocated()}")
-            print(f"max allocated: {torch.cuda.max_memory_allocated()}")
-            print(f"peak memory: {torch.cuda.max_memory_reserved()}")
+        else:
+            for decoded_token in self.engine(
+                prompt,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                max_new_tokens=max_new_tokens,
+                min_new_tokens=min_new_tokens,
+                stop_sequences=stop_sequences,
+            ):
+                n_tokens += 1
+                yield decoded_token
+                if n_tokens == 1 and debug:
+                    second_start = time.time()
+                    print(f"after initialization, first token took {second_start - st:.3f}")
+                if seed is not None:
+                    torch.manual_seed(seed)
+            et = time.time()
+            t = et - st
+            print(f"hostname: {socket.gethostname()}")
+            if debug:
+                print(f"Tokens per second: {n_tokens / t:.2f}")
+                print(f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}")
+                print(f"cur memory: {torch.cuda.memory_allocated()}")
+                print(f"max allocated: {torch.cuda.max_memory_allocated()}")
+                print(f"peak memory: {torch.cuda.max_memory_reserved()}")
 
     # # we'd like this to work eventually
     # def remove(f: "Callable", defaults: "dict[str, Any]") -> "Callable":
