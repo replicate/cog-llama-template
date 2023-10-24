@@ -26,7 +26,7 @@ MODEL_NAME = "llama-2-7b-mlc"
 # -------------------------------
 
 LOAD_IN_4BIT = False
-TOKENIZER_PATH = "huggyllama/llama-7b" 
+TOKENIZER_PATH = "huggyllama/llama-7b"
 USE_SYSTEM_PROMPT = False
 USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = False
 
@@ -75,6 +75,13 @@ REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
     "params/tokenizer_config.json",
     "params/tokenizer.model",
 ]
+
+# ensure directories exist
+for path in REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD:
+    path_directory = os.path.dirname(path)
+    if path_directory:
+        path_directory = os.path.join(LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH, path_directory)
+        os.makedirs(path_directory, exist_ok=True)
 
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
