@@ -194,7 +194,7 @@ def main(**kwargs):
     # Model preparation for full fine-tuning -------
     # ----------------------------------------------
     if not train_config.use_peft:
-        print("Loading model for peft")
+        peft_config = None
         model = LlamaForCausalLM.from_pretrained(
             train_config.model_name,
             load_in_8bit=True if train_config.quantization else None,
@@ -204,10 +204,12 @@ def main(**kwargs):
     
     else:
         kwargs['r'] = kwargs['lora_rank'] # can't pass --r to the script, torchrun won't have it
+        kwargs['target_modules'] = list(train_config.target_modules)
         peft_config = generate_peft_config(train_config.peft_method, kwargs)
 
-        # Model preparation for QLoRA fine-tuning ------
-        # ----------------------------------------------
+
+    #     # Model preparation for QLoRA fine-tuning ------
+    #     # ----------------------------------------------
         if train_config.peft_method == 'qlora':
             print('LOADING MODEL FOR QLORA')
             bnb_config = generate_peft_config('bitsandbytes_config', kwargs)
@@ -238,7 +240,12 @@ def main(**kwargs):
         
         model = get_peft_model(model, peft_config)
 
-    model.print_trainable_parameters()
+    if rank == 0:
+        print('=====================')
+        print(f"PEFT CONFIG: {peft_config}")
+        print('=====================')
+        model.print_trainable_parameters()
+        print('=====================')
 
     # We added a special token for padding, so we need to resize the token embeddings
     model.resize_token_embeddings(model.config.vocab_size + 1)

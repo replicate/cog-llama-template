@@ -25,7 +25,7 @@ from config import (
     REMOTE_TRAINING_WEIGHTS_CONFIG_PATH,
     REMOTE_TRAINING_FILES_TO_DOWNLOAD,
     MODEL_NAME,
-    log_memory_stuff
+    # log_memory_stuff
 )
 
 from src.utils import maybe_download_with_pget, download_file_with_pget
@@ -131,7 +131,7 @@ def train(
         description="Rank of the lora matrices", default=8, ge=1),
     lora_alpha: int = Input(description="Alpha parameter for scaling lora weights; weights are scaled by alpha/rank", default=16, ge=1),
     lora_dropout: float = Input(description="Dropout for lora training", default=0.05, ge=0.0, le=1.0),
-    # lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
+    lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
 ) -> TrainingOutput:
     if fake_output:
         out_path = f"/tmp/{os.path.basename(fake_output)}"
@@ -209,6 +209,7 @@ def train(
         f"--lora_alpha={lora_alpha}",
         f"--lora_dropout={lora_dropout}",
         f"--peft_method={peft_method}",
+        f"--target_modules={lora_target_modules}",
         # Validation arguments
         f"--run_validation={'False' if not run_validation else 'True'}",
         f"--num_validation_samples={num_validation_samples}",
