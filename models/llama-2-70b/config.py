@@ -40,6 +40,7 @@ ENGINE_KWARGS = {
 # Which base weights do we use for inference with this model?
 # -------------------------------
 
+
 LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = (
     f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 )

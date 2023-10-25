@@ -38,13 +38,7 @@ class Predictor(BasePredictor):
         self.downloader = Downloader()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        base_weights = maybe_download_with_pget(
-            LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
-            REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
-            REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
-        )
-
-        self.engine = ENGINE(base_weights, **ENGINE_KWARGS)
+        self.engine = ENGINE(**ENGINE_KWARGS)
 
         if weights is not None and weights.name == "weights":
             # bugfix
@@ -85,6 +79,7 @@ class Predictor(BasePredictor):
                 f"previous weights were different, switching to {replicate_weights}"
             )
             self.engine.set_lora(self.get_lora(replicate_weights))
+
             self.current_path = replicate_weights
         else:
             print("correct lora is already loaded")
@@ -150,7 +145,7 @@ class Predictor(BasePredictor):
             stop_sequences = stop_sequences.split(",")
 
         if USE_SYSTEM_PROMPT:
-            prompt = prompt.strip("\n").lstrip(B_INST).rstrip(E_INST).strip()
+            prompt = prompt.strip("\n").removeprefix(B_INST).removesuffix(E_INST).strip()
             prompt = PROMPT_TEMPLATE.format(
                 system_prompt=system_prompt.strip(), instruction=prompt.strip()
             )
@@ -162,8 +157,9 @@ class Predictor(BasePredictor):
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.3f}")
         else:
-            self.delete_lora()
-            print("Not using LoRA")
+            if 'COG_WEIGHTS' not in os.environ:
+                self.delete_lora()
+                print("Not using LoRA")
 
         if seed is not None:
             print(f"Setting seed to {seed}")

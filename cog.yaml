@@ -31,10 +31,13 @@ build:
     - "tensorizer==1.0.1"
     - "accelerate"
     - "scipy"
-    - "bitsandbytes" # force upgrade afterwards?
+    - "bitsandbytes" 
     - "https://r2.drysys.workers.dev/nyacomp-0.0.5-cp311-cp311-linux_x86_64.whl"
     - "trl==0.5.0"
     - "aiohttp[speedups]"
+    # This wheel can be built by running `TORCH_CUDA_ARCH_LIST="8.0;8.6" pip wheel .` in https://github.com/replicate/vllm-with-loras
+    - "https://weights.replicate.delivery/default/wheels/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"
+    - "https://r2.drysys.workers.dev/xformers-0.0.23+d18d0ef.d20231009-cp311-cp311-linux_x86_64.whl"
     - "torch==2.1.0"
   run:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.3/pget#cacheburst" && chmod +x /usr/local/bin/pget
