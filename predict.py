@@ -140,7 +140,7 @@ class Predictor(BasePredictor):
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
             default=None,
         ),
-    ) -> ConcatenateIterator:
+    ) -> ConcatenateIterator[str]:
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
 

@@ -9,6 +9,7 @@ from threading import Thread
 from typing import BinaryIO, List, Optional, Union, get_args
 
 import torch
+from cog import ConcatenateIterator
 from mlc_chat import ChatConfig, ChatModule, ConvConfig, GenerationConfig
 from mlc_chat.callback import StreamIterator
 from src.config_utils import Weights
@@ -64,7 +65,7 @@ class MLCEngine(Engine):
     def delete_lora(self):
         print("MLC is currently not using any LoRAs.")
 
-    def __call__(self, prompt: str, max_new_tokens: int, temperature: float, top_p: float, top_k: int, stop_sequences: str | List[str] = None, stop_token_ids: List[int] = [], repetition_penalty: float = 1.0, incremental_generation: bool = True, *args, **kwargs) -> str:
+    def __call__(self, prompt: str, max_new_tokens: int, temperature: float, top_p: float, top_k: int, stop_sequences: str | List[str] = None, stop_token_ids: List[int] = [], repetition_penalty: float = 1.0, incremental_generation: bool = True, *args, **kwargs) -> ConcatenateIterator[str]:
         """
         Given a prompt, runs generation on the language model with vLLM.
 
