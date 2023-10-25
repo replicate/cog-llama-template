@@ -119,7 +119,7 @@ class Predictor(BasePredictor):
         ),
         top_k: int = Input(
             description="When decoding text, samples from the top k most likely tokens; lower to ignore less likely tokens",
-            ge=0,
+            ge=-1,
             default=0,
         ),
         stop_sequences: str = Input(
