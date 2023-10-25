@@ -44,7 +44,7 @@ function handleImage(data) {
     );
     firstTokenLatencyField.textContent = `first token rt latency: ${promptLatency}ms`;
     var firstTokenGenField = document.getElementById("first-token-gen-latency");
-    firstTokenGenField.textContent = `first token server latency ${parsed.token_gen_latency}`;
+    firstTokenGenField.textContent = `first token server latency: ${parsed.token_gen_latency}ms`;
   }
   // last token, or start of request, to now
   var tokenLatency = Math.round(

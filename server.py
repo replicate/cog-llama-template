@@ -76,7 +76,7 @@ class Live:
                 now = time.time()
                 resp = {
                     "text": tok,
-                    "token_gen_latency": round((now - start) * 1000)
+                    "token_gen_latency": round((now - start) * 1000),
                     "gen_time": round((now - tok_start) * 1000),
                     "id": params.get("id"),
                     "idx": token_count,
