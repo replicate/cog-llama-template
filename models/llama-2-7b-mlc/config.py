@@ -1,3 +1,5 @@
+import os
+
 from dotenv import load_dotenv
 from src.config_utils import Weights, get_mlc_file_list, mlc_kwargs
 from src.inference_engines.mlc_engine import MLCEngine
@@ -10,8 +12,18 @@ MODEL_NAME = "llama-2-7b-mlc"
 # Inference weights
 mlc_file_list = get_mlc_file_list(
     model_name="llama-2-7b-hf-q4f16_1", n_shards=115)
+
+LOCAL_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
+
+# ensure directories exist
+for path in mlc_file_list:
+    path_directory = os.path.dirname(path)
+    if path_directory:
+        path_directory = os.path.join(LOCAL_PATH, path_directory)
+        os.makedirs(path_directory, exist_ok=True)
+
 mlc_weights = Weights(
-    local_path=f"models/{MODEL_NAME}/model_artifacts/default_inference_weights",
+    local_path=LOCAL_PATH,
     remote_path=get_env_var_or_default(
         "REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH", None),
     remote_files=mlc_file_list,
