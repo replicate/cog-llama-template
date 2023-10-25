@@ -1,89 +1,37 @@
-import os
-import subprocess
-
-import torch
 from dotenv import load_dotenv
-from transformers import LlamaTokenizer
-
+from src.config_utils import Weights, get_mlc_file_list, mlc_kwargs
+from src.inference_engines.mlc_engine import MLCEngine
 from src.utils import get_env_var_or_default
 
 load_dotenv()
 
 MODEL_NAME = "llama-2-7b-mlc"
-# INFERENCE CONFIGURATION
-#######################################################################
-# --------------------Notes--------------------------------------------
-# We sometimes implement inference differently for models that have not
-# been trained/fine-tuned vs. those that have been trained/fine-tuned. We refer to the
-# former as "default" and the latter as "trained". Below, you can
-# set your "default inference configuration" and your "trained
-# inference configuration".
-#
-# GENERAL INFERENCE CONFIGURATION
-# -------------------------------
-# This section defines the general inference configuration,
-# which is used for both trained and untrained models.
-# -------------------------------
 
-LOAD_IN_4BIT = False
-TOKENIZER_PATH = "huggyllama/llama-7b"
-USE_SYSTEM_PROMPT = False
-USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = False
-
-# ENGINE CONFIGURATION
-# -------------------------------
-# Here we define the specific inference engine we intend to use for inference, and all appropriate kwargs.
-# -------------------------------
-
-from src.inference_engines.mlc_engine import MLCEngine
-
-ENGINE = MLCEngine
-ENGINE_KWARGS = {
-    "tokenizer_path": TOKENIZER_PATH,
-}
-
-# DEFAULT INFERENCE CONFIGURATION
-# -------------------------------
-# This section defines the default inference configuration, which may differ from
-# how we implement inference for a trained model.
-# -------------------------------
-
-LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
-
-REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = get_env_var_or_default(
-    "REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH",
-    "remote/path/to/your/weights/here",
+# Inference weights
+mlc_file_list = get_mlc_file_list(
+    model_name="llama-2-7b-hf-q4f16_1", n_shards=115)
+mlc_weights = Weights(
+    local_path=f"models/{MODEL_NAME}/model_artifacts/default_inference_weights",
+    remote_path=get_env_var_or_default(
+        "REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH", None),
+    remote_files=mlc_file_list,
 )
 
-N_SHARDS = 2
-REMOTE_TRAINING_FILES_TO_DOWNLOAD = [
-    f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
-    for i in range(N_SHARDS)
-]
+# Inference config
+TOKENIZER_PATH = "huggyllama/llama-7b"
+USE_SYSTEM_PROMPT = False
 
-N_SHARDS = 115
-REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = [
-    f"params/params_shard_{shard_idx}.bin" for shard_idx in range(N_SHARDS)
-]
+ENGINE = MLCEngine
+ENGINE_KWARGS = mlc_kwargs(mlc_weights, tokenizer_path=TOKENIZER_PATH)
 
-REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
-    "llama-2-7b-hf-q4f16_1-cuda.so",
-    "mod_cache_before_build.pkl",
-    "params/mlc-chat-config.json",
-    "params/ndarray-cache.json",
-    "params/tokenizer.json",
-    "params/tokenizer_config.json",
-    "params/tokenizer.model",
-]
+# Training config
 
-# ensure directories exist
-for path in REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD:
-    path_directory = os.path.dirname(path)
-    if path_directory:
-        path_directory = os.path.join(LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH, path_directory)
-        os.makedirs(path_directory, exist_ok=True)
+LOAD_IN_4BIT = False
 
-DEFAULT_PAD_TOKEN = "[PAD]"
-DEFAULT_EOS_TOKEN = "</s>"
-DEFAULT_BOS_TOKEN = "<s>"
-DEFAULT_UNK_TOKEN = "</s>"
+LOCAL_TRAINING_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/training_weights"
+REMOTE_TRAINING_WEIGHTS_PATH = get_env_var_or_default(
+    "REMOTE_TRAINING_WEIGHTS_PATH", None,)
+LOCAL_TRAINING_WEIGHTS_CONFIG_PATH = f"models/{MODEL_NAME}/model_artifacts/training_weights/config.json"
+REMOTE_TRAINING_WEIGHTS_CONFIG_PATH = get_env_var_or_default(
+    var_name="REMOTE_TRAINING_WEIGHTS_CONFIG_PATH", default_value=None,)
+REMOTE_TRAINING_FILES_TO_DOWNLOAD = mlc_file_list

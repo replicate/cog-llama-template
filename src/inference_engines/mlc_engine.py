@@ -3,14 +3,15 @@ import json
 import os
 import time
 from io import BytesIO, IOBase
-from typing import BinaryIO, List, Optional, Union, get_args
+from os import path
 from queue import Queue
 from threading import Thread
-from os import path
+from typing import BinaryIO, List, Optional, Union, get_args
 
 import torch
 from mlc_chat import ChatConfig, ChatModule, ConvConfig, GenerationConfig
 from mlc_chat.callback import StreamIterator
+from src.config_utils import Weights
 from transformers import AutoTokenizer
 
 from .engine import Engine
@@ -21,13 +22,16 @@ class MLCEngine(Engine):
     An inference engine that runs inference w/ vLLM
     """
 
-    def __init__(self, model_path: os.PathLike, tokenizer_path: os.PathLike) -> None:
+    def __init__(self, weights: Weights, tokenizer_path: os.PathLike) -> None:
+        model_path = self.load_weights(weights)
         self.stop_str = "[INST]"
         self.stop_tokens = [2,]
         self.add_bos = True
         self.conv_template = "LM"
-        conv_config = ConvConfig(stop_tokens=self.stop_tokens, add_bos=self.add_bos, stop_str=self.stop_str)
-        chat_config = ChatConfig(conv_config=conv_config, conv_template=self.conv_template)
+        conv_config = ConvConfig(
+            stop_tokens=self.stop_tokens, add_bos=self.add_bos, stop_str=self.stop_str)
+        chat_config = ChatConfig(
+            conv_config=conv_config, conv_template=self.conv_template)
         model_path = path.join(model_path, "params")
         self.cm = ChatModule(model=model_path, chat_config=chat_config)
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
@@ -80,13 +84,15 @@ class MLCEngine(Engine):
         """
 
         if top_k > 0:
-            raise ValueError("top_k is currently not supported by our generation engine.")
+            raise ValueError(
+                "top_k is currently not supported by our generation engine.")
 
         stop_token_ids += self.stop_tokens
         # stop_sequences = [self.stop_str] + stop_sequences
 
         # TODO (Moin): add support for the system prompt on chat models
-        conv_config = ConvConfig(stop_tokens=stop_token_ids, add_bos=self.add_bos, stop_str=stop_sequences)
+        conv_config = ConvConfig(
+            stop_tokens=stop_token_ids, add_bos=self.add_bos, stop_str=stop_sequences)
         chat_config = ChatConfig(temperature=temperature, repetition_penalty=repetition_penalty,
                                  top_p=top_p, max_gen_len=max_new_tokens, mean_gen_len=max_new_tokens, conv_config=conv_config, conv_template=self.conv_template)
         self.cm.reset_chat(chat_config)
@@ -102,6 +108,7 @@ class MLCEngine(Engine):
 
         token_iterator = StreamIterator(callback_interval=1, timeout=None)
         # run the generation in the background
-        Thread(target=self.cm.generate, kwargs={"prompt": prompt, "progress_callback": token_iterator}).start()
+        Thread(target=self.cm.generate, kwargs={
+               "prompt": prompt, "progress_callback": token_iterator}).start()
         for token in token_iterator:
             yield token
