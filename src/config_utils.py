@@ -1,5 +1,5 @@
 """
-An entirely self-contained config parsing util that should, if all goes well, dramatically simplify our configuration.
+An entirely self-contained config parsing util that should, if all goes well, dramatically simplify our configuration. 
 """
 
 
@@ -41,7 +41,6 @@ def get_gptq_file_list(base_model_name: str):
     "tokenizer.model",
     "quantize_config.json"]
     return base_files
-
 
 def get_mlc_file_list(model_name: str, n_shards: int):
     files_to_download = [f"params/params_shard_{shard_idx}.bin" for shard_idx in range(n_shards)]
