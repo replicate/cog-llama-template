@@ -15,14 +15,10 @@ from cog import BasePredictor, ConcatenateIterator, Input, Path
 from config import (
     ENGINE,
     ENGINE_KWARGS,
-    LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH,
-    REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD,
-    REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH,
     USE_SYSTEM_PROMPT,
 )
 from src.download import Downloader
-# from src.more_utils import load_tokenizer
-from src.utils import maybe_download_with_pget, seed_all
+from src.utils import seed_all
 
 # This prompt formatting was copied from the original Llama v2 repo:
 # https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44

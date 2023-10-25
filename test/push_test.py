@@ -5,7 +5,7 @@ import replicate
 An extremely hasty module which tests out everything we want to test out with this model when it's on Replicate. 
 """
 
-model_name = "replicate/llama-2-7b"
+model_name = "a16z-infra/llama-2-7b-chat"
 
 model = replicate.models.get(model_name)
 
@@ -13,11 +13,6 @@ model = replicate.models.get(model_name)
 versions = model.versions.list()
 version = versions[0]
 
-test = {
-    "prompt": "How are you doing today?"
-}
-
-prediction = replicate.predictions.create(version=version, input=test)
 
 prediction_tests = [{
     "prompt": "How are you doing today?"

@@ -8,6 +8,8 @@ import time
 from pathlib import Path
 import typing as tp
 
+from src.config_utils import Weights
+
 exllama_path = os.path.abspath('exllama')
 sys.path.insert(0, exllama_path)
 
@@ -42,7 +44,8 @@ def timer(name, func):
 
 class ExllamaEngine(Engine):
 
-    def __init__(self, model_directory, fused_attn = True):
+    def __init__(self, weights: Weights, fused_attn = True):
+        model_directory = self.load_weights(weights)
         tokenizer_path = os.path.join(model_directory, "tokenizer.model")
         model_config_path = os.path.join(model_directory, "config.json")
         st_pattern = os.path.join(model_directory, "*.safetensors")
@@ -76,7 +79,13 @@ class ExllamaEngine(Engine):
 
         self.generator = begin(generator)
 
-
+    def delete_lora(self):
+        self.generator.lora = None
+        return
+    
+    def is_lora_active(self) -> bool:
+        return self.generator.lora is None
+    
     def load_lora(self, data_ref: dict) -> ExLlamaLora:
         return ExLlamaLora(self.model, data_ref["adapter_config.json"], io.BytesIO(data_ref["adapter_model.bin"]))
 

@@ -12,8 +12,12 @@ build:
   # a list of packages in the format <package-name>==<version>
   python_packages:
     - "numpy==1.24.2"
+    - "accelerate"
     - "sentencepiece==0.1.99"
+    - "tensorizer==1.0.1"
     - "jinja2==3.1.2"
+    - "deepspeed==0.10.0"
+    - "peft==0.4.0"
     - "scipy==1.11.1"
     - "asyncio==3.4.3"
     - "safetensors>=0.3.1"
@@ -36,6 +40,7 @@ build:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.3/pget#cacheburst" && chmod +x /usr/local/bin/pget
     - curl -o /usr/local/bin/remotefile -L "https://r2.drysys.workers.dev/remotefile" && chmod +x /usr/local/bin/remotefile
     - python3 -m pip install --pre -U -f https://mlc.ai/wheels mlc-chat-nightly-cu121 mlc-ai-nightly-cu121
+    - pip install -q -U bitsandbytes
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
