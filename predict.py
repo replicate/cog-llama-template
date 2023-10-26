@@ -122,6 +122,11 @@ class Predictor(BasePredictor):
             ge=-1,
             default=0,
         ),
+        repetition_penalty: float = Input(
+            description="A parameter that controls how repetitive text can be. Lower means more repetitive, while higher means less repetitive. Set to 1.0 to disable.",
+            ge=0.0,
+            default=1.15,
+        ),
         stop_sequences: str = Input(
             description="A comma-separated list of sequences to stop generation at. For example, '<end>,<stop>' will stop generation at the first instance of 'end' or '<stop>'.",
             default=None,
@@ -183,6 +188,7 @@ class Predictor(BasePredictor):
                 temperature=temperature,
                 top_p=top_p,
                 top_k=top_k,
+                repetition_penalty=repetition_penalty,
                 max_new_tokens=max_new_tokens,
                 min_new_tokens=min_new_tokens,
                 stop_sequences=stop_sequences,

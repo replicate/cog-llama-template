@@ -23,16 +23,23 @@ class MLCEngine(Engine):
     An inference engine that runs inference w/ vLLM
     """
 
-    def __init__(self, weights: Weights, tokenizer_path: os.PathLike) -> None:
+    def __init__(self, weights: Weights, tokenizer_path: os.PathLike, is_chat: bool) -> None:
         model_path = self.load_weights(weights)
+        self.is_chat = is_chat
         self.stop_str = "[INST]"
         self.stop_tokens = [2,]
         self.add_bos = True
-        self.conv_template = "LM"
+
+        if self.is_chat:
+            self.conv_template="llama-2"
+        else:
+            self.conv_template = "LM"
+
         conv_config = ConvConfig(
             stop_tokens=self.stop_tokens, add_bos=self.add_bos, stop_str=self.stop_str)
         chat_config = ChatConfig(
             conv_config=conv_config, conv_template=self.conv_template)
+
         model_path = path.join(model_path, "params")
         self.cm = ChatModule(model=model_path, chat_config=chat_config)
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
