@@ -34,7 +34,7 @@ TOKENIZER_PATH = "huggyllama/llama-13b"
 USE_SYSTEM_PROMPT = False
 
 ENGINE = MLCEngine
-ENGINE_KWARGS = mlc_kwargs(mlc_weights, tokenizer_path=TOKENIZER_PATH)
+ENGINE_KWARGS = mlc_kwargs(mlc_weights, tokenizer_path=TOKENIZER_PATH, is_chat=False)
 
 # Training config
 

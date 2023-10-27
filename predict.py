@@ -29,8 +29,7 @@ B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_INST}"
 
 # Users may want to change the system prompt, but we use the recommended system prompt by default
-DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
-
+DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant."""
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):

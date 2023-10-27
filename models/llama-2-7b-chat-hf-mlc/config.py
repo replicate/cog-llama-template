@@ -31,7 +31,7 @@ mlc_weights = Weights(
 
 # Inference config
 TOKENIZER_PATH = "huggyllama/llama-7b"
-USE_SYSTEM_PROMPT = False
+USE_SYSTEM_PROMPT = True
 
 ENGINE = MLCEngine
 ENGINE_KWARGS = mlc_kwargs(

@@ -5,7 +5,7 @@ import time
 from io import BytesIO, IOBase
 from os import path
 from queue import Queue
-from threading import Thread
+from threading import Lock, Thread
 from typing import BinaryIO, List, Optional, Union, get_args
 
 import torch
@@ -18,6 +18,31 @@ from transformers import AutoTokenizer
 from .engine import Engine
 
 
+class AsyncCompletionStream:
+    def __init__(self, cm: ChatModule, generation_config: GenerationConfig):
+        self.generation_config = generation_config
+        self.cm = cm
+
+    def __aiter__(self):
+        return self
+
+    async def get_next_msg(self):
+        if not self.cm._stopped():
+            self.cm._decode(generation_config=self.generation_config)
+            msg = self.cm._get_message()
+            return msg
+        else:
+            raise StopAsyncIteration
+
+    async def __anext__(self):
+        if not self.cm._stopped():
+            task = asyncio.create_task(self.get_next_msg())
+            msg = await task
+            return msg
+        else:
+            raise StopAsyncIteration
+
+
 class MLCEngine(Engine):
     """
     An inference engine that runs inference w/ vLLM
@@ -26,14 +51,17 @@ class MLCEngine(Engine):
     def __init__(self, weights: Weights, tokenizer_path: os.PathLike, is_chat: bool) -> None:
         model_path = self.load_weights(weights)
         self.is_chat = is_chat
-        self.stop_str = "[INST]"
-        self.stop_tokens = [2,]
-        self.add_bos = True
 
         if self.is_chat:
-            self.conv_template="llama-2"
+            self.conv_template = "llama-2"
+            self.stop_str = ""
+            self.stop_tokens = []
+            self.add_bos = None
         else:
             self.conv_template = "LM"
+            self.stop_str = "[INST]"
+            self.stop_tokens = [2,]
+            self.add_bos = True
 
         conv_config = ConvConfig(
             stop_tokens=self.stop_tokens, add_bos=self.add_bos, stop_str=self.stop_str)
@@ -105,6 +133,14 @@ class MLCEngine(Engine):
                                  top_p=top_p, max_gen_len=max_new_tokens, mean_gen_len=max_new_tokens, conv_config=conv_config, conv_template=self.conv_template)
         self.cm.reset_chat(chat_config)
 
+        generation_config = GenerationConfig(
+            temperature=temperature,
+            repetition_penalty=repetition_penalty,
+            top_p=top_p,
+            max_gen_len=max_new_tokens
+        )
+        self.cm._prefill(input=prompt, generation_config=generation_config)
+
         min_new_tokens = kwargs.pop("min_new_tokens", None)
         if min_new_tokens is not None and min_new_tokens > -1:
             raise ValueError(
@@ -114,9 +150,19 @@ class MLCEngine(Engine):
             raise ValueError(
                 f"Unknown keyword arguments: {', '.join(kwargs.keys())}")
 
-        token_iterator = StreamIterator(callback_interval=1, timeout=None)
-        # run the generation in the background
-        Thread(target=self.cm.generate, kwargs={
-               "prompt": prompt, "progress_callback": token_iterator}).start()
-        for token in token_iterator:
-            yield token
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        stream = AsyncCompletionStream(self.cm, generation_config)
+        generation_length = 0
+        while True:
+            try:
+                out = loop.run_until_complete(stream.get_next_msg())
+                yield out[generation_length:]
+
+                generation_length = len(out)
+            except StopAsyncIteration:
+                break
