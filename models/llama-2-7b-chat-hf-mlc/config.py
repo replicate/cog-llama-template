@@ -15,13 +15,6 @@ mlc_file_list = get_mlc_file_list(
 
 LOCAL_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 
-# ensure directories exist
-for path in mlc_file_list:
-    path_directory = os.path.dirname(path)
-    if path_directory:
-        path_directory = os.path.join(LOCAL_PATH, path_directory)
-        os.makedirs(path_directory, exist_ok=True)
-
 mlc_weights = Weights(
     local_path=LOCAL_PATH,
     remote_path=get_env_var_or_default(

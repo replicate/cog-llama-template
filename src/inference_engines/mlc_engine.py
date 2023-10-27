@@ -72,6 +72,26 @@ class MLCEngine(Engine):
         self.cm = ChatModule(model=model_path, chat_config=chat_config)
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 
+    def load_weights(self, weights: Weights) -> str:
+        """
+        Downloads the weights from the given Weights object and returns the path to the downloaded weights.
+
+        Args:
+        - weights (Weights): the weights to download.
+
+        Returns:
+        - weights_path (str): the path to the downloaded weights.
+        """
+        # ensure directories exist
+        for path in weights.remote_files:
+            path_directory = os.path.dirname(path)
+            if path_directory:
+                path_directory = os.path.join(
+                    weights.local_path, path_directory)
+                os.makedirs(path_directory, exist_ok=True)
+
+        return super().load_weights(weights)
+
     def get_logits(self):
         """
         Given a prompt, returns the logits from the language model.

@@ -7,11 +7,11 @@ from src.utils import get_env_var_or_default
 
 load_dotenv()
 
-MODEL_NAME = "llama-2-13b-chat-hf-mlc"
+MODEL_NAME = "llama-2-70b-mlc"
 
 # Inference weights
 mlc_file_list = get_mlc_file_list(
-    model_name="Llama-2-13b-chat-hf-q4f16_1", n_shards=163)
+    model_name="Llama-2-70b-q4f16_1", n_shards=483)
 
 LOCAL_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 
@@ -24,7 +24,7 @@ mlc_weights = Weights(
 
 # Inference config
 TOKENIZER_PATH = "huggyllama/llama-13b"
-USE_SYSTEM_PROMPT = True
+USE_SYSTEM_PROMPT = False
 
 ENGINE = MLCEngine
 ENGINE_KWARGS = mlc_kwargs(mlc_weights, tokenizer_path=TOKENIZER_PATH, is_chat=False)
