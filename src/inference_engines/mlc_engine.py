@@ -17,6 +17,30 @@ from transformers import AutoTokenizer
 
 from .engine import Engine
 
+class AsyncCompletionStream:
+    def __init__(self, cm: ChatModule, generation_config: GenerationConfig):
+        self.generation_config = generation_config
+        self.cm = cm
+
+    def __aiter__(self):
+        return self
+
+    async def get_next_msg(self):
+        if not self.cm._stopped():
+            self.cm._decode(generation_config=self.generation_config)
+            msg = self.cm._get_message()
+            return msg
+        else:
+            raise StopAsyncIteration
+
+    async def __anext__(self):
+        if not self.cm._stopped():
+            task = asyncio.create_task(self.get_next_msg())
+            msg = await task
+            return msg
+        else:
+            raise StopAsyncIteration
+
 
 class MLCEngine(Engine):
     """
@@ -99,11 +123,31 @@ class MLCEngine(Engine):
         # stop_sequences = [self.stop_str] + stop_sequences
 
         # TODO (Moin): add support for the system prompt on chat models
-        conv_config = ConvConfig(
-            stop_tokens=stop_token_ids, add_bos=self.add_bos, stop_str=stop_sequences)
-        chat_config = ChatConfig(temperature=temperature, repetition_penalty=repetition_penalty,
-                                 top_p=top_p, max_gen_len=max_new_tokens, mean_gen_len=max_new_tokens, conv_config=conv_config, conv_template=self.conv_template)
-        self.cm.reset_chat(chat_config)
+        # conv_config = ConvConfig(
+        #     stop_tokens=stop_token_ids, add_bos=self.add_bos, stop_str=stop_sequences)
+        # chat_config = ChatConfig(temperature=temperature, repetition_penalty=repetition_penalty,
+        #                          top_p=top_p, max_gen_len=max_new_tokens,conv_config=conv_config, conv_template=self.conv_template)
+
+        # new thing
+        # this also shits the bed
+        # self.cm.reset_chat()
+        # generation_config = GenerationConfig(
+        #     temperature=temperature,
+        #     repetition_penalty=repetition_penalty,
+        #     top_p=top_p,
+        #     max_gen_len=max_new_tokens
+        # )
+
+        # something might not be thread safe? Try their StreamingResponse? 
+
+        generation_config = GenerationConfig(
+            temperature=temperature,
+            repetition_penalty=repetition_penalty,
+            top_p=top_p,
+            max_gen_len=max_new_tokens
+        )
+        self.cm.reset_chat()
+        self.cm._prefill(input=prompt, generation_config=generation_config)
 
         min_new_tokens = kwargs.pop("min_new_tokens", None)
         if min_new_tokens is not None and min_new_tokens > -1:
@@ -114,9 +158,30 @@ class MLCEngine(Engine):
             raise ValueError(
                 f"Unknown keyword arguments: {', '.join(kwargs.keys())}")
 
-        token_iterator = StreamIterator(callback_interval=1, timeout=None)
+        # token_iterator = StreamIterator(callback_interval=1, timeout=None)
         # run the generation in the background
-        Thread(target=self.cm.generate, kwargs={
-               "prompt": prompt, "progress_callback": token_iterator}).start()
-        for token in token_iterator:
-            yield token
+        # Thread(target=self.cm.generate, kwargs={
+        #        "prompt": prompt, "progress_callback": token_iterator, "generation_config":generation_config}).start()
+        # for token in token_iterator:
+        #    yield token
+
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        stream = AsyncCompletionStream(self.cm, generation_config)
+        generation_length = 0
+        while True:
+            try:
+                out = loop.run_until_complete(stream.get_next_msg())
+                yield out[generation_length:]
+                
+                generation_length = len(out)
+            except StopAsyncIteration:
+                break
+
+
+        
+
