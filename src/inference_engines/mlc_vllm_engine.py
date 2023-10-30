@@ -1,12 +1,10 @@
-import gc
 from typing import Any, Optional, List
-
-import torch
 import os
 
 from .engine import Engine
 from .vllm_engine import vLLMEngine
-from .mlc_engine import MLCEngine
+
+os.environ['REPLICATE_HOTSWAP'] = '1'
 
 
 class MLCVLLMEngine(Engine):
@@ -19,6 +17,8 @@ class MLCVLLMEngine(Engine):
         if 'COG_WEIGHTS' in os.environ or ('REPLICATE_HOTSWAP' in os.environ and os.environ['REPLICATE_HOTSWAP'] == "1"):
             self.engine = vLLMEngine(**vllm_args)
         else:
+            # can't run vllm if MLC is imported
+            from .mlc_engine import MLCEngine
             self.engine = MLCEngine(**mlc_args)
             self.vllm_args = vllm_args
 
@@ -28,15 +28,17 @@ class MLCVLLMEngine(Engine):
         loads a lora from files into the format that this particular engine expects. DOES NOT prepare the engine for inference.
         lora_data is a dictionary of file names & references from the zip file
         """
-        if isinstance(self.engine, MLCEngine):
+        if not isinstance(self.engine, vLLMEngine):
             # Really we should never need to do this.
-            print("Transitioning from MLC to vLLM")
-            del self.cm
-            del self.tokenizer
+            # print("Transitioning from MLC to vLLM")
+            # del self.engine.cm
+            # del self.engine.tokenizer
+            # del self.engine
 
-            gc.collect()
-            torch.cuda.empty_cache()
-            self.engine = vLLMEngine(**self.vllm_args)
+            # gc.collect()
+            # torch.cuda.empty_cache()
+            # self.engine = vLLMEngine(**self.vllm_args)
+            raise Exception("Loras not supported with MLCEngine")
         
         return self.engine.load_lora(lora_data)
         
@@ -53,7 +55,7 @@ class MLCVLLMEngine(Engine):
         """
         Given a loaded lora (created w/ load_lora), configures the engine to use that lora in combination with the loaded base weights.
         """
-        if isinstance(self.engine, MLCEngine):
+        if not isinstance(self.engine, vLLMEngine):
             raise Exception("Loras not supported with MLC Engine! Invalid state reached.")
         self.engine.set_lora(lora)
 
@@ -70,7 +72,7 @@ class MLCVLLMEngine(Engine):
                  top_k:int =50,
                  stop_sequences: Optional[List[str]] = None,
                  **kwargs):
-        print(f"MLC: {isinstance(self.engine, MLCEngine)}")
+        print(f"MLC: {not isinstance(self.engine, vLLMEngine)}")
         gen = self.engine(prompt, 
                           max_new_tokens=max_new_tokens, 
                           min_new_tokens=min_new_tokens,
