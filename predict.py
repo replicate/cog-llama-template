@@ -12,11 +12,7 @@ from typing import Any, Optional
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
-from config import (
-    ENGINE,
-    ENGINE_KWARGS,
-    USE_SYSTEM_PROMPT,
-)
+from config import ENGINE, ENGINE_KWARGS, USE_SYSTEM_PROMPT
 from src.download import Downloader
 from src.utils import seed_all
 
@@ -30,6 +26,7 @@ PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_I
 
 # Users may want to change the system prompt, but we use the recommended system prompt by default
 DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant."""
+
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
@@ -149,7 +146,8 @@ class Predictor(BasePredictor):
             stop_sequences = stop_sequences.split(",")
 
         if USE_SYSTEM_PROMPT:
-            prompt = prompt.strip("\n").removeprefix(B_INST).removesuffix(E_INST).strip()
+            prompt = prompt.strip("\n").removeprefix(
+                B_INST).removesuffix(E_INST).strip()
             prompt = PROMPT_TEMPLATE.format(
                 system_prompt=system_prompt.strip(), instruction=prompt.strip()
             )
@@ -204,9 +202,11 @@ class Predictor(BasePredictor):
             print(f"hostname: {socket.gethostname()}")
             if debug:
                 print("generated text:", generated_text)
-                print(f"after initialization, first token took {second_start - st:.3f}")
+                print(
+                    f"after initialization, first token took {second_start - st:.3f}")
                 print(f"Tokens per second: {n_tokens / t:.2f}")
-                print(f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}")
+                print(
+                    f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}")
                 print(f"cur memory: {torch.cuda.memory_allocated()}")
                 print(f"max allocated: {torch.cuda.max_memory_allocated()}")
                 print(f"peak memory: {torch.cuda.max_memory_reserved()}")
@@ -228,18 +228,31 @@ class Predictor(BasePredictor):
     #     predict = remove(predict, {"system_prompt": None})
 
     _predict = predict
+    # Temporary hack to disable Top K from the API. We should get rid of this once engines + configs are better standardized.
+    USE_TOP_K = ENGINE.__name__ != "MLCEngine"
 
     def base_predict(self, *args, **kwargs) -> ConcatenateIterator:
         kwargs["system_prompt"] = None
+        if not USE_TOP_K:
+            kwargs["top_k"] = None
         return self._predict(*args, **kwargs)
 
     # for the purposes of inspect.signature as used by predictor.get_input_type,
     # remove the argument (system_prompt)
     # this removes system_prompt from the Replicate API for non-chat models.
-    if not USE_SYSTEM_PROMPT:
+    if not USE_SYSTEM_PROMPT or not USE_TOP_K:
+        params_to_remove = ["None"]
+        if not USE_SYSTEM_PROMPT:
+            params_to_remove.append("system_prompt")
+        if not USE_TOP_K:
+            params_to_remove.append("top_k")
+
         wrapper = base_predict
         # wrapper = functools.partialmethod(base_predict, system_prompt=None)
         sig = inspect.signature(_predict)
-        params = [p for name, p in sig.parameters.items() if name != "system_prompt"]
+        params = []
+        for name, p in sig.parameters.items():
+            if name not in params_to_remove:
+                params.append(p)
         wrapper.__signature__ = sig.replace(parameters=params)
         predict = wrapper
