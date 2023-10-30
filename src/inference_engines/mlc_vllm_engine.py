@@ -5,12 +5,12 @@ from .engine import Engine
 from .vllm_engine import vLLMEngine
 
 
-class MLCVLLMEngine(Engine):
+class MLCvLLMEngine(Engine):
     """
     MLC for base models, vllm for fine-tunes. 
     """
 
-    def __init__(self, vllm_args: dict, mlc_args: dict) -> None:
+    def __init__(self, mlc_args: dict, vllm_args: dict) -> None:
         # checks for old style loras & if this is booted as a fine-tuneable hotswap
         if 'COG_WEIGHTS' in os.environ or ('REPLICATE_HOTSWAP' in os.environ and os.environ['REPLICATE_HOTSWAP'] == "1"):
             self.engine = vLLMEngine(**vllm_args)
