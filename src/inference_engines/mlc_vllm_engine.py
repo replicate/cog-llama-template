@@ -4,8 +4,6 @@ import os
 from .engine import Engine
 from .vllm_engine import vLLMEngine
 
-os.environ['REPLICATE_HOTSWAP'] = '1'
-
 
 class MLCVLLMEngine(Engine):
     """
