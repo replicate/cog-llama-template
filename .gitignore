@@ -17,3 +17,4 @@ orig-llama-recipes/
 vllm/
 .pytest_cache
 .dockerignore
+*.egg-info/
