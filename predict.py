@@ -1,9 +1,6 @@
 import functools
 import inspect
-import io
 import os
-import random
-import shutil
 import socket
 import time
 import zipfile
@@ -75,9 +72,7 @@ class Predictor(BasePredictor):
 
     def initialize_peft(self, replicate_weights: str) -> None:
         if self.current_path != replicate_weights:
-            print(
-                f"previous weights were different, switching to {replicate_weights}"
-            )
+            print(f"previous weights were different, switching to {replicate_weights}")
             self.engine.set_lora(self.get_lora(replicate_weights))
 
             self.current_path = replicate_weights
@@ -134,7 +129,8 @@ class Predictor(BasePredictor):
             description="provide debugging output in logs", default=False
         ),
         return_logits: bool = Input(
-            description="if set, only return logits for the first token. only useful for testing, etc.", default=False
+            description="if set, only return logits for the first token. only useful for testing, etc.",
+            default=False,
         ),
         replicate_weights: str = Input(
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
@@ -145,7 +141,9 @@ class Predictor(BasePredictor):
             stop_sequences = stop_sequences.split(",")
 
         if USE_SYSTEM_PROMPT:
-            prompt = prompt.strip("\n").removeprefix(B_INST).removesuffix(E_INST).strip()
+            prompt = (
+                prompt.strip("\n").removeprefix(B_INST).removesuffix(E_INST).strip()
+            )
             prompt = PROMPT_TEMPLATE.format(
                 system_prompt=system_prompt.strip(), instruction=prompt.strip()
             )
@@ -157,7 +155,7 @@ class Predictor(BasePredictor):
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.3f}")
         else:
-            if 'COG_WEIGHTS' not in os.environ:
+            if "COG_WEIGHTS" not in os.environ:
                 self.delete_lora()
                 print("Not using LoRA")
 
@@ -171,11 +169,11 @@ class Predictor(BasePredictor):
         if return_logits:
             logits = self.engine.get_logits(prompt)
             # serializing so we aren't returning a massive json
-            logits_path = 'logits.pt'
+            logits_path = "logits.pt"
             torch.save(logits, logits_path)
             yield Path(logits_path)
 
-        # todo: may need to do something clever with kwargs if/when we add more engines. 
+        # todo: may need to do something clever with kwargs if/when we add more engines.
         else:
             for decoded_token in self.engine(
                 prompt,
@@ -190,7 +188,9 @@ class Predictor(BasePredictor):
                 yield decoded_token
                 if n_tokens == 1 and debug:
                     second_start = time.time()
-                    print(f"after initialization, first token took {second_start - st:.3f}")
+                    print(
+                        f"after initialization, first token took {second_start - st:.3f}"
+                    )
                 if seed is not None:
                     torch.manual_seed(seed)
             et = time.time()
@@ -198,40 +198,31 @@ class Predictor(BasePredictor):
             print(f"hostname: {socket.gethostname()}")
             if debug:
                 print(f"Tokens per second: {n_tokens / t:.2f}")
-                print(f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}")
+                print(
+                    f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}"
+                )
                 print(f"cur memory: {torch.cuda.memory_allocated()}")
                 print(f"max allocated: {torch.cuda.max_memory_allocated()}")
                 print(f"peak memory: {torch.cuda.max_memory_reserved()}")
 
-    # # we'd like this to work eventually
-    # def remove(f: "Callable", defaults: "dict[str, Any]") -> "Callable":
-    #     # pylint: disable=no-self-argument
-    #     # for the purposes of inspect.signature as used by predictor.get_input_type,
-    #     # remove the argument (system_prompt)
-    #     wrapped = functools.partialmethod(f, **defaults)
-    #     sig = inspect.signature(wrapped)
-    #     # TypeError: functools.partialmethod(<function Predictor.predict at 0x7fa5d2136340>, , system_prompt=None) is not a callabl object
-    #
-    #     params = [p for name, p in sig.parameters.items() if name not in defaults]
-    #     wrapped.__signature__ = sig.replace(parameters=params)
-    #     return wrapped
+    def remove(f: "Callable", defaults: "dict[str, Any]") -> "Callable":
+        # pylint: disable=no-self-argument
+        def wrapper(self, *args, **kwargs):
+            kwargs.update(defaults)
+            return f(self, *args, **kwargs)
 
-    # if not USE_SYSTEM_PROMPT:
-    #     predict = remove(predict, {"system_prompt": None})
+        # Update wrapper attributes for documentation, etc.
+        functools.update_wrapper(wrapper, f)
 
-    _predict = predict
-
-    def base_predict(self, *args, **kwargs) -> ConcatenateIterator:
-        kwargs["system_prompt"] = None
-        return self._predict(*args, **kwargs)
-
-    # for the purposes of inspect.signature as used by predictor.get_input_type,
-    # remove the argument (system_prompt)
-    # this removes system_prompt from the Replicate API for non-chat models.
-    if not USE_SYSTEM_PROMPT:
-        wrapper = base_predict
-        # wrapper = functools.partialmethod(base_predict, system_prompt=None)
-        sig = inspect.signature(_predict)
-        params = [p for name, p in sig.parameters.items() if name != "system_prompt"]
+        # for the purposes of inspect.signature as used by predictor.get_input_type,
+        # remove the argument (system_prompt)
+        sig = inspect.signature(f)
+        params = [p for name, p in sig.parameters.items() if name not in defaults]
         wrapper.__signature__ = sig.replace(parameters=params)
-        predict = wrapper
+
+        # Return partialmethod, wrapper behaves correctly when part of a class
+        return functools.partialmethod(wrapper)
+
+    if not USE_SYSTEM_PROMPT:
+        # this removes system_prompt from the Replicate API for non-chat models.
+        predict = remove(predict, {"system_prompt": None})
