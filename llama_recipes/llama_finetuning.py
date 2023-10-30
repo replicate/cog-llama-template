@@ -186,7 +186,20 @@ def main(**kwargs):
                          "If `pack_sequences` is `True`, you're more likely to run into this issue, particularly with small datasets that " \
                          "consist of short examples. Try setting `pack_sequences` to `False` and/or reducing your batch size."
                         )
-                    
+    
+    # FSDP Data distribution debugging
+    # write data from train_dataloader to disk for debugging. Include rank in file name
+    fn = f"./bug/dataloader_rank_{rank}.jsonl"
+    import json 
+
+    with open(fn, "w") as f:
+        for i, batch in enumerate(train_dataloader):
+            decoded = tokenizer.batch_decode(batch["input_ids"], skip_special_tokens=True)
+            for seq in decoded:
+                f.write(json.dumps({"rank": rank, "batch_number": i, "seq": seq}))
+                f.write("\n")
+    
+    exit()
     #########################################################
     # CONFIGURE AND INITIALIZE MODEL ------------------------
     #########################################################
@@ -296,6 +309,8 @@ def main(**kwargs):
             )
 
     gradient_accumulation_steps = train_config.gradient_accumulation_steps
+
+
 
     if not train_config.peft_method == 'qlora':
         
