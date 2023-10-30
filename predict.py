@@ -116,7 +116,7 @@ class Predictor(BasePredictor):
         top_k: int = Input(
             description="When decoding text, samples from the top k most likely tokens; lower to ignore less likely tokens",
             ge=-1,
-            default=0,
+            default=-1,
         ),
         repetition_penalty: float = Input(
             description="A parameter that controls how repetitive text can be. Lower means more repetitive, while higher means less repetitive. Set to 1.0 to disable.",
