@@ -179,6 +179,8 @@ test-prod-train-predict:
 
 test-prod: test-prod-predict test-prod-train-predict
 
+format:
+	python3 -m ruff format .
 
 help:
 	@echo "Available targets:\n\n"
