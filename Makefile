@@ -182,6 +182,10 @@ test-prod: test-prod-predict test-prod-train-predict
 format:
 	python3 -m ruff format .
 
+lint:
+	python3 -m ruff .
+	python3 -m ruff format --check .
+
 help:
 	@echo "Available targets:\n\n"
 	@echo "init: Create the model directory."
