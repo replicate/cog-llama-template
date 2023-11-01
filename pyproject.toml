@@ -1,0 +1,8 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cog-llama-template"
+version = "0.0.0"
+optional-dependencies = { dev = ["ruff>=0.1.3"] }
