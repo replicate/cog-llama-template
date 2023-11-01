@@ -166,7 +166,7 @@ class MLCEngine(Engine):
         min_new_tokens = kwargs.pop("min_new_tokens", None)
         if min_new_tokens is not None and min_new_tokens > -1:
             raise ValueError(
-                "min_new_tokens is currently not supported by vLLM Engine.")
+                "min_new_tokens is currently not supported by MLC's engine.")
 
         if len(kwargs) > 0:
             raise ValueError(
