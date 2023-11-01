@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from src.config_utils import Weights, get_fp16_file_list, get_mlc_file_list, mlc_kwargs, vllm_kwargs
 from src.inference_engines.mlc_vllm_engine import MLCvLLMEngine
+from src.inference_engines.mlc_engine import MLCEngine
 from src.utils import get_env_var_or_default
 
 load_dotenv()
@@ -29,12 +30,11 @@ vllm_weights = Weights(
 )
 
 # Inference config
-TOKENIZER_PATH = "huggyllama/llama-7b"
 USE_SYSTEM_PROMPT = False
 
 ENGINE = MLCvLLMEngine
 ENGINE_KWARGS = {
-    "mlc_args": mlc_kwargs(mlc_weights, tokenizer_path=TOKENIZER_PATH, is_chat=False),
+    "mlc_args": mlc_kwargs(mlc_weights, is_chat=False),
     "vllm_args": vllm_kwargs(vllm_weights)
 }
 

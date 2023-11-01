@@ -1,5 +1,5 @@
 """
-An entirely self-contained config parsing util that should, if all goes well, dramatically simplify our configuration. 
+An entirely self-contained config parsing util that should, if all goes well, dramatically simplify our configuration.
 """
 
 
@@ -53,6 +53,7 @@ def get_mlc_file_list(model_name: str, n_shards: int):
         "params/tokenizer.json",
         "params/tokenizer_config.json",
         "params/tokenizer.model",
+        "params/config.json",
     ]
     return files_to_download
 
@@ -74,7 +75,7 @@ def vllm_kwargs(weights: Weights, config_overrides: Optional[dict] = None):
         vllm_default.update(config_overrides)
     return vllm_default
 
-def mlc_kwargs(weights: Weights, tokenizer_path: str, is_chat: bool, config_overrides: Optional[dict] = None):
+def mlc_kwargs(weights: Weights, is_chat: bool, tokenizer_path: str = None, config_overrides: Optional[dict] = None):
     mlc_default = {
         "weights": weights,
         "tokenizer_path": tokenizer_path,
