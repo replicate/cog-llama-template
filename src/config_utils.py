@@ -16,7 +16,7 @@ def get_fp16_file_list(n_shards: int):
     """
     Assumes safetensors
     """
-    base_files = [f"model-0000{val}-of-0000{n_shards}.safetensors" for val in range (1, n_shards+1)]
+    base_files = [f"model-{str(val).zfill(5)}-of-{str(n_shards).zfill(5)}.safetensors" for val in range (1, n_shards+1)]
     base_files += ["config.json",
     "generation_config.json",
     "special_tokens_map.json",
