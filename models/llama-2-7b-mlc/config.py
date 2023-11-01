@@ -3,7 +3,6 @@ import os
 from dotenv import load_dotenv
 from src.config_utils import Weights, get_fp16_file_list, get_mlc_file_list, mlc_kwargs, vllm_kwargs
 from src.inference_engines.mlc_vllm_engine import MLCvLLMEngine
-from src.inference_engines.mlc_engine import MLCEngine
 from src.utils import get_env_var_or_default
 
 load_dotenv()
