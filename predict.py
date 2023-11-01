@@ -27,6 +27,7 @@ PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_I
 # Users may want to change the system prompt, but we use the recommended system prompt by default
 DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant."""
 
+USE_TOP_K = ENGINE.__name__ not in ("MLCEngine", "MLCvLLMEngine")
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
@@ -142,6 +143,7 @@ class Predictor(BasePredictor):
             default=None,
         ),
     ) -> ConcatenateIterator[str]:
+        print(f"Use top k {USE_TOP_K}")
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
 
@@ -229,10 +231,10 @@ class Predictor(BasePredictor):
 
     _predict = predict
     # Temporary hack to disable Top K from the API. We should get rid of this once engines + configs are better standardized.
-    USE_TOP_K = ENGINE.__name__ != "MLCEngine"
 
-    def base_predict(self, *args, **kwargs) -> ConcatenateIterator:
-        kwargs["system_prompt"] = None
+    def base_predict(self, *args, **kwargs) -> ConcatenateIterator[str]:
+        if not USE_SYSTEM_PROMPT:
+            kwargs["system_prompt"] = None
         if not USE_TOP_K:
             kwargs["top_k"] = None
         return self._predict(*args, **kwargs)
@@ -241,11 +243,11 @@ class Predictor(BasePredictor):
     # remove the argument (system_prompt)
     # this removes system_prompt from the Replicate API for non-chat models.
     if not USE_SYSTEM_PROMPT or not USE_TOP_K:
-        params_to_remove = ["None"]
+        params_to_remove = set()
         if not USE_SYSTEM_PROMPT:
-            params_to_remove.append("system_prompt")
+            params_to_remove.add("system_prompt")
         if not USE_TOP_K:
-            params_to_remove.append("top_k")
+            params_to_remove.add("top_k")
 
         wrapper = base_predict
         # wrapper = functools.partialmethod(base_predict, system_prompt=None)

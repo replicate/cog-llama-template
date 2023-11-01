@@ -139,7 +139,7 @@ class MLCEngine(Engine):
         - generated_text (str): the generated text, or next token, depending on the value of `incremental_generation`.
         """
 
-        if top_k > 0:
+        if top_k is not None:
             raise ValueError(
                 "top_k is currently not supported by our generation engine.")
 
