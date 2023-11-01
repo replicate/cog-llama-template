@@ -28,7 +28,6 @@ build:
     - "datasets"
     - "transformers==4.33.2"
     - "peft==0.4.0"
-    - "tensorizer==1.0.1"
     - "accelerate"
     - "scipy"
     - "bitsandbytes" 
