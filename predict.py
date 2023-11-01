@@ -1,9 +1,6 @@
 import functools
 import inspect
-import io
 import os
-import random
-import shutil
 import socket
 import time
 import zipfile
@@ -73,9 +70,7 @@ class Predictor(BasePredictor):
 
     def initialize_peft(self, replicate_weights: str) -> None:
         if self.current_path != replicate_weights:
-            print(
-                f"previous weights were different, switching to {replicate_weights}"
-            )
+            print(f"previous weights were different, switching to {replicate_weights}")
             self.engine.set_lora(self.get_lora(replicate_weights))
 
             self.current_path = replicate_weights
@@ -137,7 +132,8 @@ class Predictor(BasePredictor):
             description="provide debugging output in logs", default=False
         ),
         return_logits: bool = Input(
-            description="if set, only return logits for the first token. only useful for testing, etc.", default=False
+            description="if set, only return logits for the first token. only useful for testing, etc.",
+            default=False,
         ),
         replicate_weights: str = Input(
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
@@ -148,8 +144,9 @@ class Predictor(BasePredictor):
             stop_sequences = stop_sequences.split(",")
 
         if USE_SYSTEM_PROMPT:
-            prompt = prompt.strip("\n").removeprefix(
-                B_INST).removesuffix(E_INST).strip()
+            prompt = (
+                prompt.strip("\n").removeprefix(B_INST).removesuffix(E_INST).strip()
+            )
             prompt = PROMPT_TEMPLATE.format(
                 system_prompt=system_prompt.strip(), instruction=prompt.strip()
             )
@@ -161,7 +158,7 @@ class Predictor(BasePredictor):
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.3f}")
         else:
-            if 'COG_WEIGHTS' not in os.environ:
+            if "COG_WEIGHTS" not in os.environ:
                 self.delete_lora()
                 print("Not using LoRA")
 
@@ -175,7 +172,7 @@ class Predictor(BasePredictor):
         if return_logits:
             logits = self.engine.get_logits(prompt)
             # serializing so we aren't returning a massive json
-            logits_path = 'logits.pt'
+            logits_path = "logits.pt"
             torch.save(logits, logits_path)
             yield Path(logits_path)
 
@@ -208,7 +205,8 @@ class Predictor(BasePredictor):
                     f"after initialization, first token took {second_start - st:.3f}")
                 print(f"Tokens per second: {n_tokens / t:.2f}")
                 print(
-                    f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}")
+                    f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}"
+                )
                 print(f"cur memory: {torch.cuda.memory_allocated()}")
                 print(f"max allocated: {torch.cuda.max_memory_allocated()}")
                 print(f"peak memory: {torch.cuda.max_memory_reserved()}")
@@ -240,6 +238,7 @@ class Predictor(BasePredictor):
     # for the purposes of inspect.signature as used by predictor.get_input_type,
     # remove the argument (system_prompt)
     # this removes system_prompt from the Replicate API for non-chat models.
+    # TODO (Moin): convert this to use the `remove` function ASAP.
     if not USE_SYSTEM_PROMPT or not USE_TOP_K:
         params_to_remove = ["None"]
         if not USE_SYSTEM_PROMPT:
