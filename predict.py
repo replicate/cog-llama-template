@@ -27,6 +27,8 @@ PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_I
 # Users may want to change the system prompt, but we use the recommended system prompt by default
 DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant."""
 
+# Temporary hack to disable Top K from the API. We should get rid of this once engines + configs are better standardized.
+USE_TOP_K = ENGINE.__name__ != "MLCEngine"
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
@@ -228,8 +230,6 @@ class Predictor(BasePredictor):
     #     predict = remove(predict, {"system_prompt": None})
 
     _predict = predict
-    # Temporary hack to disable Top K from the API. We should get rid of this once engines + configs are better standardized.
-    USE_TOP_K = ENGINE.__name__ != "MLCEngine"
 
     def base_predict(self, *args, **kwargs) -> ConcatenateIterator:
         kwargs["system_prompt"] = None
