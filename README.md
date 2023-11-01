@@ -1,5 +1,22 @@
 # LLaMA Cog template 🦙
 
+This is a monorepo for building multiple Llama models using Cog:
+
+- llama-2-13b
+- llama-2-13b-chat
+- llama-2-13b-transformers
+- llama-2-70b
+- llama-2-70b-chat
+- llama-2-7b
+- llama-2-7b-chat
+- llama-2-7b-transformers
+- llama-2-7b-vllm
+
+See [replicate.com/meta](https://replicate.com/meta).
+
+---
+
+
 **NOTE: This is an experimental branch that depends on exllama**
 
 For now, you should:
