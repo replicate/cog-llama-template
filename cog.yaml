@@ -39,8 +39,10 @@ build:
     # This wheel can be built by running `TORCH_CUDA_ARCH_LIST="8.0;8.6" pip wheel .` in https://github.com/replicate/vllm-with-loras
     - "https://weights.replicate.delivery/default/wheels/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"
     - "https://r2.drysys.workers.dev/xformers-0.0.23+d18d0ef.d20231009-cp311-cp311-linux_x86_64.whl"
-    - "https://github.com/mlc-ai/package/releases/download/v0.9.dev0/mlc_ai_nightly_cu121-0.12.dev1772-cp311-cp311-manylinux_2_28_x86_64.whl"
-    - "https://github.com/mlc-ai/package/releases/download/v0.9.dev0/mlc_chat_nightly_cu121-0.1.dev549-cp311-cp311-manylinux_2_28_x86_64.whl"
+    - "--pre -f https://mlc.ai/wheels mlc-chat-nightly-cu121"
+    - "--pre -f https://mlc.ai/wheels mlc-ai-nightly-cu121"
+    # - "https://github.com/mlc-ai/package/releases/download/v0.9.dev0/mlc_ai_nightly_cu121-0.12.dev1772-cp311-cp311-manylinux_2_28_x86_64.whl"
+    # - "https://github.com/mlc-ai/package/releases/download/v0.9.dev0/mlc_chat_nightly_cu121-0.1.dev549-cp311-cp311-manylinux_2_28_x86_64.whl"
   run:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.3/pget#cacheburst" && chmod +x /usr/local/bin/pget
     - curl -o /usr/local/bin/remotefile -L "https://r2.drysys.workers.dev/remotefile" && chmod +x /usr/local/bin/remotefile
