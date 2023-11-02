@@ -33,10 +33,10 @@ endif
 
 base-schema.json:
 	$(MAKE) select model=$(model)
-	cog run --use-cuda-base-image=true python3 -m cog.command.openapi_schema > base-schema.json
+	cog run --use-cuda-base-image=false python3 -m cog.command.openapi_schema > base-schema.json
 chat-schema.json:
 	$(MAKE) select model=$(model)
-	cog run --use-cuda-base-image=true python3 -m cog.command.openapi_schema > chat-schema.json
+	cog run --use-cuda-base-image=false python3 -m cog.command.openapi_schema > chat-schema.json
 	
 
 init:
@@ -99,7 +99,7 @@ clean: select
 	if [ -e training_output.zip]; then sudo rm -rf training_output.zip; fi
 
 build-local: select
-	cog build --openapi-schema=$(schema) --use-cuda-base-image=true --progress plain
+	cog build --openapi-schema=$(schema) --use-cuda-base-image=false --progress plain
 
 serve: select
 	docker run \
@@ -136,7 +136,7 @@ test-local: select test-local-predict test-local-train test-local-train-predict
 
 stage: select
 	@echo "Pushing $(model) to r8.im/$(REPLICATE_USER)/staging-$(model)..."
-	cog push --openapi-schema=$(schema) --use-cuda-base-image=true --progress plain r8.im/$(REPLICATE_USER)/staging-$(model)
+	cog push --openapi-schema=$(schema) --use-cuda-base-image=false --progress plain r8.im/$(REPLICATE_USER)/staging-$(model)
 
 test-stage-predict:
 	@if [ "$(verbose)" = "true" ]; then \
@@ -163,7 +163,7 @@ stage-and-test-models:
 	)
 	
 push: select
-	cog push --openapi-schema=$(schema) --use-cuda-base-image=true --progress plain r8.im/$(REPLICATE_USER)/$(PROD_MODEL)
+	cog push --openapi-schema=$(schema) --use-cuda-base-image=false --progress plain r8.im/$(REPLICATE_USER)/$(PROD_MODEL)
 
 test-prod-predict:
 	@if [ "$(verbose)" = "true" ]; then \
