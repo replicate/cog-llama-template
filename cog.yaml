@@ -1,10 +1,6 @@
 # Configuration for Cog ⚙️
 # Reference: https://github.com/replicate/cog/blob/main/docs/yaml.md
 
-# predict.py defines how predictions are run on your model
-predict: "predict.py:Predictor"
-train: "train.py:train"
-
 build:
   # set to true if your model requires a GPU
   gpu: true
@@ -19,6 +15,7 @@ build:
     - "sentencepiece==0.1.99"
     - "jinja2==3.1.2"
     - "scipy==1.11.1"
+    - "asyncio==3.4.3"
     - "safetensors>=0.3.1"
     - "ninja==1.11.1"
     - "python-dotenv"
@@ -27,20 +24,22 @@ build:
     - "datasets"
     - "transformers==4.33.2"
     - "peft==0.4.0"
+    - "tensorizer==1.0.1"
     - "accelerate"
-    - "bitsandbytes"
-    # - "https://r2.drysys.workers.dev/nyacomp-0.0.5-cp311-cp311-linux_x86_64.whl"
+    - "scipy"
+    - "bitsandbytes" 
+    - "https://r2.drysys.workers.dev/nyacomp-0.0.5-cp311-cp311-linux_x86_64.whl"
     - "trl==0.5.0"
     - "aiohttp[speedups]"
-    - "https://r2.drysys.workers.dev/torch/torch-2.1.0-cp311-cp311-linux_x86_64.whl"
     # This wheel can be built by running `TORCH_CUDA_ARCH_LIST="8.0;8.6" pip wheel .` in https://github.com/replicate/vllm-with-loras
     - "https://weights.replicate.delivery/default/wheels/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"
     - "https://r2.drysys.workers.dev/xformers-0.0.23+d18d0ef.d20231009-cp311-cp311-linux_x86_64.whl"
-    - "--pre -f https://mlc.ai/wheels"
-    - "mlc-chat-nightly-cu121"
-    - "mlc-ai-nightly-cu121"
+    - "torch==2.1.0"
   run:
-    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.4/pget" && chmod +x /usr/local/bin/pget
-    # - curl -o /usr/local/bin/remotefile -L "https://r2.drysys.workers.dev/remotefile" && chmod +x /usr/local/bin/remotefile
-    # since we can't do LD_LIBRARY_PATH=torch/lib, use this to make sure mlc can access the cuda libs bundled with torch
-    - bash -c 'ln -s /usr/local/lib/python3.11/site-packages/torch/lib/lib{nv,cu}* /usr/lib'
+    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.3/pget#cacheburst" && chmod +x /usr/local/bin/pget
+    - curl -o /usr/local/bin/remotefile -L "https://r2.drysys.workers.dev/remotefile" && chmod +x /usr/local/bin/remotefile
+    - python3 -m pip install --pre -U -f https://mlc.ai/wheels mlc-chat-nightly-cu121 mlc-ai-nightly-cu121
+
+# predict.py defines how predictions are run on your model
+predict: "predict.py:Predictor"
+train: "train.py:train"

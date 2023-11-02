@@ -12,7 +12,7 @@ class MLCvLLMEngine(Engine):
 
     def __init__(self, mlc_args: dict, vllm_args: dict) -> None:
         # checks for old style loras & if this is booted as a fine-tuneable hotswap
-        if os.getenv("COG_WEIGHTS") or os.getenv("REPLICATE_HOTSWAP") == "1":
+        if 'COG_WEIGHTS' in os.environ or ('REPLICATE_HOTSWAP' in os.environ and os.environ['REPLICATE_HOTSWAP'] == "1"):
             self.engine = vLLMEngine(**vllm_args)
         else:
             # can't run vllm if MLC is imported
