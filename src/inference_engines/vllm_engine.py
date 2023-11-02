@@ -37,7 +37,6 @@ class LoRA:
     def load_from_bytes(cls, adapter_config_bytes: BYTES_LIKE, adapter_model_bytes: BYTES_LIKE) -> "LoRA":
         return cls(adapter_config=adapter_config_bytes, adapter_model=adapter_model_bytes)
 
-
 class vLLMEngine(Engine):
     """
     An inference engine that runs inference w/ vLLM
@@ -131,6 +130,8 @@ class vLLMEngine(Engine):
         Yields:
         - generated_text (str): the generated text, or next token, depending on the value of `incremental_generation`.
         """
+        if top_k is None or top_k == 0:
+            top_k = -1
 
         min_new_tokens = kwargs.pop("min_new_tokens", None)
         if min_new_tokens is not None and min_new_tokens > -1:

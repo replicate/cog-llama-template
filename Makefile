@@ -37,7 +37,7 @@ base-schema.json:
 chat-schema.json:
 	$(MAKE) select model=llama-2-7b-chat
 	cog run --use-cuda-base-image=false python3 -m cog.command.openapi_schema > chat-schema.json
-	
+
 
 init:
 	@if [ -z "$(model)" ]; then \

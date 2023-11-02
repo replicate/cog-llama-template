@@ -25,7 +25,7 @@ PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_I
 DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant."""
 
 # Temporary hack to disable Top K from the API. We should get rid of this once engines + configs are better standardized.
-USE_TOP_K = ENGINE.__name__ != "MLCEngine"
+USE_TOP_K = ENGINE.__name__ not in ("MLCEngine", "MLCvLLMEngine")
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
@@ -220,11 +220,11 @@ class Predictor(BasePredictor):
         # Update wrapper attributes for documentation, etc.
         functools.update_wrapper(wrapper, f)
 
-
         # for the purposes of inspect.signature as used by predictor.get_input_type,
         # remove the argument (system_prompt)
         sig = inspect.signature(f)
         params = [p for name, p in sig.parameters.items() if name not in defaults]
+
         wrapper.__signature__ = sig.replace(parameters=params)
 
         # Return partialmethod, wrapper behaves correctly when part of a class
