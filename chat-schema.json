@@ -309,18 +309,11 @@
             "default": false,
             "x-order": 9
           },
-          "return_logits": {
-            "title": "Return Logits",
-            "type": "boolean",
-            "description": "if set, only return logits for the first token. only useful for testing, etc.",
-            "default": false,
-            "x-order": 10
-          },
           "replicate_weights": {
             "title": "Replicate Weights",
             "type": "string",
             "description": "Path to fine-tuned weights produced by a Replicate fine-tune job.",
-            "x-order": 11
+            "x-order": 10
           }
         }
       },
@@ -330,8 +323,8 @@
         "items": {
           "type": "string"
         },
-        "x-cog-array-display": "concatenate",
-        "x-cog-array-type": "iterator"
+        "x-cog-array-type": "iterator",
+        "x-cog-array-display": "concatenate"
       },
       "PredictionRequest": {
         "title": "PredictionRequest",
