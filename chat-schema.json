@@ -245,7 +245,7 @@
             "title": "System Prompt",
             "type": "string",
             "description": "System prompt to send to the model. This is prepended to the prompt and helps guide system behavior.",
-            "default": "You are a helpful assistant.",
+            "default": "You are a helpful, respectful and honest assistant.",
             "x-order": 1
           },
           "max_new_tokens": {
@@ -270,7 +270,7 @@
             "minimum": 0.01,
             "type": "number",
             "description": "Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic, 0.75 is a good starting value.",
-            "default": 0.75,
+            "default": 0.7,
             "x-order": 4
           },
           "top_p": {
@@ -279,15 +279,15 @@
             "minimum": 0.0,
             "type": "number",
             "description": "When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens",
-            "default": 0.9,
+            "default": 0.95,
             "x-order": 5
           },
-          "top_k": {
-            "title": "Top K",
+          "repetition_penalty": {
+            "title": "Repetition Penalty",
             "minimum": 0.0,
-            "type": "integer",
-            "description": "When decoding text, samples from the top k most likely tokens; lower to ignore less likely tokens",
-            "default": 50,
+            "type": "number",
+            "description": "A parameter that controls how repetitive text can be. Lower means more repetitive, while higher means less repetitive. Set to 1.0 to disable.",
+            "default": 1.15,
             "x-order": 6
           },
           "stop_sequences": {
@@ -309,11 +309,18 @@
             "default": false,
             "x-order": 9
           },
+          "return_logits": {
+            "title": "Return Logits",
+            "type": "boolean",
+            "description": "if set, only return logits for the first token. only useful for testing, etc.",
+            "default": false,
+            "x-order": 10
+          },
           "replicate_weights": {
             "title": "Replicate Weights",
             "type": "string",
             "description": "Path to fine-tuned weights produced by a Replicate fine-tune job.",
-            "x-order": 10
+            "x-order": 11
           }
         }
       },
