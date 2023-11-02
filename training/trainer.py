@@ -12,10 +12,12 @@ from cog import Input, Path
 from peft import (LoraConfig, get_peft_model)
 from torch.utils.data import Dataset
 from transformers import LlamaForCausalLM, Trainer, TrainingArguments, AutoConfig
+from tensorizer import TensorDeserializer
+from tensorizer.utils import no_init_or_tensor
 import sys
 sys.path.append('/src/')
 
-from config import LOCAL_TRAINING_WEIGHTS_PATH, load_tokenizer, log_memory_stuff
+from config import LOCAL_TRAINING_WEIGHTS_PATH, load_tokenizer, load_tensorizer, log_memory_stuff
 
 MODEL_OUT = "/src/tuned_weights.tensors"
 CHECKPOINT_DIR = "checkpoints"
@@ -166,7 +168,10 @@ def load_model(model_name_or_path):
     if model_name_or_path is None:
         model_name_or_path = LOCAL_TRAINING_WEIGHTS_PATH
 
-    model = load_huggingface_model(model_name_or_path, load_in_4bit=LOAD_IN_4BIT)
+    if 'tensors' in LOCAL_TRAINING_WEIGHTS_PATH:
+        model = load_tensorizer(model_name_or_path, plaid_mode=False, cls=LlamaForCausalLM)
+    else:
+        model = load_huggingface_model(model_name_or_path, load_in_4bit=LOAD_IN_4BIT)
 
     return model
 
