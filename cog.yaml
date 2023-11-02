@@ -19,7 +19,6 @@ build:
     - "sentencepiece==0.1.99"
     - "jinja2==3.1.2"
     - "scipy==1.11.1"
-    - "asyncio==3.4.3"
     - "safetensors>=0.3.1"
     - "ninja==1.11.1"
     - "python-dotenv"
@@ -29,9 +28,8 @@ build:
     - "transformers==4.33.2"
     - "peft==0.4.0"
     - "accelerate"
-    - "scipy"
-    - "bitsandbytes" 
-    - "https://r2.drysys.workers.dev/nyacomp-0.0.5-cp311-cp311-linux_x86_64.whl"
+    - "bitsandbytes"
+    # - "https://r2.drysys.workers.dev/nyacomp-0.0.5-cp311-cp311-linux_x86_64.whl"
     - "trl==0.5.0"
     - "aiohttp[speedups]"
     - "https://r2.drysys.workers.dev/torch/torch-2.1.0-cp311-cp311-linux_x86_64.whl"
@@ -43,6 +41,6 @@ build:
     - "mlc-ai-nightly-cu121"
   run:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.3/pget#cacheburst" && chmod +x /usr/local/bin/pget
-    - curl -o /usr/local/bin/remotefile -L "https://r2.drysys.workers.dev/remotefile" && chmod +x /usr/local/bin/remotefile
+    # - curl -o /usr/local/bin/remotefile -L "https://r2.drysys.workers.dev/remotefile" && chmod +x /usr/local/bin/remotefile
     # since we can't do LD_LIBRARY_PATH=torch/lib, use this to make sure mlc can access the cuda libs bundled with torch
     - bash -c 'ln -s /usr/local/lib/python3.11/site-packages/torch/lib/lib{nv,cu}* /usr/lib'
