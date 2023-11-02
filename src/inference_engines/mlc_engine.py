@@ -48,8 +48,8 @@ class MLCEngine(Engine):
     An inference engine that runs inference w/ vLLM
     """
 
-    def __init__(self, weights: Weights, tokenizer_path: os.PathLike, is_chat: bool) -> None:
-        model_path = self.load_weights(weights)
+    def __init__(self, weights: Weights, is_chat: bool, tokenizer_path: os.PathLike = None) -> None:
+        weights_path = self.load_weights(weights)
         self.is_chat = is_chat
 
         if self.is_chat:
@@ -68,8 +68,10 @@ class MLCEngine(Engine):
         chat_config = ChatConfig(
             conv_config=conv_config, conv_template=self.conv_template)
 
-        model_path = path.join(model_path, "params")
+        model_path = path.join(weights_path, "params")
         self.cm = ChatModule(model=model_path, chat_config=chat_config)
+
+        tokenizer_path = path.join(weights_path, "params")
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 
     def load_weights(self, weights: Weights) -> str:
@@ -139,7 +141,7 @@ class MLCEngine(Engine):
         - generated_text (str): the generated text, or next token, depending on the value of `incremental_generation`.
         """
 
-        if top_k > 0:
+        if top_k is not None and top_k > 0:
             raise ValueError(
                 "top_k is currently not supported by our generation engine.")
 
@@ -164,7 +166,7 @@ class MLCEngine(Engine):
         min_new_tokens = kwargs.pop("min_new_tokens", None)
         if min_new_tokens is not None and min_new_tokens > -1:
             raise ValueError(
-                "min_new_tokens is currently not supported by vLLM Engine.")
+                "min_new_tokens is currently not supported by MLC's engine.")
 
         if len(kwargs) > 0:
             raise ValueError(

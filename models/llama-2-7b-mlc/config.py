@@ -29,12 +29,11 @@ vllm_weights = Weights(
 )
 
 # Inference config
-TOKENIZER_PATH = "huggyllama/llama-7b"
 USE_SYSTEM_PROMPT = False
 
 ENGINE = MLCvLLMEngine
 ENGINE_KWARGS = {
-    "mlc_args": mlc_kwargs(mlc_weights, tokenizer_path=TOKENIZER_PATH, is_chat=False),
+    "mlc_args": mlc_kwargs(mlc_weights, is_chat=False),
     "vllm_args": vllm_kwargs(vllm_weights)
 }
 

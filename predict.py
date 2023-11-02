@@ -1,9 +1,6 @@
 import functools
 import inspect
-import io
 import os
-import random
-import shutil
 import socket
 import time
 import zipfile
@@ -27,6 +24,8 @@ PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_I
 # Users may want to change the system prompt, but we use the recommended system prompt by default
 DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant."""
 
+# Temporary hack to disable Top K from the API. We should get rid of this once engines + configs are better standardized.
+USE_TOP_K = ENGINE.__name__ != "MLCEngine"
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
@@ -71,9 +70,7 @@ class Predictor(BasePredictor):
 
     def initialize_peft(self, replicate_weights: str) -> None:
         if self.current_path != replicate_weights:
-            print(
-                f"previous weights were different, switching to {replicate_weights}"
-            )
+            print(f"previous weights were different, switching to {replicate_weights}")
             self.engine.set_lora(self.get_lora(replicate_weights))
 
             self.current_path = replicate_weights
@@ -134,9 +131,10 @@ class Predictor(BasePredictor):
         debug: bool = Input(
             description="provide debugging output in logs", default=False
         ),
-        return_logits: bool = Input(
-            description="if set, only return logits for the first token. only useful for testing, etc.", default=False
-        ),
+        # return_logits: bool = Input(
+            # description="if set, only return logits for the first token. only useful for testing, etc.",
+            # default=False,
+        # ),
         replicate_weights: str = Input(
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
             default=None,
@@ -146,8 +144,9 @@ class Predictor(BasePredictor):
             stop_sequences = stop_sequences.split(",")
 
         if USE_SYSTEM_PROMPT:
-            prompt = prompt.strip("\n").removeprefix(
-                B_INST).removesuffix(E_INST).strip()
+            prompt = (
+                prompt.strip("\n").removeprefix(B_INST).removesuffix(E_INST).strip()
+            )
             prompt = PROMPT_TEMPLATE.format(
                 system_prompt=system_prompt.strip(), instruction=prompt.strip()
             )
@@ -159,7 +158,7 @@ class Predictor(BasePredictor):
             self.initialize_peft(replicate_weights)
             print(f"Overall initialize_peft took {time.time() - start:.3f}")
         else:
-            if 'COG_WEIGHTS' not in os.environ:
+            if "COG_WEIGHTS" not in os.environ:
                 self.delete_lora()
                 print("Not using LoRA")
 
@@ -170,46 +169,47 @@ class Predictor(BasePredictor):
         n_tokens = 0
         st = time.time()
 
-        if return_logits:
-            logits = self.engine.get_logits(prompt)
-            # serializing so we aren't returning a massive json
-            logits_path = 'logits.pt'
-            torch.save(logits, logits_path)
-            yield Path(logits_path)
+        # if return_logits:
+            # logits = self.engine.get_logits(prompt)
+            # # serializing so we aren't returning a massive json
+            # logits_path = "logits.pt"
+            # torch.save(logits, logits_path)
+            # yield Path(logits_path)
 
-        # todo: may need to do something clever with kwargs if/when we add more engines.
-        else:
-            generated_text = ""
-            for decoded_token in self.engine(
-                prompt,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-                repetition_penalty=repetition_penalty,
-                max_new_tokens=max_new_tokens,
-                min_new_tokens=min_new_tokens,
-                stop_sequences=stop_sequences,
-            ):
-                n_tokens += 1
-                yield decoded_token
-                generated_text += decoded_token
-                if n_tokens == 1 and debug:
-                    second_start = time.time()
-                if seed is not None:
-                    torch.manual_seed(seed)
-            et = time.time()
-            t = et - st
-            print(f"hostname: {socket.gethostname()}")
-            if debug:
-                print("generated text:", generated_text)
-                print(
-                    f"after initialization, first token took {second_start - st:.3f}")
-                print(f"Tokens per second: {n_tokens / t:.2f}")
-                print(
-                    f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}")
-                print(f"cur memory: {torch.cuda.memory_allocated()}")
-                print(f"max allocated: {torch.cuda.max_memory_allocated()}")
-                print(f"peak memory: {torch.cuda.max_memory_reserved()}")
+        # # todo: may need to do something clever with kwargs if/when we add more engines.
+        # else:
+        generated_text = ""
+        for decoded_token in self.engine(
+            prompt,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            repetition_penalty=repetition_penalty,
+            max_new_tokens=max_new_tokens,
+            min_new_tokens=min_new_tokens,
+            stop_sequences=stop_sequences,
+        ):
+            n_tokens += 1
+            yield decoded_token
+            generated_text += decoded_token
+            if n_tokens == 1 and debug:
+                second_start = time.time()
+            if seed is not None:
+                torch.manual_seed(seed)
+        et = time.time()
+        t = et - st
+        print(f"hostname: {socket.gethostname()}")
+        if debug:
+            print("generated text:", generated_text)
+            print(
+                f"after initialization, first token took {second_start - st:.3f}")
+            print(f"Tokens per second: {n_tokens / t:.2f}")
+            print(
+                f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}"
+            )
+            print(f"cur memory: {torch.cuda.memory_allocated()}")
+            print(f"max allocated: {torch.cuda.max_memory_allocated()}")
+            print(f"peak memory: {torch.cuda.max_memory_reserved()}")
 
     # # we'd like this to work eventually
     # def remove(f: "Callable", defaults: "dict[str, Any]") -> "Callable":
@@ -228,8 +228,6 @@ class Predictor(BasePredictor):
     #     predict = remove(predict, {"system_prompt": None})
 
     _predict = predict
-    # Temporary hack to disable Top K from the API. We should get rid of this once engines + configs are better standardized.
-    USE_TOP_K = ENGINE.__name__ != "MLCEngine"
 
     def base_predict(self, *args, **kwargs) -> ConcatenateIterator:
         kwargs["system_prompt"] = None
@@ -240,6 +238,7 @@ class Predictor(BasePredictor):
     # for the purposes of inspect.signature as used by predictor.get_input_type,
     # remove the argument (system_prompt)
     # this removes system_prompt from the Replicate API for non-chat models.
+    # TODO (Moin): convert this to use the `remove` function ASAP.
     if not USE_SYSTEM_PROMPT or not USE_TOP_K:
         params_to_remove = ["None"]
         if not USE_SYSTEM_PROMPT:
