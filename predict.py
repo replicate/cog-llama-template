@@ -27,6 +27,7 @@ DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant.""
 # Temporary hack to disable Top K from the API. We should get rid of this once engines + configs are better standardized.
 USE_TOP_K = ENGINE.__name__ not in ("MLCEngine", "MLCvLLMEngine")
 
+
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
         print("Starting setup")
@@ -132,8 +133,8 @@ class Predictor(BasePredictor):
             description="provide debugging output in logs", default=False
         ),
         # return_logits: bool = Input(
-            # description="if set, only return logits for the first token. only useful for testing, etc.",
-            # default=False,
+        # description="if set, only return logits for the first token. only useful for testing, etc.",
+        # default=False,
         # ),
         replicate_weights: str = Input(
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
@@ -170,11 +171,11 @@ class Predictor(BasePredictor):
         st = time.time()
 
         # if return_logits:
-            # logits = self.engine.get_logits(prompt)
-            # # serializing so we aren't returning a massive json
-            # logits_path = "logits.pt"
-            # torch.save(logits, logits_path)
-            # yield Path(logits_path)
+        # logits = self.engine.get_logits(prompt)
+        # # serializing so we aren't returning a massive json
+        # logits_path = "logits.pt"
+        # torch.save(logits, logits_path)
+        # yield Path(logits_path)
 
         # # todo: may need to do something clever with kwargs if/when we add more engines.
         # else:
@@ -201,8 +202,7 @@ class Predictor(BasePredictor):
         print(f"hostname: {socket.gethostname()}")
         if debug:
             print("generated text:", generated_text)
-            print(
-                f"after initialization, first token took {second_start - st:.3f}")
+            print(f"after initialization, first token took {second_start - st:.3f}")
             print(f"Tokens per second: {n_tokens / t:.2f}")
             print(
                 f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}"
@@ -211,48 +211,29 @@ class Predictor(BasePredictor):
             print(f"max allocated: {torch.cuda.max_memory_allocated()}")
             print(f"peak memory: {torch.cuda.max_memory_reserved()}")
 
-    # # we'd like this to work eventually
-    # def remove(f: "Callable", defaults: "dict[str, Any]") -> "Callable":
-    #     # pylint: disable=no-self-argument
-    #     # for the purposes of inspect.signature as used by predictor.get_input_type,
-    #     # remove the argument (system_prompt)
-    #     wrapped = functools.partialmethod(f, **defaults)
-    #     sig = inspect.signature(wrapped)
-    #     # TypeError: functools.partialmethod(<function Predictor.predict at 0x7fa5d2136340>, , system_prompt=None) is not a callabl object
-    #
-    #     params = [p for name, p in sig.parameters.items() if name not in defaults]
-    #     wrapped.__signature__ = sig.replace(parameters=params)
-    #     return wrapped
+    def remove(f: "Callable", defaults: "dict[str, Any]") -> "Callable":
+        # pylint: disable=no-self-argument
+        def wrapper(self, *args, **kwargs):
+            kwargs.update(defaults)
+            return f(self, *args, **kwargs)
 
-    # if not USE_SYSTEM_PROMPT:
-    #     predict = remove(predict, {"system_prompt": None})
+        # Update wrapper attributes for documentation, etc.
+        functools.update_wrapper(wrapper, f)
 
-    _predict = predict
-
-    def base_predict(self, *args, **kwargs) -> ConcatenateIterator:
-        if not USE_SYSTEM_PROMPT:
-            kwargs["system_prompt"] = None
-        if not USE_TOP_K:
-            kwargs["top_k"] = None
-        return self._predict(*args, **kwargs)
-
-    # for the purposes of inspect.signature as used by predictor.get_input_type,
-    # remove the argument (system_prompt)
-    # this removes system_prompt from the Replicate API for non-chat models.
-    # TODO (Moin): convert this to use the `remove` function ASAP.
-    if not USE_SYSTEM_PROMPT or not USE_TOP_K:
-        params_to_remove = ["None"]
-        if not USE_SYSTEM_PROMPT:
-            params_to_remove.append("system_prompt")
-        if not USE_TOP_K:
-            params_to_remove.append("top_k")
-
-        wrapper = base_predict
-        # wrapper = functools.partialmethod(base_predict, system_prompt=None)
-        sig = inspect.signature(_predict)
-        params = []
-        for name, p in sig.parameters.items():
-            if name not in params_to_remove:
-                params.append(p)
+        # for the purposes of inspect.signature as used by predictor.get_input_type,
+        # remove the argument (system_prompt)
+        sig = inspect.signature(f)
+        params = [p for name, p in sig.parameters.items() if name not in defaults]
         wrapper.__signature__ = sig.replace(parameters=params)
-        predict = wrapper
+
+        # Return partialmethod, wrapper behaves correctly when part of a class
+        return functools.partialmethod(wrapper)
+
+    args_to_remove = {}
+    if not USE_SYSTEM_PROMPT:
+        # this removes system_prompt from the Replicate API for non-chat models.
+        args_to_remove["system_prompt"] = None
+    if not USE_TOP_K:
+        args_to_remove["top_k"] = None
+    if args_to_remove:
+        predict = remove(predict, args_to_remove)
