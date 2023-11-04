@@ -137,7 +137,7 @@ class Downloader:
         buf.seek(0)
         print(
             f"Downloaded {os.path.basename(str(url))} as {concurrency} {chunk_size // 1024}"
-            f" kB chunks in {time.time() - start_time:.4f} with {self.retries} retries"
+            f" kB chunks in {time.time() - start_time:.3f}s with {self.retries} retries"
         )
         self.retries = 0
         return buf
