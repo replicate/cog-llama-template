@@ -105,15 +105,21 @@ class Downloader:
                     await asyncio.sleep(random.random() / 10)  # sleep 0-100ms
         raise ValueError(f"Failed to download {url} after multiple retries")
 
+    files_processed = 0
+
     async def download_file(self, url: str | URL) -> io.BytesIO:
         self.retries = 0
-        start_time = time.time()
         url, file_size = await self.get_remote_file_size(url)
-        # maybe lower this in proportion to how many files
-        # with files > concurrency splitting is bad
-        # when there are many chunks in flight, new files to be downloaded 
-        allowed_concurrency = min(self.sem._value + 1, self.concurrency)
-        max_chunks = file_size // MIN_CHUNK_SIZE or 1
+        # lower this in proportion to how many files are in flight
+        # when files > concurrency, splitting is bad
+        # # to track requests in flight, except it's either full or 0 when we check:
+        # allowed_concurrency = min(self.sem._value + 1, self.concurrency)
+        # this way is kind of random but the assumption is the more data has gone over
+        # the connection so far, the bigger the TCP window sizes, and the less benefit
+        # from using additional connections
+        allowed_concurrency = max(1, self.concurrency - self.files_processed)
+        self.files_processed += 1
+        max_chunks = file_size // (MIN_CHUNK_SIZE * 1) or 1
         concurrency = min(allowed_concurrency, max_chunks)
         chunk_size = file_size // concurrency
         tasks = []
@@ -121,6 +127,7 @@ class Downloader:
         buf.write(b"\0" * file_size)
         buf.seek(0)
         buffer_view = memoryview(buf.getbuffer())
+        start_time = time.time()
         for i in range(concurrency):
             start = i * chunk_size
             end = start + chunk_size - 1 if i != concurrency - 1 else file_size - 1
@@ -157,6 +164,7 @@ class Downloader:
             for f in missing_files
         ]
         await asyncio.gather(*coros)
+        self.files_processed = 0  # loras can use a bunch of connections
 
     def sync(f: t.Callable) -> t.Callable:
         # pylint: disable=no-self-argument
