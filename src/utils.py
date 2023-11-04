@@ -68,7 +68,7 @@ def download_file(file, local_filename):
     return
 
 
-def check_files_exist(remote_files, local_path):
+def check_files_exist(remote_files: list[str], local_path: str) -> list[str]:
     # Get the list of local file names
     local_files = os.listdir(local_path)
 

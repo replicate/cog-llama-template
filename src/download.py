@@ -46,7 +46,7 @@ class Downloader:
             )
         return self._session
 
-    _threadpool: ThreadPoolExecutor | None
+    _threadpool: ThreadPoolExecutor | None = None
 
     @property
     def threadpool(self) -> ThreadPoolExecutor:
@@ -55,17 +55,18 @@ class Downloader:
         return self._threadpool
 
     async def get_remote_file_size(self, url: str | URL) -> "tuple[URL, int]":
-        try:
-            direct_url = str(url).replace(
-                "pbxt.replicate.delivery", "replicate-files.object.lga1.coreweave.com"
-            )
-            resp = await self.session.head(direct_url, timeout=5)
-            if resp.status == 200:
-                print(f"using {resp.url} instead of {url}")
-                return resp.url, int(resp.headers["Content-Length"])
-            print(f"direct link not available {resp}")
-        except (KeyError, asyncio.TimeoutError, aiohttp.ClientError) as e:
-            print(f"direct link not available: {direct_url} with error {repr(e)}")
+        # try:
+        #     direct_url = str(url).replace(
+        #         "pbxt.replicate.delivery", "replicate-files.object.lga1.coreweave.com"
+        #     )
+        #     resp = await self.session.head(direct_url, timeout=5)
+        #     if resp.status == 200:
+        #         if resp.url != url:
+        #             print(f"using {resp.url} instead of {url}")
+        #         return resp.url, int(resp.headers["Content-Length"])
+        #     print(f"direct link not available {resp}")
+        # except (KeyError, asyncio.TimeoutError, aiohttp.ClientError) as e:
+        #     print(f"direct link not available: {direct_url} with error {repr(e)}")
         for i in range(3):
             start = time.time()
             headers = {"Retry-Count": str(i)} if i else {}
@@ -108,8 +109,13 @@ class Downloader:
         self.retries = 0
         start_time = time.time()
         url, file_size = await self.get_remote_file_size(url)
-        concurrency = min((file_size // MIN_CHUNK_SIZE or 1), self.concurrency)
-        chunk_size = file_size // self.concurrency
+        # maybe lower this in proportion to how many files
+        # with files > concurrency splitting is bad
+        # when there are many chunks in flight, new files to be downloaded 
+        allowed_concurrency = min(self.sem._value + 1, self.concurrency)
+        max_chunks = file_size // MIN_CHUNK_SIZE or 1
+        concurrency = min(allowed_concurrency, max_chunks)
+        chunk_size = file_size // concurrency
         tasks = []
         buf = io.BytesIO()
         buf.write(b"\0" * file_size)
