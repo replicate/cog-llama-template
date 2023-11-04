@@ -16,7 +16,7 @@ from .utils import check_files_exist
 # 1. os.sched_getaffinity to work right in docker
 # 2. memoryview for less copies
 # 3. keep redirects from the first head
-MIN_CHUNK_SIZE = 1024 * 1024  # 1MB
+MIN_CHUNK_SIZE = 1024 * 1024 * 16 # 16mb
 
 global_downloader = None
 
