@@ -4,17 +4,16 @@ import random
 import time
 import typing as tp
 import asyncio
-import torch
 
 def seed_all(seed: int):
+    import numpy
+    import torch
+
     os.environ["PYTHONHASHSEED"] = str(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     random.seed(seed)
-
-    import numpy
-
     numpy.random.seed(seed)
 
 
@@ -69,12 +68,12 @@ def download_file(file, local_filename):
     return
 
 
-def check_files_exist(remote_files, local_path):
+def check_files_exist(remote_files: list[str], local_path: str) -> list[str]:
     # Get the list of local file names
     local_files = os.listdir(local_path)
 
     # Check if each remote file exists in the local directory
-    missing_files = [file for file in remote_files if file not in local_files]
+    missing_files = list(set(remote_files) - set(local_files))
 
     return missing_files
 
@@ -152,7 +151,6 @@ def maybe_download_with_pget(
             os.makedirs(path, exist_ok=True)
             missing_files = remote_filenames
         else:
-            local_files = os.listdir(path)
             missing_files = check_files_exist(remote_filenames, path)
 
         if len(missing_files) > 0:
