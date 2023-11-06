@@ -1,6 +1,6 @@
 import asyncio
-import io
 import functools
+import mmap
 import os
 import random
 import shutil
@@ -16,7 +16,10 @@ from .utils import check_files_exist
 # 1. os.sched_getaffinity to work right in docker
 # 2. memoryview for less copies
 # 3. keep redirects from the first head
-MIN_CHUNK_SIZE = 1024 * 1024 * 16 # 16mb
+# 4. mmap
+# 5. thread for file writes
+
+MIN_CHUNK_SIZE = 1024 * 1024 * 16  # 16mb
 
 global_downloader = None
 
@@ -107,7 +110,7 @@ class Downloader:
 
     files_processed = 0
 
-    async def download_file(self, url: str | URL) -> io.BytesIO:
+    async def download_file(self, url: str | URL) -> mmap.mmap:
         self.retries = 0
         url, file_size = await self.get_remote_file_size(url)
         # lower this in proportion to how many files are in flight
@@ -123,10 +126,8 @@ class Downloader:
         concurrency = min(allowed_concurrency, max_chunks)
         chunk_size = file_size // concurrency
         tasks = []
-        buf = io.BytesIO()
-        buf.write(b"\0" * file_size)
-        buf.seek(0)
-        buffer_view = memoryview(buf.getbuffer())
+        buf = mmap.mmap(-1, file_size)
+        buffer_view = memoryview(buf)
         start_time = time.time()
         for i in range(concurrency):
             start = i * chunk_size
@@ -149,6 +150,7 @@ class Downloader:
             self.threadpool,
             lambda: shutil.copyfileobj(buf, open(path, "wb"), length=2 << 18),
         )
+        buf.close()
 
     async def maybe_download_files_to_disk(
         self, path: str, remote_path: str, filenames: list[str]
@@ -184,7 +186,6 @@ class Downloader:
 
     sync_download_file = sync(download_file)
     sync_maybe_download_files = sync(maybe_download_files_to_disk)
-
 
 if __name__ == "__main__":
     Downloader().sync_download_file(sys.argv[1])
