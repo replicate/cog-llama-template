@@ -13,16 +13,20 @@ from yarl import URL
 from .utils import check_files_exist
 
 # some important tricks:
-# 1. os.sched_getaffinity to work right in docker
+# 1. os.sched_getaffinity to get an accurate cpu count in containers
 # 2. memoryview for less copies
 # 3. keep redirects from the first head
 # 4. mmap
 # 5. thread for file writes
 
-MIN_CHUNK_SIZE = 1024 * 1024 * 16  # 16mb
+MIN_CHUNK_SIZE = 1024 * 1024 * 8  # 8mb
 
 global_downloader = None
 
+# zipfile requires seekable
+class SeekableMmap(mmap.mmap):
+    def seekable(self) -> bool:
+        return True
 
 class Downloader:
     def __init__(self, concurrency: int | None = None) -> None:
@@ -109,10 +113,12 @@ class Downloader:
         raise ValueError(f"Failed to download {url} after multiple retries")
 
     files_processed = 0
+    total_size = 0
 
     async def download_file(self, url: str | URL) -> mmap.mmap:
         self.retries = 0
         url, file_size = await self.get_remote_file_size(url)
+        self.total_size += file_size
         # lower this in proportion to how many files are in flight
         # when files > concurrency, splitting is bad
         # # to track requests in flight, except it's either full or 0 when we check:
@@ -120,13 +126,13 @@ class Downloader:
         # this way is kind of random but the assumption is the more data has gone over
         # the connection so far, the bigger the TCP window sizes, and the less benefit
         # from using additional connections
-        allowed_concurrency = max(1, self.concurrency - self.files_processed)
+        allowed_concurrency = max(1, self.concurrency - self.files_processed // 2)
         self.files_processed += 1
         max_chunks = file_size // (MIN_CHUNK_SIZE * 1) or 1
         concurrency = min(allowed_concurrency, max_chunks)
         chunk_size = file_size // concurrency
         tasks = []
-        buf = mmap.mmap(-1, file_size)
+        buf = SeekableMmap(-1, file_size)
         buffer_view = memoryview(buf)
         start_time = time.time()
         for i in range(concurrency):
@@ -161,11 +167,18 @@ class Downloader:
             missing_files = filenames
         else:
             missing_files = check_files_exist(filenames, path)
+        start = time.time()
         coros = [
             self.download_file_to_disk(f"{remote_path}/{f}", f"{path}/{f}")
             for f in missing_files
         ]
         await asyncio.gather(*coros)
+        elapsed = time.time() - start
+        throughput = self.total_size / elapsed / 1024 / 1024
+        print(
+            f"downloaded {self.total_size / 1024 / 1024:.2f} MB in {elapsed:.3f}s ({throughput:.2f} MB/s)"
+        )
+        self.total_size = 0
         self.files_processed = 0  # loras can use a bunch of connections
 
     def sync(f: t.Callable) -> t.Callable:
@@ -178,6 +191,10 @@ class Downloader:
                 if e.args[0] == "Event loop is closed":
                     print("has to start a new event loop")
                     self.loop = asyncio.new_event_loop()
+                    self._session = None
+                    return self.loop.run_until_complete(f(self, *args, **kwargs))
+                if "another loop is running" in e.args[0]:
+                    self.loop = asyncio.get_event_loop()
                     self._session = None
                     return self.loop.run_until_complete(f(self, *args, **kwargs))
                 raise e
