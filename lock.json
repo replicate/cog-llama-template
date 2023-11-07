@@ -74,10 +74,10 @@
         "version": "3.0.0"
       },
       "cog": {
-        "sha256": "a6ca8b26c898df0d598b56d7637c7375651b71fd53224bf11d1007bb663f54e3",
+        "sha256": "414c8297308e16cbb6f392c64c22fd0b22cf2e0337c25e0f33608dca9b04dfde",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/a4/16/16069418df6989fe964d92494c821154244377fb9bb82b7897ba085b965d/cog-0.8.6-py3-none-any.whl",
-        "version": "0.8.6"
+        "url": "https://files.pythonhosted.org/packages/85/d4/9374926ae760de32d5439add000d5b07e5e964992f9d36adec2c79dde799/cog-0.9.0b9-py3-none-any.whl",
+        "version": "0.9.0b9"
       },
       "datasets": {
         "sha256": "4de857ffce21cfc847236745c69f102e33cd1f0fa8398e7be9964525fd4cd5db",
@@ -855,5 +855,5 @@
       }
     }
   },
-  "invalidationHash": "7bc0948374525f372e579e5a8ea9bbcdc2c12b3810395a839e9b252a78d57d5c"
+  "invalidationHash": "b210c1a68e7818fdc03aaa84b10ca7afc5802cc1e81a6a31d1d094069a007e99"
 }
