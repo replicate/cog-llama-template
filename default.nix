@@ -1,4 +1,4 @@
-{ config, ...}:
+{ pget, config, ...}:
 let
   pipDrvs = config.python-env.pip.drvs;
   sitePackages = drv: "${drv.public}/${config.python-env.deps.python.sitePackages}";
@@ -29,7 +29,7 @@ in
       '';
     };
     # TODO: xformers depends on cuda 12
-    # xformers.env.autoPatchelfIgnoreMissingDeps = [ "libcudart.so.12" ];
+    xformers.env.autoPatchelfIgnoreMissingDeps = [ "libcudart.so.12" ];
   };
 }
 
