@@ -122,6 +122,10 @@ class Downloader:
                 self.loop = asyncio.new_event_loop()
                 self._session = None
                 return self.loop.run_until_complete(self.download_file(url))
+            if "another loop is running" in e.args[0]:
+                self.loop = asyncio.get_event_loop()
+                self._session = None
+                return self.loop.run_until_complete(self.download_file(url))
             raise e
 
 if __name__ == "__main__":
