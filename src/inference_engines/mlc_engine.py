@@ -18,31 +18,6 @@ from transformers import AutoTokenizer
 from .engine import Engine
 
 
-class AsyncCompletionStream:
-    def __init__(self, cm: ChatModule, generation_config: GenerationConfig):
-        self.generation_config = generation_config
-        self.cm = cm
-
-    def __aiter__(self):
-        return self
-
-    async def get_next_msg(self):
-        if not self.cm._stopped():
-            self.cm._decode(generation_config=self.generation_config)
-            msg = self.cm._get_message()
-            return msg
-        else:
-            raise StopAsyncIteration
-
-    async def __anext__(self):
-        if not self.cm._stopped():
-            task = asyncio.create_task(self.get_next_msg())
-            msg = await task
-            return msg
-        else:
-            raise StopAsyncIteration
-
-
 class MLCEngine(Engine):
     """
     An inference engine that runs inference w/ vLLM
@@ -172,19 +147,11 @@ class MLCEngine(Engine):
             raise ValueError(
                 f"Unknown keyword arguments: {', '.join(kwargs.keys())}")
 
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        stream = AsyncCompletionStream(self.cm, generation_config)
         generation_length = 0
         while True:
-            try:
-                out = loop.run_until_complete(stream.get_next_msg())
-                yield out[generation_length:]
-
-                generation_length = len(out)
-            except StopAsyncIteration:
+            if self.cm._stopped():
                 break
+            self.cm._decode(generation_config=generation_config)
+            out = self.cm._get_message()
+            generation_length = len(out)
+            yield out[generation_length:]
