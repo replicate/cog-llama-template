@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+from src.config_utils import Weights, get_fp16_file_list
 from src.utils import get_env_var_or_default
 
 load_dotenv()
@@ -25,47 +26,24 @@ USE_SYSTEM_PROMPT = False
 # Here we define the specific inference engine we intend to use for inference, and all appropriate kwargs. 
 # -------------------------------
 
-from src.inference_engines.transformers import TransformersEngine
+from src.inference_engines.transformers_engine import TransformersEngine
 
 # todo - this is probably wrong - now that different engines have different tokenizers, should we eliminate load_tokenizer & handle it all within the engine? I ...think so
 from functools import partial
 from src.more_utils import load_tokenizer
 
+weights = Weights(
+    local_path=f"models/{MODEL_NAME}/model_artifacts/default_inference_weights",
+    remote_path= get_env_var_or_default("REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH", None),
+    remote_files= get_fp16_file_list(2)
+)
+
 ENGINE = TransformersEngine
 ENGINE_KWARGS = {
+    "weights": weights,
     "tokenizer_func" : partial(load_tokenizer, TOKENIZER_PATH)
 }
 
-# DEFAULT INFERENCE CONFIGURATION
-# -------------------------------
-# This section defines the default inference configuration, which may differ from
-# how we implement inference for a trained model.
-# -------------------------------
-
-
-LOCAL_DEFAULT_INFERENCE_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
-
-REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH = get_env_var_or_default(
-    "REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH", 
-    "remote/path/to/your/weights/here",
-
-)
-
-N_SHARDS = 2
-REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = [
-    f"model-{str(i+1).zfill(5)}-of-{str(N_SHARDS).zfill(5)}.safetensors"
-    for i in range(N_SHARDS)
-]
-
-REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD += [
-    "config.json",
-    "generation_config.json",
-    "model.safetensors.index.json",
-    "special_tokens_map.json",
-    "tokenizer_config.json",
-    "tokenizer.json",
-    "tokenizer.model",
-]
 
 # TRAINED INFERENCE CONFIGURATION
 # -------------------------------
@@ -86,4 +64,4 @@ REMOTE_TRAINING_WEIGHTS_CONFIG_PATH = get_env_var_or_default(
     default_value="remote/path/to/your/weights/here"
 )
 
-REMOTE_TRAINING_FILES_TO_DOWNLOAD = REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD
+REMOTE_TRAINING_FILES_TO_DOWNLOAD = get_fp16_file_list(2)
