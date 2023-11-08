@@ -8,9 +8,8 @@ build:
 
   # python version in the form '3.8' or '3.8.12'
   python_version: "3.11"
-  # system_packages:
-  #   - cacert
-  #   - pget
+  system_packages:
+    - pget
 
   # a list of packages in the format <package-name>==<version>
   python_packages:
