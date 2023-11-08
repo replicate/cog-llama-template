@@ -22,8 +22,12 @@
             (builtins.readFile ./model_templates/.dockerignore)
             (if builtins.pathExists ./models/${name}/.dockerignore then
               builtins.readFile ./models/${name}/.dockerignore
-            else
-              "")
+            else ''
+              /models/*/
+              !/models/${name}/
+              /models/${name}/model_artifacts/**
+              !/models/${name}/model_artifacts/tokenizer/
+            '')
           ];
           cognix.postCopyCommands = ''
             pushd $out/src
