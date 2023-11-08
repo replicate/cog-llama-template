@@ -21,7 +21,7 @@ in
       '';
     };
     # add dep on tvm bundled by mlc-ai
-    # TODO: xformers can find transient lib deps, how does that work?
+    # TODO: xformers can find native python lib deps, how does that work?
     mlc-chat-nightly-cu118 = { config, ... }: {
       deps.mlc-ai = pipDrvs.mlc-ai-nightly-cu118;
       mkDerivation.postInstall = ''
