@@ -1,22 +1,12 @@
-import asyncio
-import json
 import os
-import time
-from io import BytesIO, IOBase
-from os import path
-from queue import Queue
-from threading import Lock, Thread
-from typing import BinaryIO, List, Optional, Union, get_args
 
-import torch
 from cog import ConcatenateIterator
 from mlc_chat import ChatConfig, ChatModule, ConvConfig, GenerationConfig
-from mlc_chat.callback import StreamIterator
-from src.config_utils import Weights
 from transformers import AutoTokenizer
 
-from .engine import Engine
+from src.config_utils import Weights
 
+from .engine import Engine
 
 class MLCEngine(Engine):
     """
@@ -49,10 +39,10 @@ class MLCEngine(Engine):
             conv_config=conv_config, conv_template=self.conv_template
         )
 
-        model_path = path.join(weights_path, "params")
+        model_path = os.path.join(weights_path, "params")
         self.cm = ChatModule(model=model_path, chat_config=chat_config)
 
-        tokenizer_path = path.join(weights_path, "params")
+        tokenizer_path = os.path.join(weights_path, "params")
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 
     def load_weights(self, weights: Weights) -> str:
@@ -109,8 +99,8 @@ class MLCEngine(Engine):
         temperature: float,
         top_p: float,
         top_k: int,
-        stop_sequences: str | List[str] = None,
-        stop_token_ids: List[int] = [],
+        stop_sequences: str | list[str] = None,
+        stop_token_ids: list[int] = [],
         repetition_penalty: float = 1.0,
         incremental_generation: bool = True,
         *args,
@@ -125,8 +115,8 @@ class MLCEngine(Engine):
         - temperature (float): the parameter to anneal the sampling distribution with.
         - top_p (float): the amount to truncate the sampling distribution by.
         - top_k (int): the number of tokens to truncate the sampling distribution by.
-        - stop_sequences (str | List[str]): the string to stop generation at.
-        - stop_token_ids (List[str]): a list of token ids to stop generation at.
+        - stop_sequences (str | list[str]): the string to stop generation at.
+        - stop_token_ids (list[str]): a list of token ids to stop generation at.
         - frequency_penalty (float): the amount to penalize tokens that have already been generated, higher values penalize more.
         - incremental_generation: whether to yield the entire generated sequence or the next generated token at each step.
 

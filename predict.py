@@ -4,7 +4,7 @@ import os
 import socket
 import time
 import zipfile
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
@@ -67,7 +67,7 @@ class Predictor(BasePredictor):
         print(f"Initialized peft model in {time.time() - st:.3f}")
         return lora
 
-    current_path: str = None
+    current_path: str | None = None
 
     def initialize_peft(self, replicate_weights: str) -> None:
         if self.current_path != replicate_weights:
@@ -211,7 +211,7 @@ class Predictor(BasePredictor):
             print(f"max allocated: {torch.cuda.max_memory_allocated()}")
             print(f"peak memory: {torch.cuda.max_memory_reserved()}")
 
-    def remove(f: "Callable", defaults: "dict[str, Any]") -> "Callable":
+    def remove(f: Callable, defaults: dict[str, Any]) -> Callable:
         # pylint: disable=no-self-argument
         def wrapper(self, *args, **kwargs):
             kwargs.update(defaults)
@@ -229,7 +229,7 @@ class Predictor(BasePredictor):
         # Return partialmethod, wrapper behaves correctly when part of a class
         return functools.partialmethod(wrapper)
 
-    args_to_remove = {}
+    args_to_remove: dict[str, Any] = {}
     if not USE_SYSTEM_PROMPT:
         # this removes system_prompt from the Replicate API for non-chat models.
         args_to_remove["system_prompt"] = None

@@ -7,7 +7,6 @@ import os
 from .engine import Engine
 from .vllm_engine import vLLMEngine
 from .exllama import ExllamaEngine
-from src.utils import maybe_download_with_pget
 
 
 class ExllamaVllmEngine(Engine):

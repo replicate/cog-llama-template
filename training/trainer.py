@@ -2,17 +2,14 @@ import argparse
 import copy
 import json
 import os
-import time
-import logging
-from collections import OrderedDict
+import sys
 from typing import List, Optional, Union
 
 import torch
 from cog import Input, Path
 from peft import LoraConfig, get_peft_model
 from torch.utils.data import Dataset
-from transformers import LlamaForCausalLM, Trainer, TrainingArguments, AutoConfig
-import sys
+from transformers import Trainer, TrainingArguments
 
 sys.path.append("/src/")
 

@@ -1,5 +1,3 @@
-import os
-
 from dotenv import load_dotenv
 from src.config_utils import (
     Weights,
