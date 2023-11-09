@@ -2,26 +2,17 @@ import argparse
 import asyncio
 import os
 import shutil
-from subprocess import call
-import logging
 import subprocess
-from typing import Optional
 from zipfile import ZipFile
 import psutil
-import typing as tp
-from dataclasses import fields, is_dataclass
 
 
 import torch
 from cog import BaseModel, Input, Path
-from transformers import LlamaForCausalLM
-from llama_recipes.configs.training import train_config
 
 from config import (
     LOCAL_TRAINING_WEIGHTS_PATH,
     REMOTE_TRAINING_WEIGHTS_PATH,
-    LOCAL_TRAINING_WEIGHTS_CONFIG_PATH,
-    REMOTE_TRAINING_WEIGHTS_CONFIG_PATH,
     REMOTE_TRAINING_FILES_TO_DOWNLOAD,
     MODEL_NAME,
 )
@@ -192,20 +183,20 @@ def train(
         args.append("python")
 
     args.append(
-        f"llama_recipes/llama_finetuning.py",
+        "llama_recipes/llama_finetuning.py",
     )
 
     if peft_method != "qlora":
         args.append(
-            f"--enable_fsdp",
+            "--enable_fsdp",
         )
 
     args.extend(
         [
             # Hard coded for now
-            f"--use_peft",
+            "--use_peft",
             f"--model_name={model_path}",
-            f"--pure_bf16",
+            "--pure_bf16",
             f"--output_dir={output_dir}",
             # User specified arguments -----
             # Preprocessing arguments

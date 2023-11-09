@@ -11,7 +11,6 @@ from termcolor import cprint
 from transformers import AutoTokenizer
 
 from src.download import Downloader
-from src.inference_engines.vllm_engine import vLLMEngine
 
 
 class Engine(Enum):

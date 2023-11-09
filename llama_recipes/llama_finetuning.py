@@ -1,16 +1,9 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # This software may be used and distributed according to the terms of the Llama 2 Community License Agreement.
 
-import os
-import sys
-from typing import List, Union
 
 import fire
 import torch
-import transformers
-from datasets import load_dataset
-import os.path as osp
-from tqdm import tqdm
 
 # Unused imports removed
 from utils import fsdp_auto_wrap_policy
@@ -18,25 +11,16 @@ from transformers import (
     LlamaForCausalLM,
     LlamaTokenizer,
     AutoModelForCausalLM,
-    AutoModelForSeq2SeqLM,
-    AutoTokenizer,
     DataCollatorForTokenClassification,
-    BitsAndBytesConfig,
 )
 import torch.distributed as dist
 
 # Unused imports removed
 from utils.train_utils import (
-    set_tokenizer_params,
     train,
-    evaluation,
     freeze_transformer_layers,
-    check_frozen_layers_peft_model,
     setup,
     setup_environ_flags,
-    cleanup,
-    clear_gpu_cache,
-    get_parameter_dtypes,
     print_model_size,
     get_policies,
 )
@@ -50,14 +34,11 @@ from utils.config_utils import (
 )
 from peft import (
     get_peft_model,
-    TaskType,
     prepare_model_for_int8_training,
     prepare_model_for_kbit_training,
 )
-import configs
 from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
-    MixedPrecision,
 )
 from torch.utils.data import DistributedSampler
 import policies
@@ -65,9 +46,7 @@ from policies import AnyPrecisionAdamW
 from configs import fsdp_config, train_config
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
-from pkg_resources import packaging
 import torch
-import torch.cuda.nccl as nccl
 import torch.distributed as dist
 from transformers.models.llama.modeling_llama import LlamaDecoderLayer
 
@@ -338,7 +317,6 @@ def main(**kwargs):
 
     else:
         from transformers import TrainingArguments, Trainer
-        from trl import SFTTrainer
         from trl.trainer.utils import PeftSavingCallback
 
         training_args = TrainingArguments(

@@ -3,13 +3,9 @@
 
 import os
 import sys
-from typing import List
 import yaml
 
-import fire
 import torch
-import transformers
-from datasets import load_dataset
 from tqdm import tqdm
 
 """
@@ -17,15 +13,7 @@ Unused imports:
 import torch.nn as nn
 import bitsandbytes as bnb
 """
-from torch.nn import functional as F
-from peft import (
-    LoraConfig,
-    get_peft_model,
-    get_peft_model_state_dict,
-    prepare_model_for_int8_training,
-    set_peft_model_state_dict,
-)
-from transformers import LlamaForCausalLM, LlamaTokenizer
+from transformers import LlamaTokenizer
 from torch.distributed.fsdp import StateDictType
 import torch.distributed as dist
 from pkg_resources import packaging
@@ -36,7 +24,7 @@ from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
-from policies import bfSixteen, fpSixteen, bfSixteen_mixed, get_llama_wrapper
+from policies import fpSixteen, bfSixteen_mixed, get_llama_wrapper
 
 
 def set_tokenizer_params(tokenizer: LlamaTokenizer):
@@ -176,9 +164,9 @@ def train(
                 if train_config.use_peft:
                     if train_config.enable_fsdp:
                         if rank == 0:
-                            print(f"we are about to save the PEFT modules")
+                            print("we are about to save the PEFT modules")
                     else:
-                        print(f"we are about to save the PEFT modules")
+                        print("we are about to save the PEFT modules")
                     model.save_pretrained(train_config.output_dir)
                     if train_config.enable_fsdp:
                         if rank == 0:
@@ -272,9 +260,9 @@ def train(
     if train_config.use_peft and not train_config.run_validation:
         if train_config.enable_fsdp:
             if rank == 0:
-                print(f"we are about to save the PEFT modules")
+                print("we are about to save the PEFT modules")
         else:
-            print(f"we are about to save the PEFT modules")
+            print("we are about to save the PEFT modules")
         model.save_pretrained(train_config.output_dir)
         if train_config.enable_fsdp:
             if rank == 0:
@@ -400,7 +388,7 @@ def setup_environ_flags(rank):
     # Note this is only availble in PyTorch Nighlies (as of July 30 2023)
     # os.environ['PYTORCH_CUDA_ALLOC_CONF']='expandable_segments:True'
     if rank == 0:
-        print(f"--> Running with torch dist debug set to detail")
+        print("--> Running with torch dist debug set to detail")
 
 
 def cleanup():
@@ -411,7 +399,7 @@ def cleanup():
 def clear_gpu_cache(rank=None):
     """Clear the GPU cache for all ranks"""
     if rank == 0:
-        print(f"Clearing GPU cache for all ranks")
+        print("Clearing GPU cache for all ranks")
     torch.cuda.empty_cache()
 
 
@@ -461,13 +449,13 @@ def get_policies(cfg, rank):
         if bf16_ready and not cfg.use_fp16:
             mixed_precision_policy = bfSixteen_mixed
             if rank == 0:
-                print(f"bFloat16 enabled for mixed precision - using bfSixteen policy")
+                print("bFloat16 enabled for mixed precision - using bfSixteen policy")
         elif cfg.use_fp16:
             mixed_precision_policy = fpSixteen
             if rank == 0:
-                print(f"FP16 enabled")
+                print("FP16 enabled")
         else:
-            print(f"bFloat16 support not present. Using FP32, and not mixed precision")
+            print("bFloat16 support not present. Using FP32, and not mixed precision")
     wrapping_policy = get_llama_wrapper()
     return mixed_precision_policy, wrapping_policy
 

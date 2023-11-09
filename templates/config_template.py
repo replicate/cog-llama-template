@@ -1,12 +1,6 @@
-from collections import OrderedDict
-import logging
 import re
-import time
-from transformers import LlamaTokenizer, AutoConfig, LlamaForCausalLM
-import torch
+from transformers import LlamaTokenizer
 import subprocess
-from subprocess import DEVNULL, STDOUT
-from subclass import YieldingLlama
 
 DEFAULT_MODEL_NAME = "{{model_name}}"  # path from which we pull weights when there's no COG_WEIGHTS environment variable
 TOKENIZER_NAME = "llama_weights/tokenizer"

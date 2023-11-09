@@ -4,7 +4,6 @@ import random
 import torch
 import argparse
 from abc import ABC, abstractmethod
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 # Number of runs for each combination of model, prompt length, and output length.
 num_runs = 5

@@ -11,7 +11,7 @@ def get_preprocessed_samsum(dataset_config, tokenizer, split):
     dataset = datasets.load_dataset("samsum", split=split)
 
     prompt = (
-        f"Summarize this dialog:\n{{dialog}}\n---\nSummary:\n{{summary}}{{eos_token}}"
+        "Summarize this dialog:\n{dialog}\n---\nSummary:\n{summary}{eos_token}"
     )
 
     def apply_prompt_template(sample):

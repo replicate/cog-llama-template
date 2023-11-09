@@ -5,7 +5,6 @@ import torch
 
 from functools import partial
 
-from ft_datasets.utils import Concatenator
 
 from ft_datasets import (
     get_grammar_dataset,
@@ -13,7 +12,6 @@ from ft_datasets import (
     get_samsum_dataset,
     get_completion_dataset,
 )
-from typing import Optional
 
 
 DATASET_PREPROC = {
@@ -27,7 +25,7 @@ DATASET_PREPROC = {
 def get_preprocessed_dataset(
     tokenizer, dataset_config, split: str = "train"
 ) -> torch.utils.data.Dataset:
-    if not dataset_config.dataset in DATASET_PREPROC:
+    if dataset_config.dataset not in DATASET_PREPROC:
         raise NotImplementedError(f"{dataset_config.dataset} is not (yet) implemented")
 
     def get_split():

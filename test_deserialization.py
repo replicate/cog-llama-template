@@ -1,9 +1,8 @@
 from concurrent.futures import ProcessPoolExecutor
-import concurrent.futures
 import os
 import time
 from collections import OrderedDict
-from typing import Optional, List
+from typing import List
 import io
 import subprocess
 
@@ -15,7 +14,7 @@ from transformers import AutoConfig
 from google.cloud import storage
 
 
-from config import CONFIG_LOCATION, load_tokenizer
+from config import CONFIG_LOCATION
 from subclass import YieldingLlama
 import logging
 
@@ -149,7 +148,7 @@ def test_python_deserialization():
 
     print(f"weignts downloaded in {time.time() - st}")
 
-    print(f"deserializing weights from memory")
+    print("deserializing weights from memory")
     config = AutoConfig.from_pretrained(CONFIG_LOCATION)
 
     logging.disable(logging.WARN)  # turns off long message about not training the model

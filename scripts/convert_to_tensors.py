@@ -7,12 +7,10 @@ This script uses CoreWeave's Tensorizer to convert model weights to tensorized f
 
 import torch
 import os
-import argparse
-import logging
 import sys
 
 from tensorizer import TensorSerializer
-from transformers import AutoModelForCausalLM, AutoConfig
+from transformers import AutoModelForCausalLM
 import torch
 
 sys.path.append(".")
@@ -49,11 +47,9 @@ def main(weights_dir):
 # setup module execution
 
 if __name__ == "__main__":
-    import glob
     import os
     import sys
 
-    from config import BASE_WEIGHTS_PATH
 
     # fname = "llama_7b_chat_fp16.tensors"
     # weights_dir = "llama_weights/Llama-2-7b-chat" #This is the folder than contains the weights in a transformers-compatible format (multiple .bin files) which were previously converted from a PyTorch checkpoint format (consolidated.00.pth).
