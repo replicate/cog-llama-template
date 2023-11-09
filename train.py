@@ -14,7 +14,6 @@ from dataclasses import fields, is_dataclass
 
 import torch
 from cog import BaseModel, Input, Path
-from tensorizer import TensorSerializer
 from transformers import LlamaForCausalLM
 from llama_recipes.configs.training import train_config
 
