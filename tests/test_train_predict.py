@@ -1,15 +1,11 @@
 import pytest
 import requests
 import subprocess
-import time
 import os
 from threading import Thread, Lock
-import queue
-import json
 
 from tests.test_utils import (
     get_image_name,
-    process_log_line,
     capture_output,
     wait_for_server_to_be_ready,
 )

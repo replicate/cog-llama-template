@@ -10,19 +10,13 @@ from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
     StateDictType,
     FullStateDictConfig,  # general model non-sharded, non-flattened params
-    LocalStateDictConfig,  # flattened params, usable only by FSDP
-    # ShardedStateDictConfig, # un-flattened param but shards, usable by other parallel schemes.
-)
+    )
 
 from torch.distributed._shard.checkpoint import (
     FileSystemReader,
-    FileSystemWriter,
-    save_state_dict,
-    load_state_dict,
 )
 from torch.distributed.checkpoint.default_planner import (
     DefaultSavePlanner,
-    DefaultLoadPlanner,
 )
 
 
@@ -58,7 +52,7 @@ def load_model_sharded(model, rank, cfg):
 
     if not load_dir.exists():
         if rank == 0:
-            print(f"No sharded_state_dict checkpoint directory found...skipping")
+            print("No sharded_state_dict checkpoint directory found...skipping")
         return
     if rank == 0:
         print(f"loading model from model path: {load_dir} ")
@@ -75,7 +69,7 @@ def load_model_sharded(model, rank, cfg):
             storage_reader=reader,
         )
         if rank == 0:
-            print(f"checkpoint after load_state_dict()")
+            print("checkpoint after load_state_dict()")
             ck = checkpoint.keys()
             print(f" checkpoint key len = {len(ck)} and \n keys =  {ck}")
         model.load_state_dict(checkpoint)
@@ -137,7 +131,7 @@ def save_model_checkpoint(
         print(f"saving process: rank {rank}  done w model state_dict\n")
 
     if rank == 0:
-        print(f"--> saving model ...")
+        print("--> saving model ...")
         # create save path
         folder_name = (
             cfg.dist_checkpoint_root_folder
@@ -179,7 +173,7 @@ def load_model_checkpoint(model, rank, cfg):
     # integrate into loaded model
     model.load_state_dict(model_checkpoint)
 
-    print(f"model checkpoint loaded to rank0 cpu")
+    print("model checkpoint loaded to rank0 cpu")
 
 
 def save_optimizer_checkpoint(model, optimizer, rank, cfg, epoch=1):
@@ -207,7 +201,7 @@ def save_optimizer_checkpoint(model, optimizer, rank, cfg, epoch=1):
         opt_save_name = "optimizer" + "-" + cfg.model_name + "-" + str(epoch) + ".pt"
         opt_save_full_path = save_dir / opt_save_name
 
-        print(f"--> saving optimizer state...")
+        print("--> saving optimizer state...")
 
         torch.save(optim_state, opt_save_full_path)
 

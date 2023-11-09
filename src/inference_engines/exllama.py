@@ -5,7 +5,6 @@ import glob
 
 import torch
 import time
-from pathlib import Path
 import typing as tp
 
 from src.config_utils import Weights
@@ -19,7 +18,7 @@ from exllama.tokenizer import ExLlamaTokenizer
 from exllama.generator import ExLlamaGenerator
 
 from src.inference_engines.engine import Engine
-from ..utils import maybe_download_with_pget, StreamingTextStopSequenceHandler
+from ..utils import StreamingTextStopSequenceHandler
 
 torch.cuda._lazy_init()
 torch.set_printoptions(precision=10)

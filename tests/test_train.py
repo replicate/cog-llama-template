@@ -1,16 +1,8 @@
 import pytest
-import requests
-import subprocess
-import time
 import os
-from threading import Thread, Lock
-import queue
-import json
-import subprocess
-import multiprocessing
 import re
 
-from tests.test_utils import process_log_line, capture_output, run_training_subprocess
+from tests.test_utils import run_training_subprocess
 
 ERROR_PATTERN = re.compile(r"ERROR:|Exception", re.IGNORECASE)
 

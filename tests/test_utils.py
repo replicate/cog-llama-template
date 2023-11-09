@@ -2,7 +2,6 @@ import os
 import json
 import requests
 import time
-from threading import Thread, Lock
 import re
 import multiprocessing
 import subprocess
