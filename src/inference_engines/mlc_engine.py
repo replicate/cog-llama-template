@@ -170,5 +170,5 @@ class MLCEngine(Engine):
                 break
             self.cm._decode(generation_config=generation_config)
             out = self.cm._get_message()
-            generation_length = len(out)
             yield out[generation_length:]
+            generation_length = len(out)
