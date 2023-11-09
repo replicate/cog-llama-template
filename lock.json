@@ -182,16 +182,16 @@
         "version": "0.3.1"
       },
       "mlc-ai-nightly-cu118": {
-        "sha256": "e861c6f750c9f824ee9aa2ba9803b622f493faa46d2cb461ed136af25a1ad53f",
+        "sha256": "da39b65ad23ebf33a46236bb5ad0c010bf9f4f489a1db55af07321c9980bc138",
         "type": "url",
         "url": "https://github.com/mlc-ai/package/releases/download/v0.9.dev0/mlc_ai_nightly_cu118-0.12.dev1813-cp311-cp311-manylinux_2_28_x86_64.whl",
         "version": "0.12.dev1813"
       },
       "mlc-chat-nightly-cu118": {
-        "sha256": "338f4d9424b2f2cfd633e9384202582c316ceac0663b785a69d72e098c88c63f",
+        "sha256": "cba098d9afac6dd3aac973fbb1964666bd1378f357fe42129d6e7e483213ca46",
         "type": "url",
-        "url": "https://github.com/mlc-ai/package/releases/download/v0.9.dev0/mlc_chat_nightly_cu118-0.1.dev582-cp311-cp311-manylinux_2_28_x86_64.whl",
-        "version": "0.1.dev582"
+        "url": "https://github.com/mlc-ai/package/releases/download/v0.9.dev0/mlc_chat_nightly_cu118-0.1.dev590-cp311-cp311-manylinux_2_28_x86_64.whl",
+        "version": "0.1.dev590"
       },
       "mpmath": {
         "sha256": "a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c",
@@ -798,5 +798,5 @@
       }
     }
   },
-  "invalidationHash": "9732cf5a6b8a7d2b481006b5176775f7bec76f8715a12cdf3baa077655e8c6a5"
+  "invalidationHash": "a5ac559e97811a04b425325d07c74227f38b9dee6c7aa74cd5c9faa5033b795e"
 }

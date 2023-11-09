@@ -31,7 +31,7 @@
           ];
           cognix.postCopyCommands = ''
             pushd $out/src
-            model_dir=models/${config.name}
+            model_dir=models/${name}
             find $model_dir -type f ! -path "$model_dir/model_artifacts/*" -exec ln -sf {} . \;
             [ -e $model_dir/.env ] && ln -sf $model_dir/.env .env || true
             popd

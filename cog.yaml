@@ -24,7 +24,7 @@ build:
     - "transformers==4.33.2"
     - "peft==0.4.0"
     - "accelerate"
-    - "bitsandbytes"
+    # - "bitsandbytes"
     - "trl==0.5.0"
     - "aiohttp[speedups]"
     - "triton" # hm
