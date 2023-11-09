@@ -12,14 +12,23 @@ class vLLMLoraTest:
     def __init__(self):
         # setup
         self.downloader = Downloader()
-        self.sql_lora_path = "https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/sql.zip"
-        self.summary_lora_path = "https://storage.googleapis.com/dan-scratch-public/tmp/samsum-lora.zip"
+        self.sql_lora_path = (
+            "https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/sql.zip"
+        )
+        self.summary_lora_path = (
+            "https://storage.googleapis.com/dan-scratch-public/tmp/samsum-lora.zip"
+        )
 
-        self.engine_kwargs = {"max_new_tokens": 128,
-                              "temperature": 1.0, "top_p": 0.9, "top_k": 50}
+        self.engine_kwargs = {
+            "max_new_tokens": 128,
+            "temperature": 1.0,
+            "top_p": 0.9,
+            "top_k": 50,
+        }
         MODEL_PATH = "models/llama-2-7b-vllm/model_artifacts/default_inference_weights"
-        self.engine = vLLMEngine(model_path=MODEL_PATH,
-                                 tokenizer_path=MODEL_PATH, dtype="auto")
+        self.engine = vLLMEngine(
+            model_path=MODEL_PATH, tokenizer_path=MODEL_PATH, dtype="auto"
+        )
         self.sql_lora = self.get_lora(self.sql_lora_path)
         self.summary_lora = self.get_lora(self.summary_lora_path)
 
@@ -27,9 +36,13 @@ class vLLMLoraTest:
         buffer = self.downloader.sync_download_file(lora_path)
         with zipfile.ZipFile(buffer, "r") as zip_ref:
             data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
-        adapter_config, adapter_model = data['adapter_config.json'], BytesIO(
-            data['adapter_model.bin'])
-        return self.engine.load_lora(adapter_config=adapter_config, adapter_model=adapter_model)
+        adapter_config, adapter_model = (
+            data["adapter_config.json"],
+            BytesIO(data["adapter_model.bin"]),
+        )
+        return self.engine.load_lora(
+            adapter_config=adapter_config, adapter_model=adapter_model
+        )
 
     def generate_replicate(self, prompt, lora_path):
         output = replicate.run(
@@ -42,7 +55,7 @@ class vLLMLoraTest:
         return generated_text
 
     def generate(self, prompt, lora):
-        self.engine_kwargs['prompt'] = prompt
+        self.engine_kwargs["prompt"] = prompt
         base_generation = ""
         if self.engine.is_lora_active():
             self.engine.delete_lora()
@@ -55,12 +68,10 @@ class vLLMLoraTest:
     def run_base(self):
         # generate vanilla output that should be screwed up by a lora
         sql_prompt = "What is the meaning of life?"
-        base_generation = self.generate_replicate(
-            sql_prompt, "")
+        base_generation = self.generate_replicate(sql_prompt, "")
 
-        sql_generation = self.generate_replicate(
-            sql_prompt, self.sql_lora_path)
-        lora_expected_generation = 'What is the meaning of life?'
+        sql_generation = self.generate_replicate(sql_prompt, self.sql_lora_path)
+        lora_expected_generation = "What is the meaning of life?"
         cprint("Philosophy output:", "blue")
         cprint(f"Base model output: {base_generation}", "blue")
         cprint(f"LoRA output: {sql_generation}", "blue")
@@ -81,13 +92,13 @@ class vLLMLoraTest:
 
         ### Response:"""
 
-        base_generation = self.generate_replicate(
-            sql_prompt, "")
-        sql_generation = self.generate_replicate(
-            sql_prompt, self.sql_lora_path)
+        base_generation = self.generate_replicate(sql_prompt, "")
+        sql_generation = self.generate_replicate(sql_prompt, self.sql_lora_path)
         base_generation = base_generation.strip()
         sql_generation = sql_generation.strip()
-        lora_expected_generation = 'SELECT COUNT(decile) FROM table_name_34 WHERE name = "redwood school"'
+        lora_expected_generation = (
+            'SELECT COUNT(decile) FROM table_name_34 WHERE name = "redwood school"'
+        )
         cprint("SQL output:", "green")
         cprint(f"Base model output: {base_generation}", "green")
         cprint(f"LoRA output: {sql_generation}", "green")
@@ -114,11 +125,13 @@ Liam: anytime, always happy to share good movies
 Ava: let's plan to watch it together sometime
 Liam: sounds like a plan! [/INST]"""
 
-        base_generation = self.generate_replicate(
-            summary_prompt, "")
+        base_generation = self.generate_replicate(summary_prompt, "")
         summary_generation = self.generate_replicate(
-            summary_prompt, self.summary_lora_path)
-        lora_expected_generation = '\nSummary: Liam recommends the movie "Starry Skies" to Ava.'
+            summary_prompt, self.summary_lora_path
+        )
+        lora_expected_generation = (
+            '\nSummary: Liam recommends the movie "Starry Skies" to Ava.'
+        )
         cprint("Summary output:", "blue")
         cprint(f"Base model output: {base_generation}", "blue")
         cprint(f"LoRA output: {summary_generation}", "blue")

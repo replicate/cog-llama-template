@@ -25,7 +25,6 @@ def load_tokenizer(tokenizer_path):
     """Same tokenizer, agnostic from tensorized weights/etc"""
     tok = LlamaTokenizer.from_pretrained(
         tokenizer_path, cache_dir="pretrained_weights", legacy=False
-
     )
     tok.add_special_tokens(
         {
@@ -36,4 +35,3 @@ def load_tokenizer(tokenizer_path):
         }
     )
     return tok
-

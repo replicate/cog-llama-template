@@ -71,8 +71,8 @@ class LLaMA:
 
         start_time = time.time()
         checkpoints = sorted(Path(ckpt_dir).glob("*.pth"))
-        assert model_parallel_size == len(
-            checkpoints
+        assert (
+            model_parallel_size == len(checkpoints)
         ), f"Loading a checkpoint for MP={len(checkpoints)} but world size is {model_parallel_size}"
         ckpt_path = checkpoints[get_model_parallel_rank()]
         checkpoint = torch.load(ckpt_path, map_location="cpu")

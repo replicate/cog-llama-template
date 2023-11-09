@@ -23,10 +23,12 @@ MIN_CHUNK_SIZE = 1024 * 1024 * 8  # 8mb
 
 global_downloader = None
 
+
 # zipfile requires seekable
 class SeekableMmap(mmap.mmap):
     def seekable(self) -> bool:
         return True
+
 
 class Downloader:
     def __init__(self, concurrency: int | None = None) -> None:
@@ -203,6 +205,7 @@ class Downloader:
 
     sync_download_file = sync(download_file)
     sync_maybe_download_files = sync(maybe_download_files_to_disk)
+
 
 if __name__ == "__main__":
     Downloader().sync_download_file(sys.argv[1])

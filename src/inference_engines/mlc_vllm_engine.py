@@ -7,7 +7,7 @@ from .vllm_engine import vLLMEngine
 
 class MLCvLLMEngine(Engine):
     """
-    MLC for base models, vllm for fine-tunes. 
+    MLC for base models, vllm for fine-tunes.
     """
 
     def __init__(self, mlc_args: dict, vllm_args: dict) -> None:
@@ -17,11 +17,11 @@ class MLCvLLMEngine(Engine):
         else:
             # can't run vllm if MLC is imported
             from .mlc_engine import MLCEngine
+
             self.engine = MLCEngine(**mlc_args)
             self.vllm_args = vllm_args
 
-
-    def load_lora(self, lora_data:dict) -> Any:
+    def load_lora(self, lora_data: dict) -> Any:
         """
         loads a lora from files into the format that this particular engine expects. DOES NOT prepare the engine for inference.
         lora_data is a dictionary of file names & references from the zip file
@@ -37,9 +37,8 @@ class MLCvLLMEngine(Engine):
             # torch.cuda.empty_cache()
             # self.engine = vLLMEngine(**self.vllm_args)
             raise Exception("Loras not supported with MLCEngine")
-        
+
         return self.engine.load_lora(lora_data)
-        
 
     def is_lora_active(self) -> bool:
         """
@@ -54,30 +53,35 @@ class MLCvLLMEngine(Engine):
         Given a loaded lora (created w/ load_lora), configures the engine to use that lora in combination with the loaded base weights.
         """
         if not isinstance(self.engine, vLLMEngine):
-            raise Exception("Loras not supported with MLC Engine! Invalid state reached.")
+            raise Exception(
+                "Loras not supported with MLC Engine! Invalid state reached."
+            )
         self.engine.set_lora(lora)
 
     def delete_lora(self) -> None:
         self.engine.delete_lora()
 
-
-    def __call__(self, 
-                 prompt,
-                 max_new_tokens:int =128,
-                 min_new_tokens:int =-1,
-                 temperature:float =0.75,
-                 top_p:float =0.9,
-                 top_k:int =50,
-                 stop_sequences: Optional[List[str]] = None,
-                 **kwargs):
+    def __call__(
+        self,
+        prompt,
+        max_new_tokens: int = 128,
+        min_new_tokens: int = -1,
+        temperature: float = 0.75,
+        top_p: float = 0.9,
+        top_k: int = 50,
+        stop_sequences: Optional[List[str]] = None,
+        **kwargs,
+    ):
         print(f"MLC: {not isinstance(self.engine, vLLMEngine)}")
-        gen = self.engine(prompt, 
-                          max_new_tokens=max_new_tokens, 
-                          min_new_tokens=min_new_tokens,
-                          temperature=temperature,
-                          top_p=top_p,
-                          top_k=top_k,
-                          stop_sequences=stop_sequences,
-                          **kwargs)
+        gen = self.engine(
+            prompt,
+            max_new_tokens=max_new_tokens,
+            min_new_tokens=min_new_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            stop_sequences=stop_sequences,
+            **kwargs,
+        )
         for val in gen:
             yield val

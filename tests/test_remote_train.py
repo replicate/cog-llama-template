@@ -37,8 +37,7 @@ def prediction_tests():
     return [
         {"prompt": "How are you doing today?"},
         {
-            "prompt":
-            """[INST] <<SYS>>
+            "prompt": """[INST] <<SYS>>
         Use the Input to provide a summary of a conversation.
         <</SYS>>
         Input:
@@ -56,7 +55,7 @@ def prediction_tests():
         Ava: let's plan to watch it together sometime 
         Liam: sounds like a plan! [/INST]
         """
-        }
+        },
     ]
 
 
@@ -85,7 +84,7 @@ def test_post_training_predictions(trained_model_and_version, prediction_tests):
     for ind, val in enumerate(predictions):
         val.wait()
         assert val.status == "succeeded"
-        out = ''.join(val.output)
+        out = "".join(val.output)
         print("Output: ", out)
-        if ind == 1: 
+        if ind == 1:
             assert "Summary" in out
