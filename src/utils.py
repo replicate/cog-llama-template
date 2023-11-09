@@ -54,6 +54,12 @@ class Logger:
         self.last = current_time
 
 
+def get_loop() -> asyncio.AbstractEventLoop:
+    try:
+        return asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.new_event_loop()
+
 def download_file(file, local_filename):
     print(f"Downloading {file} to {local_filename}")
     if os.path.exists(local_filename):
@@ -154,6 +160,7 @@ def maybe_download_with_pget(
             missing_files = remote_filenames or []
         else:
             missing_files = check_files_exist(remote_filenames or [], path)
+        loop = get_loop()
 
         if len(missing_files) > 0:
             print("Downloading weights...")
@@ -172,7 +179,7 @@ def maybe_download_with_pget(
                     logger.info(
                         f"Downloading {missing_files} from {remote_path} to {path}"
                     )
-                asyncio.run(
+                loop.run_until_complete(
                     download_files_with_pget(
                         remote_path, path, missing_file_batch, pget_concurrency
                     )
