@@ -9,11 +9,7 @@ from typing import Any, Optional
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
-from config import (
-    ENGINE,
-    ENGINE_KWARGS,
-    USE_SYSTEM_PROMPT,
-)
+from config import ENGINE, ENGINE_KWARGS, USE_SYSTEM_PROMPT
 from src.download import Downloader
 from src.utils import seed_all
 
@@ -26,7 +22,10 @@ B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_INST}"
 
 # Users may want to change the system prompt, but we use the recommended system prompt by default
-DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
+DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant."""
+
+# Temporary hack to disable Top K from the API. We should get rid of this once engines + configs are better standardized.
+USE_TOP_K = ENGINE.__name__ not in ("MLCEngine", "MLCvLLMEngine")
 
 
 class Predictor(BasePredictor):
@@ -104,18 +103,23 @@ class Predictor(BasePredictor):
             description="Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic, 0.75 is a good starting value.",
             ge=0.01,
             le=5,
-            default=0.75,
+            default=0.7,
         ),
         top_p: float = Input(
             description="When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens",
             ge=0.0,
             le=1.0,
-            default=0.9,
+            default=0.95,
         ),
         top_k: int = Input(
             description="When decoding text, samples from the top k most likely tokens; lower to ignore less likely tokens",
-            ge=0,
-            default=50,
+            ge=-1,
+            default=-1,
+        ),
+        repetition_penalty: float = Input(
+            description="A parameter that controls how repetitive text can be. Lower means more repetitive, while higher means less repetitive. Set to 1.0 to disable.",
+            ge=0.0,
+            default=1.15,
         ),
         stop_sequences: str = Input(
             description="A comma-separated list of sequences to stop generation at. For example, '<end>,<stop>' will stop generation at the first instance of 'end' or '<stop>'.",
@@ -128,15 +132,15 @@ class Predictor(BasePredictor):
         debug: bool = Input(
             description="provide debugging output in logs", default=False
         ),
-        return_logits: bool = Input(
-            description="if set, only return logits for the first token. only useful for testing, etc.",
-            default=False,
-        ),
+        # return_logits: bool = Input(
+        # description="if set, only return logits for the first token. only useful for testing, etc.",
+        # default=False,
+        # ),
         replicate_weights: str = Input(
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
             default=None,
         ),
-    ) -> ConcatenateIterator:
+    ) -> ConcatenateIterator[str]:
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
 
@@ -166,44 +170,46 @@ class Predictor(BasePredictor):
         n_tokens = 0
         st = time.time()
 
-        if return_logits:
-            logits = self.engine.get_logits(prompt)
-            # serializing so we aren't returning a massive json
-            logits_path = "logits.pt"
-            torch.save(logits, logits_path)
-            yield Path(logits_path)
+        # if return_logits:
+        # logits = self.engine.get_logits(prompt)
+        # # serializing so we aren't returning a massive json
+        # logits_path = "logits.pt"
+        # torch.save(logits, logits_path)
+        # yield Path(logits_path)
 
-        # todo: may need to do something clever with kwargs if/when we add more engines.
-        else:
-            for decoded_token in self.engine(
-                prompt,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-                max_new_tokens=max_new_tokens,
-                min_new_tokens=min_new_tokens,
-                stop_sequences=stop_sequences,
-            ):
-                n_tokens += 1
-                yield decoded_token
-                if n_tokens == 1 and debug:
-                    second_start = time.time()
-                    print(
-                        f"after initialization, first token took {second_start - st:.3f}"
-                    )
-                if seed is not None:
-                    torch.manual_seed(seed)
-            et = time.time()
-            t = et - st
-            print(f"hostname: {socket.gethostname()}")
-            if debug:
-                print(f"Tokens per second: {n_tokens / t:.2f}")
-                print(
-                    f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}"
-                )
-                print(f"cur memory: {torch.cuda.memory_allocated()}")
-                print(f"max allocated: {torch.cuda.max_memory_allocated()}")
-                print(f"peak memory: {torch.cuda.max_memory_reserved()}")
+        # # todo: may need to do something clever with kwargs if/when we add more engines.
+        # else:
+        generated_text = ""
+        for decoded_token in self.engine(
+            prompt,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            repetition_penalty=repetition_penalty,
+            max_new_tokens=max_new_tokens,
+            min_new_tokens=min_new_tokens,
+            stop_sequences=stop_sequences,
+        ):
+            n_tokens += 1
+            yield decoded_token
+            generated_text += decoded_token
+            if n_tokens == 1 and debug:
+                second_start = time.time()
+            if seed is not None:
+                torch.manual_seed(seed)
+        et = time.time()
+        t = et - st
+        print(f"hostname: {socket.gethostname()}")
+        if debug:
+            print("generated text:", generated_text)
+            print(f"after initialization, first token took {second_start - st:.3f}")
+            print(f"Tokens per second: {n_tokens / t:.2f}")
+            print(
+                f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}"
+            )
+            print(f"cur memory: {torch.cuda.memory_allocated()}")
+            print(f"max allocated: {torch.cuda.max_memory_allocated()}")
+            print(f"peak memory: {torch.cuda.max_memory_reserved()}")
 
     def remove(f: "Callable", defaults: "dict[str, Any]") -> "Callable":
         # pylint: disable=no-self-argument
@@ -223,6 +229,11 @@ class Predictor(BasePredictor):
         # Return partialmethod, wrapper behaves correctly when part of a class
         return functools.partialmethod(wrapper)
 
+    args_to_remove = {}
     if not USE_SYSTEM_PROMPT:
         # this removes system_prompt from the Replicate API for non-chat models.
-        predict = remove(predict, {"system_prompt": None})
+        args_to_remove["system_prompt"] = None
+    if not USE_TOP_K:
+        args_to_remove["top_k"] = None
+    if args_to_remove:
+        predict = remove(predict, args_to_remove)

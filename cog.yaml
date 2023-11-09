@@ -16,7 +16,7 @@ build:
     - "jinja2==3.1.2"
     - "scipy==1.11.1"
     - "asyncio==3.4.3"
-    - "safetensors==0.3.1"
+    - "safetensors>=0.3.1"
     - "ninja==1.11.1"
     - "python-dotenv"
     - "py7zr"
@@ -38,6 +38,7 @@ build:
   run:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.3/pget#cacheburst" && chmod +x /usr/local/bin/pget
     - curl -o /usr/local/bin/remotefile -L "https://r2.drysys.workers.dev/remotefile" && chmod +x /usr/local/bin/remotefile
+    - python3 -m pip install --pre -U -f https://mlc.ai/wheels mlc-chat-nightly-cu121 mlc-ai-nightly-cu121
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"

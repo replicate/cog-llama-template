@@ -23,6 +23,8 @@ REPLICATE_USER ?= replicate-internal
 
 model ?= $(SELECTED_MODEL)
 
+PROD_MODEL ?= $(model)
+
 ifeq ($(findstring chat,$(model)),chat)
     schema := chat-schema.json
 else
@@ -30,10 +32,10 @@ else
 endif
 
 base-schema.json:
-	$(MAKE) select model=llama-2-7b
+	$(MAKE) select model=$(model)
 	cog run --use-cuda-base-image=true python3 -m cog.command.openapi_schema > base-schema.json
 chat-schema.json:
-	$(MAKE) select model=llama-2-7b-chat
+	$(MAKE) select model=$(model)
 	cog run --use-cuda-base-image=true python3 -m cog.command.openapi_schema > chat-schema.json
 	
 
@@ -161,20 +163,20 @@ stage-and-test-models:
 	)
 	
 push: select
-	cog push --openapi-schema=$(schema) --use-cuda-base-image=true --progress plain r8.im/$(REPLICATE_USER)/$(model)
+	cog push --openapi-schema=$(schema) --use-cuda-base-image=true --progress plain r8.im/$(REPLICATE_USER)/$(PROD_MODEL)
 
 test-prod-predict:
 	@if [ "$(verbose)" = "true" ]; then \
-		pytest tests/test_remote_predict.py -s --model $(REPLICATE_USER)/$(model); \
+		pytest tests/test_remote_predict.py -s --model $(REPLICATE_USER)/$(PROD_MODEL); \
 	else \
-		pytest tests/test_remote_predict.py --model $(REPLICATE_USER)/$(model); \
+		pytest tests/test_remote_predict.py --model $(REPLICATE_USER)/$(PROD_MODEL); \
 	fi
 
 test-prod-train-predict:
 	@if [ "$(verbose)" = "true" ]; then \
-		pytest tests/test_remote_train.py -s --model $(REPLICATE_USER)/$(model); \
+		pytest tests/test_remote_train.py -s --model $(REPLICATE_USER)/$(PROD_MODEL); \
 	else \
-		pytest tests/test_remote_train.py --model $(REPLICATE_USER)/$(model); \
+		pytest tests/test_remote_train.py --model $(REPLICATE_USER)/$(PROD_MODEL); \
 	fi
 
 test-prod: test-prod-predict test-prod-train-predict

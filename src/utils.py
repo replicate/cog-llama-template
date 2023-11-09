@@ -4,17 +4,16 @@ import random
 import time
 import typing as tp
 import asyncio
-import torch
 
 def seed_all(seed: int):
+    import numpy
+    import torch
+
     os.environ["PYTHONHASHSEED"] = str(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     random.seed(seed)
-
-    import numpy
-
     numpy.random.seed(seed)
 
 
@@ -69,24 +68,24 @@ def download_file(file, local_filename):
     return
 
 
-def check_files_exist(remote_files, local_path):
+def check_files_exist(remote_files: list[str], local_path: str) -> list[str]:
     # Get the list of local file names
     local_files = os.listdir(local_path)
 
     # Check if each remote file exists in the local directory
-    missing_files = [file for file in remote_files if file not in local_files]
+    missing_files = list(set(remote_files) - set(local_files))
 
     return missing_files
 
 
-async def download_file_with_pget(remote_path, dest_path):
+async def download_file_with_pget(remote_path, dest_path, pget_concurrency='10'):
     # Create the subprocess
     print("Downloading ", remote_path)
     if remote_path.endswith("json"):
         info = "%{filename_effective} took %{time_total}s (%{speed_download} bytes/sec)\n"
         args = ["curl", "-w", info, "-sLo", dest_path, remote_path]
     else:
-        args = ["pget", remote_path, dest_path]
+        args = ["pget", "-c", pget_concurrency, remote_path, dest_path]
     process = await asyncio.create_subprocess_exec(
         *args,
         stdout=asyncio.subprocess.PIPE,
@@ -104,10 +103,10 @@ async def download_file_with_pget(remote_path, dest_path):
         print(f"[stderr]\n{stderr.decode()}")
 
 
-async def download_files_with_pget(remote_path, path, files):
+async def download_files_with_pget(remote_path, path, files, pget_concurrency):
     await asyncio.gather(
         *(
-            download_file_with_pget(f"{remote_path}/{file}", f"{path}/{file}")
+            download_file_with_pget(f"{remote_path}/{file}", f"{path}/{file}", str(pget_concurrency))
             for file in files
         )
     )
@@ -152,17 +151,23 @@ def maybe_download_with_pget(
             os.makedirs(path, exist_ok=True)
             missing_files = remote_filenames
         else:
-            local_files = os.listdir(path)
             missing_files = check_files_exist(remote_filenames, path)
 
         if len(missing_files) > 0:
             print("Downloading weights...")
+            
+            num_concurrent_connections = 40
             st = time.time()
-            if logger:
-                logger.info(f"Downloading {missing_files} from {remote_path} to {path}")
-            asyncio.run(download_files_with_pget(remote_path, path, missing_files))
-            if logger:
-                logger.info(f"Finished download")
+            for batch_start in range(0, len(missing_files), num_concurrent_connections):
+                batch_end = min(batch_start + num_concurrent_connections, len(missing_files))
+                missing_file_batch = missing_files[batch_start:batch_end]
+                pget_concurrency = str(max(1, int(num_concurrent_connections/ len(missing_file_batch))))
+                if logger:
+                    logger.info(f"Downloading {missing_files} from {remote_path} to {path}")
+                asyncio.run(download_files_with_pget(remote_path, path, missing_file_batch
+                                                     , pget_concurrency))
+                if logger:
+                    logger.info(f"Finished download")
             print(f"Finished download in {time.time() - st:.2f}s")
 
     return path
