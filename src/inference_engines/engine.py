@@ -4,7 +4,6 @@ from typing import Any
 
 from src.config_utils import Weights
 from src import download
-from src.utils import maybe_download_with_pget
 
 
 class Engine(ABC):
@@ -37,13 +36,6 @@ class Engine(ABC):
         pass
 
     @abstractmethod
-    def delete_lora(self):
-        """
-        Deletes a LoRA.
-        """
-        pass
-
-    @abstractmethod
     def is_lora_active(self) -> bool:
         """
         Checks whether a LoRA has currently been loaded onto the engine.
@@ -54,13 +46,6 @@ class Engine(ABC):
     def delete_lora(self):
         """
         Deletes a LoRA.
-        """
-        pass
-
-    @abstractmethod
-    def is_lora_active(self) -> bool:
-        """
-        Checks whether a LoRA has currently been loaded onto the engine.
         """
         pass
 

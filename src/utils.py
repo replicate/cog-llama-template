@@ -1,10 +1,9 @@
+import asyncio
 import os
-import subprocess
 import random
+import subprocess
 import time
 import typing as tp
-import asyncio
-
 
 def seed_all(seed: int):
     import numpy
@@ -34,8 +33,7 @@ def get_env_var_or_default(var_name, default_value):
     # Check if the environment variable exists and is not empty
     if len(env_value) > 0:
         return env_value
-    else:
-        return default_value
+    return default_value
 
 
 class Logger:
@@ -66,7 +64,6 @@ def download_file(file, local_filename):
 
     command = ["pget", file, local_filename]
     subprocess.check_call(command, close_fds=True)
-    return
 
 
 def check_files_exist(remote_files: list[str], local_path: str) -> list[str]:
@@ -124,7 +121,7 @@ async def download_files_with_pget(remote_path, path, files, pget_concurrency):
 def maybe_download_with_pget(
     path,
     remote_path: tp.Optional[str] = None,
-    remote_filenames: tp.Optional[tp.List[str]] = [],
+    remote_filenames: tp.Optional[list[str]] = None,
     logger: tp.Optional[Logger] = None,
 ):
     """
@@ -154,9 +151,9 @@ def maybe_download_with_pget(
 
         if not os.path.exists(path):
             os.makedirs(path, exist_ok=True)
-            missing_files = remote_filenames
+            missing_files = remote_filenames or []
         else:
-            missing_files = check_files_exist(remote_filenames, path)
+            missing_files = check_files_exist(remote_filenames or [], path)
 
         if len(missing_files) > 0:
             print("Downloading weights...")
@@ -181,7 +178,7 @@ def maybe_download_with_pget(
                     )
                 )
                 if logger:
-                    logger.info(f"Finished download")
+                    logger.info("Finished download")
             print(f"Finished download in {time.time() - st:.2f}s")
 
     return path
@@ -226,7 +223,7 @@ class StreamingTextStopSequenceHandler:
                 if match_length == self.stop_sequence_lens[idx]:
                     self.cache.append(token)
                     text_before_stop_sequence = "".join(self.cache).split(
-                        stop_sequence
+                        stop_sequence, maxsplit=1
                     )[0]
                     if text_before_stop_sequence:
                         self.cache = [text_before_stop_sequence]

@@ -1,10 +1,5 @@
-import logging
 import os
-import time
-from collections import OrderedDict
 
-import torch
-from transformers import AutoConfig, LlamaForCausalLM, LlamaTokenizer
 
 DEFAULT_PAD_TOKEN = "[PAD]"
 DEFAULT_EOS_TOKEN = "</s>"
@@ -14,6 +9,7 @@ DEFAULT_UNK_TOKEN = "</s>"
 
 def log_memory_stuff(prompt=None):
     """One method to barf out everything we'd ever want to know about memory"""
+    import torch
 
     if prompt is not None:
         print(prompt)
@@ -23,6 +19,8 @@ def log_memory_stuff(prompt=None):
 
 def load_tokenizer(tokenizer_path):
     """Same tokenizer, agnostic from tensorized weights/etc"""
+    from transformers import LlamaTokenizer
+
     tok = LlamaTokenizer.from_pretrained(
         tokenizer_path, cache_dir="pretrained_weights", legacy=False
     )

@@ -2,14 +2,14 @@ import asyncio
 import json
 import os
 from io import BytesIO, IOBase
-from typing import BinaryIO, List, Optional, Union, get_args
+from typing import AsyncIterator, BinaryIO, List, Optional, Union, get_args
 
 import torch
-from src.config_utils import Weights
-
 from vllm import AsyncLLMEngine
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.sampling_params import SamplingParams
+
+from src.config_utils import Weights
 
 from .engine import Engine
 
@@ -140,7 +140,7 @@ class vLLMEngine(Engine):
 
     async def generate_stream(
         self, prompt: str, sampling_params: SamplingParams
-    ) -> str:
+    ) -> AsyncIterator[str]:
         results_generator = self.engine.generate(prompt, sampling_params, 0)
         async for generated_text in results_generator:
             yield generated_text
@@ -235,7 +235,7 @@ class vLLMEngine(Engine):
                 break
 
 
-async def run_generation():
+def run_generation():
     """
     Helper class to run the generation for tests.
     """
@@ -249,9 +249,9 @@ async def run_generation():
     generated_text = engine(
         prompt=prompt, max_new_tokens=128, temperature=1.0, top_p=0.9, top_k=50
     )
-    async for text in generated_text:
+    for text in generated_text:
         print(text, end="")
 
 
 if __name__ == "__main__":
-    asyncio.run(run_generation())
+    run_generation()
