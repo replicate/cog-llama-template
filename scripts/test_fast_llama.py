@@ -29,26 +29,34 @@ class SpeedyReplicateGonzalez:
     def __init__(self):
         # setup
         self.max_new_tokens = 1024
-        self.engine_kwargs = {"max_new_tokens": self.max_new_tokens,
-                              "temperature": 1.0, "top_p": 0.9, "top_k": 50}
+        self.engine_kwargs = {
+            "max_new_tokens": self.max_new_tokens,
+            "temperature": 1.0,
+            "top_p": 0.9,
+            "top_k": 50,
+        }
         MODEL_PATH = "models/llama-2-7b-vllm/model_artifacts/default_inference_weights"
         self.current_engine = None
         self.downloader = Downloader()
         # self.vllm_engine = vLLMEngine(model_path=MODEL_PATH,
-                                      # tokenizer_path=MODEL_PATH, dtype="auto")
+        # tokenizer_path=MODEL_PATH, dtype="auto")
         self.tokenizer = AutoTokenizer.from_pretrained("huggyllama/llama-7b")
 
         # get SQL lora
-        self.sql_lora_path = "https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/sql.zip"
+        self.sql_lora_path = (
+            "https://pub-df34620a84bb4c0683fae07a260df1ea.r2.dev/sql.zip"
+        )
         self.sql_lora_model = self.get_lora(self.sql_lora_path)
-        self.sql_lora = LoraAdapter(model=self.sql_lora_model,
-                                    path=self.sql_lora_path)
+        self.sql_lora = LoraAdapter(model=self.sql_lora_model, path=self.sql_lora_path)
 
         # get summary lora
-        self.summary_lora_path = "https://storage.googleapis.com/dan-scratch-public/tmp/samsum-lora.zip"
+        self.summary_lora_path = (
+            "https://storage.googleapis.com/dan-scratch-public/tmp/samsum-lora.zip"
+        )
         self.summary_lora_model = self.get_lora(self.summary_lora_path)
-        self.summary_lora = LoraAdapter(model=self.summary_lora_model,
-                                        path=self.summary_lora_path)
+        self.summary_lora = LoraAdapter(
+            model=self.summary_lora_model, path=self.summary_lora_path
+        )
 
         self._replicate_model_name = "meta/llama-2-7b-chat:8e6975e5ed6174911a6ff3d60540dfd4844201974602551e10e9e87ab143d81e"
 
@@ -66,15 +74,23 @@ class SpeedyReplicateGonzalez:
         buffer = self.downloader.sync_download_file(lora_path)
         with zipfile.ZipFile(buffer, "r") as zip_ref:
             data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
-        adapter_config, adapter_model = data['adapter_config.json'], BytesIO(
-            data['adapter_model.bin'])
-        return self.engine.load_lora(adapter_config=adapter_config, adapter_model=adapter_model)
+        adapter_config, adapter_model = (
+            data["adapter_config.json"],
+            BytesIO(data["adapter_model.bin"]),
+        )
+        return self.engine.load_lora(
+            adapter_config=adapter_config, adapter_model=adapter_model
+        )
 
     def generate_replicate(self, prompt, lora):
         lora_path = lora.path if lora else ""
         output = replicate.run(
             self.replicate_model_name,
-            input={"prompt": prompt, "replicate_weights": lora_path, "max_new_tokens": self.max_new_tokens},
+            input={
+                "prompt": prompt,
+                "replicate_weights": lora_path,
+                "max_new_tokens": self.max_new_tokens,
+            },
         )
         generated_text = ""
         for item in output:
@@ -83,7 +99,7 @@ class SpeedyReplicateGonzalez:
 
     def generate_vllm(self, prompt, lora):
         lora_model = lora.model if lora else ""
-        self.engine_kwargs['prompt'] = prompt
+        self.engine_kwargs["prompt"] = prompt
         base_generation = ""
         if self.engine.is_lora_active():
             self.engine.delete_lora()
@@ -94,25 +110,27 @@ class SpeedyReplicateGonzalez:
         return generation
 
     def set_engine(self, engine):
-        engines_registry = {Engine.REPLICATE: self.generate_replicate,
-                            Engine.VLLM: self.generate_vllm}
+        engines_registry = {
+            Engine.REPLICATE: self.generate_replicate,
+            Engine.VLLM: self.generate_vllm,
+        }
         if engine in engines_registry:
             self.generate = engines_registry[engine]
             self.generate_func = engines_registry[engine]
             self.current_engine = engine
         else:
-            raise ValueError(
-                f"Engine {engine} not found in {engines_registry.keys()}")
+            raise ValueError(f"Engine {engine} not found in {engines_registry.keys()}")
 
     def timing_decorator(self, prompt, lora):
         start_time = time.time()
         generated_text = self.generate_func(prompt, lora)
         end_time = time.time()
         time_elapsed = end_time - start_time
-        tokens_generated = len(self.tokenizer(generated_text)['input_ids'])
+        tokens_generated = len(self.tokenizer(generated_text)["input_ids"])
         self.tps = tokens_generated / time_elapsed
         print(
-            f"Generated {tokens_generated} tokens in {time_elapsed:.2f} seconds at {self.tps:.2f} tokens per second")
+            f"Generated {tokens_generated} tokens in {time_elapsed:.2f} seconds at {self.tps:.2f} tokens per second"
+        )
 
     def enable_timing(self, verbose: bool = False):
         self.generate = self.timing_decorator
@@ -130,12 +148,10 @@ class SpeedyReplicateGonzalez:
     def run_base(self):
         # generate vanilla output that should be screwed up by a lora
         sql_prompt = "What is the meaning of life?"
-        base_generation = self.generate(
-            sql_prompt, "")
+        base_generation = self.generate(sql_prompt, "")
 
-        sql_generation = self.generate(
-            sql_prompt, self.sql_lora)
-        lora_expected_generation = 'What is the meaning of life?'
+        sql_generation = self.generate(sql_prompt, self.sql_lora)
+        lora_expected_generation = "What is the meaning of life?"
         cprint("Philosophy output:", "blue")
         cprint(f"Base model output: {base_generation}", "blue")
         cprint(f"LoRA output: {sql_generation}", "blue")
@@ -156,13 +172,13 @@ class SpeedyReplicateGonzalez:
 
         ### Response:"""
 
-        base_generation = self.generate(
-            sql_prompt, "")
-        sql_generation = self.generate(
-            sql_prompt, self.sql_lora)
+        base_generation = self.generate(sql_prompt, "")
+        sql_generation = self.generate(sql_prompt, self.sql_lora)
         base_generation = base_generation.strip()
         sql_generation = sql_generation.strip()
-        lora_expected_generation = 'SELECT COUNT(decile) FROM table_name_34 WHERE name = "redwood school"'
+        lora_expected_generation = (
+            'SELECT COUNT(decile) FROM table_name_34 WHERE name = "redwood school"'
+        )
         cprint("SQL output:", "green")
         cprint(f"Base model output: {base_generation}", "green")
         cprint(f"LoRA output: {sql_generation}", "green")
@@ -189,11 +205,11 @@ Liam: anytime, always happy to share good movies
 Ava: let's plan to watch it together sometime
 Liam: sounds like a plan! [/INST]"""
 
-        base_generation = self.generate(
-            summary_prompt, "")
-        summary_generation = self.generate(
-            summary_prompt, self.summary_lora)
-        lora_expected_generation = '\nSummary: Liam recommends the movie "Starry Skies" to Ava.'
+        base_generation = self.generate(summary_prompt, "")
+        summary_generation = self.generate(summary_prompt, self.summary_lora)
+        lora_expected_generation = (
+            '\nSummary: Liam recommends the movie "Starry Skies" to Ava.'
+        )
         cprint("Summary output:", "blue")
         cprint(f"Base model output: {base_generation}", "blue")
         cprint(f"LoRA output: {summary_generation}", "blue")
@@ -228,8 +244,9 @@ if __name__ == "__main__":
         exllama_chat_tps.append(tester.tps)
         print("-" * 20)
 
-
     print("=" * 40)
     print(f"vLLM speed: {np.mean(vllm_tps)} (std: {np.std(vllm_tps)})")
     print(f"exllama speed: {np.mean(exllama_tps)} (std: {np.std(exllama_tps)})")
-    print(f"exllama chat speed: {np.mean(exllama_chat_tps)} (std: {np.std(exllama_chat_tps)})")
+    print(
+        f"exllama chat speed: {np.mean(exllama_chat_tps)} (std: {np.std(exllama_chat_tps)})"
+    )

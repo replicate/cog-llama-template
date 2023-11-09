@@ -83,7 +83,6 @@ class AnyPrecisionAdamW(Optimizer):
                 closure()
 
         for group in self.param_groups:
-
             beta1, beta2 = group["betas"]
             lr = group["lr"]
             weight_decay = group["weight_decay"]
@@ -107,7 +106,6 @@ class AnyPrecisionAdamW(Optimizer):
 
                 # State initialization
                 if len(state) == 0:
-
                     state["step"] = torch.tensor(0.0)
 
                     # momentum - EMA of gradient values

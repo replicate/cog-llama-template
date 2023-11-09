@@ -23,7 +23,9 @@ class MLCEngine(Engine):
     An inference engine that runs inference w/ vLLM
     """
 
-    def __init__(self, weights: Weights, is_chat: bool, tokenizer_path: os.PathLike = None) -> None:
+    def __init__(
+        self, weights: Weights, is_chat: bool, tokenizer_path: os.PathLike = None
+    ) -> None:
         weights_path = self.load_weights(weights)
         self.is_chat = is_chat
 
@@ -35,13 +37,17 @@ class MLCEngine(Engine):
         else:
             self.conv_template = "LM"
             self.stop_str = "[INST]"
-            self.stop_tokens = [2,]
+            self.stop_tokens = [
+                2,
+            ]
             self.add_bos = True
 
         conv_config = ConvConfig(
-            stop_tokens=self.stop_tokens, add_bos=self.add_bos, stop_str=self.stop_str)
+            stop_tokens=self.stop_tokens, add_bos=self.add_bos, stop_str=self.stop_str
+        )
         chat_config = ChatConfig(
-            conv_config=conv_config, conv_template=self.conv_template)
+            conv_config=conv_config, conv_template=self.conv_template
+        )
 
         model_path = path.join(weights_path, "params")
         self.cm = ChatModule(model=model_path, chat_config=chat_config)
@@ -63,8 +69,7 @@ class MLCEngine(Engine):
         for path in weights.remote_files:
             path_directory = os.path.dirname(path)
             if path_directory:
-                path_directory = os.path.join(
-                    weights.local_path, path_directory)
+                path_directory = os.path.join(weights.local_path, path_directory)
                 os.makedirs(path_directory, exist_ok=True)
 
         return super().load_weights(weights)
@@ -97,7 +102,20 @@ class MLCEngine(Engine):
     def delete_lora(self):
         print("MLC is currently not using any LoRAs.")
 
-    def __call__(self, prompt: str, max_new_tokens: int, temperature: float, top_p: float, top_k: int, stop_sequences: str | List[str] = None, stop_token_ids: List[int] = [], repetition_penalty: float = 1.0, incremental_generation: bool = True, *args, **kwargs) -> ConcatenateIterator[str]:
+    def __call__(
+        self,
+        prompt: str,
+        max_new_tokens: int,
+        temperature: float,
+        top_p: float,
+        top_k: int,
+        stop_sequences: str | List[str] = None,
+        stop_token_ids: List[int] = [],
+        repetition_penalty: float = 1.0,
+        incremental_generation: bool = True,
+        *args,
+        **kwargs,
+    ) -> ConcatenateIterator[str]:
         """
         Given a prompt, runs generation on the language model with vLLM.
 
@@ -118,34 +136,43 @@ class MLCEngine(Engine):
 
         if top_k is not None and top_k > 0:
             raise ValueError(
-                "top_k is currently not supported by our generation engine.")
+                "top_k is currently not supported by our generation engine."
+            )
 
         stop_token_ids += self.stop_tokens
         # stop_sequences = [self.stop_str] + stop_sequences
 
         # TODO (Moin): add support for the system prompt on chat models
         conv_config = ConvConfig(
-            stop_tokens=stop_token_ids, add_bos=self.add_bos, stop_str=stop_sequences)
-        chat_config = ChatConfig(temperature=temperature, repetition_penalty=repetition_penalty,
-                                 top_p=top_p, max_gen_len=max_new_tokens, mean_gen_len=max_new_tokens, conv_config=conv_config, conv_template=self.conv_template)
+            stop_tokens=stop_token_ids, add_bos=self.add_bos, stop_str=stop_sequences
+        )
+        chat_config = ChatConfig(
+            temperature=temperature,
+            repetition_penalty=repetition_penalty,
+            top_p=top_p,
+            max_gen_len=max_new_tokens,
+            mean_gen_len=max_new_tokens,
+            conv_config=conv_config,
+            conv_template=self.conv_template,
+        )
         self.cm.reset_chat(chat_config)
 
         generation_config = GenerationConfig(
             temperature=temperature,
             repetition_penalty=repetition_penalty,
             top_p=top_p,
-            max_gen_len=max_new_tokens
+            max_gen_len=max_new_tokens,
         )
         self.cm._prefill(input=prompt, generation_config=generation_config)
 
         min_new_tokens = kwargs.pop("min_new_tokens", None)
         if min_new_tokens is not None and min_new_tokens > -1:
             raise ValueError(
-                "min_new_tokens is currently not supported by MLC's engine.")
+                "min_new_tokens is currently not supported by MLC's engine."
+            )
 
         if len(kwargs) > 0:
-            raise ValueError(
-                f"Unknown keyword arguments: {', '.join(kwargs.keys())}")
+            raise ValueError(f"Unknown keyword arguments: {', '.join(kwargs.keys())}")
 
         generation_length = 0
         while True:

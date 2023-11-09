@@ -23,7 +23,7 @@ USE_SYSTEM_PROMPT = False
 
 # ENGINE CONFIGURATION
 # -------------------------------
-# Here we define the specific inference engine we intend to use for inference, and all appropriate kwargs. 
+# Here we define the specific inference engine we intend to use for inference, and all appropriate kwargs.
 # -------------------------------
 
 from src.inference_engines.transformers_engine import TransformersEngine
@@ -34,14 +34,14 @@ from src.more_utils import load_tokenizer
 
 weights = Weights(
     local_path=f"models/{MODEL_NAME}/model_artifacts/default_inference_weights",
-    remote_path= get_env_var_or_default("REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH", None),
-    remote_files= get_fp16_file_list(2)
+    remote_path=get_env_var_or_default("REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH", None),
+    remote_files=get_fp16_file_list(2),
 )
 
 ENGINE = TransformersEngine
 ENGINE_KWARGS = {
     "weights": weights,
-    "tokenizer_func" : partial(load_tokenizer, TOKENIZER_PATH)
+    "tokenizer_func": partial(load_tokenizer, TOKENIZER_PATH),
 }
 
 
@@ -53,15 +53,17 @@ ENGINE_KWARGS = {
 LOCAL_TRAINING_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/training_weights"
 
 REMOTE_TRAINING_WEIGHTS_PATH = get_env_var_or_default(
-    var_name="REMOTE_TRAINING_WEIGHTS_PATH", 
-    default_value="remote/path/to/your/weights/here"
+    var_name="REMOTE_TRAINING_WEIGHTS_PATH",
+    default_value="remote/path/to/your/weights/here",
 )
 
-LOCAL_TRAINING_WEIGHTS_CONFIG_PATH = f"models/{MODEL_NAME}/model_artifacts/training_weights/config.json"
+LOCAL_TRAINING_WEIGHTS_CONFIG_PATH = (
+    f"models/{MODEL_NAME}/model_artifacts/training_weights/config.json"
+)
 
 REMOTE_TRAINING_WEIGHTS_CONFIG_PATH = get_env_var_or_default(
-    var_name="REMOTE_TRAINING_WEIGHTS_CONFIG_PATH", 
-    default_value="remote/path/to/your/weights/here"
+    var_name="REMOTE_TRAINING_WEIGHTS_CONFIG_PATH",
+    default_value="remote/path/to/your/weights/here",
 )
 
 REMOTE_TRAINING_FILES_TO_DOWNLOAD = get_fp16_file_list(2)

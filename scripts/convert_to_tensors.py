@@ -8,19 +8,20 @@ This script uses CoreWeave's Tensorizer to convert model weights to tensorized f
 import torch
 import os
 import argparse
-import logging 
+import logging
 import sys
 
 from tensorizer import TensorSerializer
 from transformers import AutoModelForCausalLM, AutoConfig
 import torch
 
-sys.path.append('.')
+sys.path.append(".")
+
 
 def main(weights_dir):
     # append parent directory to path
 
-    fname = weights_dir.split('/')[-1]
+    fname = weights_dir.split("/")[-1]
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dtype = "fp16" if torch.cuda.is_available() else "fp32"
@@ -42,7 +43,8 @@ def main(weights_dir):
     serializer.write_module(model)
     serializer.close()
 
-    print('Wrote tensorized model to: ', tensorizer_path)
+    print("Wrote tensorized model to: ", tensorizer_path)
+
 
 # setup module execution
 

@@ -8,17 +8,17 @@ This script uses CoreWeave's Tensorizer to convert model weights to tensorized f
 import torch
 import os
 import argparse
-import logging 
+import logging
 import sys
 
 from tensorizer import TensorSerializer
 from transformers import AutoModelForCausalLM, AutoConfig
 import torch
 
-model_path = "llama_weights/Llama-2-7b-chat" #This is the folder than contains the weights in a transformers-compatible format (multiple .bin files) which were previously converted from a PyTorch checkpoint format (consolidated.00.pth).
+model_path = "llama_weights/Llama-2-7b-chat"  # This is the folder than contains the weights in a transformers-compatible format (multiple .bin files) which were previously converted from a PyTorch checkpoint format (consolidated.00.pth).
 
 # append parent directory to path
-sys.path.append('.')
+sys.path.append(".")
 
 from config import BASE_WEIGHTS_PATH
 
@@ -42,4 +42,4 @@ serializer = TensorSerializer(tensorizer_path)
 serializer.write_module(model)
 serializer.close()
 
-print('Wrote tensorized model to: ', tensorizer_path)
+print("Wrote tensorized model to: ", tensorizer_path)

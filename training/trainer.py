@@ -9,11 +9,12 @@ from typing import List, Optional, Union
 
 import torch
 from cog import Input, Path
-from peft import (LoraConfig, get_peft_model)
+from peft import LoraConfig, get_peft_model
 from torch.utils.data import Dataset
 from transformers import LlamaForCausalLM, Trainer, TrainingArguments, AutoConfig
 import sys
-sys.path.append('/src/')
+
+sys.path.append("/src/")
 
 from config import LOCAL_TRAINING_WEIGHTS_PATH, load_tokenizer, log_memory_stuff
 
@@ -162,13 +163,14 @@ def load_json(path):
 
 def load_model(model_name_or_path):
     print(f"Rank : {os.environ['RANK']}, device: {torch.cuda.current_device()}")
-    torch.cuda.set_device(int(os.environ['RANK']))
+    torch.cuda.set_device(int(os.environ["RANK"]))
     if model_name_or_path is None:
         model_name_or_path = LOCAL_TRAINING_WEIGHTS_PATH
 
     model = load_huggingface_model(model_name_or_path, load_in_4bit=LOAD_IN_4BIT)
 
     return model
+
 
 def print_trainable_parameters(model):
     """
@@ -184,15 +186,20 @@ def print_trainable_parameters(model):
         f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
     )
 
+
 def load_peft_model(
-    model_name_or_path, lora_rank: int, lora_alpha: int, lora_dropout: float, lora_target_modules: Optional[Union[List[str], str]]
+    model_name_or_path,
+    lora_rank: int,
+    lora_alpha: int,
+    lora_dropout: float,
+    lora_target_modules: Optional[Union[List[str], str]],
 ):
     if lora_target_modules:
         lora_target_modules = lora_target_modules.split(",")
     print("Using LoRA...")
     model = load_model(model_name_or_path)
     model.gradient_checkpointing_enable()
-        
+
     config = LoraConfig(
         r=lora_rank,
         lora_alpha=lora_alpha,
@@ -204,7 +211,7 @@ def load_peft_model(
     print(f"LoRA config: {config}")
     model = get_peft_model(model, config)
     print_trainable_parameters(model)
-    model.config.use_cache = False # required for gradient checkpointing
+    model.config.use_cache = False  # required for gradient checkpointing
     return model
 
 
@@ -260,13 +267,15 @@ def train(
     lora_rank: int = 8,
     lora_alpha: int = 16,
     lora_dropout: float = 0.1,
-    lora_target_modules: Optional[Union[List[str], str]] = None, 
+    lora_target_modules: Optional[Union[List[str], str]] = None,
     local_output_dir: str = None,
     local_rank: int = -1,
-    deepspeed: str = None
+    deepspeed: str = None,
 ) -> None:
     print("Loading model...")
-    model = load_peft_model(weights, lora_rank, lora_alpha, lora_dropout, lora_target_modules)
+    model = load_peft_model(
+        weights, lora_rank, lora_alpha, lora_dropout, lora_target_modules
+    )
     tokenizer = load_tokenizer()
 
     print(f"Loading dataset {train_data}...")
@@ -305,7 +314,7 @@ def train(
             deepspeed=deepspeed,
             local_rank=local_rank,
             gradient_checkpointing=True,
-            log_level='info'
+            log_level="info",
         ),
         data_collator=SequenceDataCollator(tokenizer, 8),  # depends on bf16 value
     )
@@ -406,9 +415,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--lora_target_modules",
-        type=str, 
+        type=str,
         default=None,
-        help="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default"
+        help="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default",
     )
     some_args = parser.parse_args()
     train(**vars(some_args))

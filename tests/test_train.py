@@ -19,7 +19,7 @@ SERVER_URL = "http://localhost:5000/predictions"
 HEALTH_CHECK_URL = "http://localhost:5000/health-check"
 
 IMAGE_NAME = "your_image_name"  # replace with your image name
-HOST_NAME = "your_host_name"   # replace with your host name
+HOST_NAME = "your_host_name"  # replace with your host name
 
 
 # def run_training_subprocess(command):
@@ -46,8 +46,8 @@ HOST_NAME = "your_host_name"   # replace with your host name
 
 #     return return_code
 
-def test_train():
 
+def test_train():
     command = [
         "cog",
         "train",
@@ -68,9 +68,9 @@ def test_train():
         pytest.fail(f"Error detected in training logs! Exception: {str(e)}")
 
     # Additional assertions can be added here, e.g.:
-    assert not any(ERROR_PATTERN.search(log) for log in logs), "Error pattern detected in logs!"
-
-
+    assert not any(
+        ERROR_PATTERN.search(log) for log in logs
+    ), "Error pattern detected in logs!"
 
     # Check the return code
     # assert exit_code == 0, "Subprocess failed with return code {}".format(exit_code)
@@ -85,7 +85,7 @@ def test_train():
 
     assert os.path.exists("training_output.zip")
     # print_lock = Lock()
-    
+
     # stdout_thread = Thread(target=capture_output, args=(process.stdout, print_lock))
     # stdout_thread.start()
 

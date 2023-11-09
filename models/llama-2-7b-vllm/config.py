@@ -16,12 +16,12 @@ MODEL_NAME = "llama-2-7b-vllm"
 # Inference config
 
 weights = Weights(
-    local_path = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights",
-    remote_path = get_env_var_or_default(
+    local_path=f"models/{MODEL_NAME}/model_artifacts/default_inference_weights",
+    remote_path=get_env_var_or_default(
         "REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH",
         "remote/path/to/your/weights/here",
     ),
-    remote_files = get_fp16_file_list(2)
+    remote_files=get_fp16_file_list(2),
 )
 
 LOAD_IN_4BIT = False
@@ -47,14 +47,16 @@ LOCAL_TRAINING_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/training_wei
 
 REMOTE_TRAINING_WEIGHTS_PATH = get_env_var_or_default(
     var_name="REMOTE_TRAINING_WEIGHTS_PATH",
-    default_value="remote/path/to/your/weights/here"
+    default_value="remote/path/to/your/weights/here",
 )
 
-LOCAL_TRAINING_WEIGHTS_CONFIG_PATH = f"models/{MODEL_NAME}/model_artifacts/training_weights/config.json"
+LOCAL_TRAINING_WEIGHTS_CONFIG_PATH = (
+    f"models/{MODEL_NAME}/model_artifacts/training_weights/config.json"
+)
 
 REMOTE_TRAINING_WEIGHTS_CONFIG_PATH = get_env_var_or_default(
     var_name="REMOTE_TRAINING_WEIGHTS_CONFIG_PATH",
-    default_value="remote/path/to/your/weights/here"
+    default_value="remote/path/to/your/weights/here",
 )
 
 REMOTE_TRAINING_FILES_TO_DOWNLOAD = get_fp16_file_list(2)
