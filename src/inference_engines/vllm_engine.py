@@ -56,6 +56,7 @@ class vLLMEngine(Engine):
         loads a lora from files into the format that this particular engine expects. DOES NOT prepare the engine for inference.
         lora_data is a dictionary of file names & references from the zip file
         """
+        return
 
         # TODO (Moin): I don't like this "pass a dict or the explicit params" -- but going to add it in and ship ASAP.
         if lora_state_dict is None and adapter_model is None and adapter_config is None:
@@ -92,17 +93,20 @@ class vLLMEngine(Engine):
         """
         Returns True if the engine is currently configured to use a lora, False otherwise.
         """
+        return
         return self.engine.engine.is_lora_active()
 
     def set_lora(self, lora: LoRA) -> None:
         """
         Given a loaded lora (created w/ load_lora), configures the engine to use that lora in combination with the loaded base weights.
         """
+        return
         self.delete_lora() # defensive check -- can move this out of the engine if everything works appropriately
         self.engine.engine.load_lora(
             lora_config=lora.adapter_config, lora_state_dict=lora.adapter_model)
 
     def delete_lora(self) -> None:
+        return
         self.engine.engine.delete_lora()
 
     async def generate_stream(self, prompt: str, sampling_params: SamplingParams):
