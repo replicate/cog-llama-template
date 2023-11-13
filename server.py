@@ -120,7 +120,7 @@ class Live:
             gen = None
         finally:
             if gen:
-                gen.acancel()
+                gen.aclose()
 
         logging.info("websocket disconnected")
         self.connections.discard(ws)
