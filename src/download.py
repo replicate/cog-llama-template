@@ -156,12 +156,15 @@ class Downloader:
 
     async def download_file_to_disk(self, url: str, path: str) -> None:
         sendfile = os.getenv("SENDFILE")
-        if sendfile:
+        copyfile = os.getenv("COPYFILE")
+        if copyfile:
+            fd = -1
+        elif sendfile:
             fd = os.memfd_create("tmp", os.MFD_HUGE_32MB)
         else:
             fd = os.open(path, os.O_RDWR | os.O_CREAT)
         buf = await self.download_file(url, fd)
-        if sendfile:
+        if sendfile or copyfile:
 
             def send():
                 remaining = os.lseek(fd, 0, os.SEEK_END)
@@ -170,8 +173,10 @@ class Downloader:
                 while remaining:
                     remaining -= os.sendfile(fd, dest, remaining)
 
+            if copyfile:
+                send = lambda: shutil.copyfileobj(buf, open(path, "wb"), length=2 << 18),
+
             # don't block the event loop for disk io
-            # send = lambda: shutil.copyfileobj(buf, open(path, "wb"), length=2 << 18),
             await self.loop.run_in_executor(self.threadpool, send)
 
     async def maybe_download_files_to_disk(
