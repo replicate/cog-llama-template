@@ -9,15 +9,19 @@ from cog import BasePredictor, Input
 from config import mlc_weights as weights
 from src import download
 from src.download import Downloader, Method
+from src import utils
+
+download_args = (weights.local_path, weights.remote_path, weights.remote_files)
 
 
 def time_down(method: Method):
     download.write_method = method
     downloader = Downloader()
     start = time.perf_counter()
-    downloader.sync_maybe_download_files(
-        weights.local_path, weights.remote_path, weights.remote_files
-    )
+    if method == Method.PGET:
+        utils.maybe_download_with_pget(*download_args)
+    else:
+        downloader.sync_maybe_download_files(*download_args)
     elapsed = time.perf_counter() - start
     for p in weights.remote_files:
         os.remove(f"{weights.local_path}/{p}")
@@ -29,9 +33,9 @@ class Predictor(BasePredictor):
     def predict(
         self,
         method: str = Input(
-            default=None, choices=["MMAP", "SENDFILE", "COPYFILE", "ALL"]
+            default="ALL", choices=["MMAP", "SENDFILE", "COPYFILE", "PGET", "ALL"]
         ),
-        repetitions: int = 2
+        repetitions: int = 2,
     ) -> str:
         methods = list(Method) if method == "ALL" else [Method[method]]
         jobs = [m for m in methods for _ in range(repetitions)]
@@ -44,7 +48,7 @@ class Predictor(BasePredictor):
         for m, times in method_times.items():
             info = {
                 "mean": stats.mean(times),
-                "stdev": stats.stdev(times),
+                "stdev": stats.stdev(times) if len(times) > 1 else 0,
                 "min": min(times),
             }
             msg = f"{method}: " + " ".join(f"{k}: {v:.3f}" for k, v in info.items())

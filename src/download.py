@@ -35,9 +35,22 @@ class Method(enum.Enum):
     COPYFILE = 1
     SENDFILE = 2
     MMAP = 3
+    PGET = 4
 
 
 write_method = Method.SENDFILE
+
+
+# class BufferPool:
+#     q = queue.Queue()
+#     def acquire(self) -> int:
+#         try:
+#             return q.get_nowait()
+#         except queue.Empty:
+#             return os.memfd_create("tmp")
+
+#     def release(self, fd: int) -> None:
+#         self.q.put_nowait(fd)
 
 
 class Downloader:
@@ -124,7 +137,9 @@ class Downloader:
     files_processed = 0
     total_size = 0
 
-    async def download_file(self, url: str | URL, dest_fd: int = -1) -> mmap.mmap:
+    async def download_file(
+        self, url: str | URL, dest_fd: int = -1, latency: bool = True
+    ) -> mmap.mmap:
         """
         download file into a mmap
 
@@ -140,7 +155,10 @@ class Downloader:
         # this way is kind of random but the assumption is the more data has gone over
         # the connection so far, the bigger the TCP window sizes, and the less benefit
         # from using additional connections
-        allowed_concurrency = max(1, self.concurrency - self.files_processed // 2)
+        if latency:
+            allowed_concurrency = self.concurrency
+        else:
+            allowed_concurrency = max(1, self.concurrency - self.files_processed // 2)
         self.files_processed += 1
         max_chunks = file_size // (MIN_CHUNK_SIZE * 1) or 1
         concurrency = min(allowed_concurrency, max_chunks)
@@ -177,20 +195,21 @@ class Downloader:
             case Method.COPYFILE:
                 fd = -1
             case Method.SENDFILE:
-                fd = os.memfd_create("tmp", os.MFD_HUGE_2MB | os.MFD_HUGETLB)
-                print(fd)
+                fd = os.memfd_create("tmp")
+                print("sendfile fd", fd)
                 assert fd > 0
             case Method.MMAP:
                 fd = os.open(path, os.O_RDWR | os.O_CREAT)
                 print(fd)
                 assert fd > 0
-        buf = await self.download_file(url, fd)
+        buf = await self.download_file(url, fd, latency=False)
         if write_method in (Method.COPYFILE, Method.SENDFILE):
 
-            def send():
-                remaining = fsize =os.lseek(fd, 0, os.SEEK_END)
+            def send() -> None:
+                remaining = fsize = os.lseek(fd, 0, os.SEEK_END)
                 os.lseek(fd, 0, os.SEEK_SET)
                 dest = os.open(path, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
+                # os.posix_fallocate(dest_fd, 0, fsize)
                 start = time.perf_counter()
                 while remaining:
                     remaining -= os.sendfile(fd, dest, 0, remaining)
@@ -198,9 +217,7 @@ class Downloader:
                 print(f"sendfile: {fsize/1024/1024/(time.perf_counter() - start)} MB/s")
 
             if write_method == Method.COPYFILE:
-                send = lambda: shutil.copyfileobj(
-                    buf, open(path, "wb"), length=2 << 18
-                )
+                send = lambda: shutil.copyfileobj(buf, open(path, "wb"), length=2 << 18)
 
             # don't block the event loop for disk io
             await self.loop.run_in_executor(self.threadpool, send)
@@ -259,4 +276,3 @@ if __name__ == "__main__":
         Downloader().sync_maybe_download_files(".", sys.argv[1], [sys.argv[2]])
     else:
         Downloader().sync_download_file(sys.argv[1])
-
