@@ -28,6 +28,12 @@ class SeekableMmap(mmap.mmap):
     def seekable(self) -> bool:
         return True
 
+class Method(enum.Enum):
+    COPYFILE = 1
+    SENDFILE = 2
+    MMAP = 3
+
+write_method = Method.COPYFILE
 
 class Downloader:
     def __init__(self, concurrency: int | None = None) -> None:
@@ -157,15 +163,14 @@ class Downloader:
     async def download_file_to_disk(self, url: str, path: str) -> None:
         sendfile = os.getenv("SENDFILE")
         copyfile = os.getenv("COPYFILE")
-        if copyfile:
+        if write_method == Method.COPYFILE:
             fd = -1
-        elif sendfile:
+        elif write_method == Method.SENDFILE:
             fd = os.memfd_create("tmp", os.MFD_HUGE_32MB)
         else:
             fd = os.open(path, os.O_RDWR | os.O_CREAT)
         buf = await self.download_file(url, fd)
-        if sendfile or copyfile:
-
+        if write_method in (Method.COPYFILE, Method.SENDFILE):
             def send():
                 remaining = os.lseek(fd, 0, os.SEEK_END)
                 os.lseek(fd, 0, os.SEEK_SET)
@@ -173,7 +178,7 @@ class Downloader:
                 while remaining:
                     remaining -= os.sendfile(fd, dest, remaining)
 
-            if copyfile:
+            if write_method == Method.COPYFILE:
                 send = lambda: shutil.copyfileobj(buf, open(path, "wb"), length=2 << 18),
 
             # don't block the event loop for disk io

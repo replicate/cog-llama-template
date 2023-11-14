@@ -46,5 +46,6 @@ build:
     # since we can't do LD_LIBRARY_PATH=torch/lib, use this to make sure mlc can access the cuda libs bundled with torch
     - bash -c 'ln -s /usr/local/lib/python3.11/site-packages/torch/lib/lib{nv,cu}* /usr/lib'
 # predict.py defines how predictions are run on your model
-predict: "predict.py:Predictor"
+#predict: "predict.py:Predictor"
+predict: "fake_predict.py:Predictor"
 train: "train.py:train"
