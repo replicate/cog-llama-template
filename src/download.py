@@ -137,6 +137,7 @@ class Downloader:
         tasks = []
         if dest_fd != -1:
             os.ftruncate(dest_fd, file_size)
+            os.posix_fallocate(dest_fd, 0, file_size)
         buf = SeekableMmap(dest_fd, file_size)
         buffer_view = memoryview(buf)
         start_time = time.time()
