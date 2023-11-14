@@ -140,6 +140,10 @@ class Predictor(BasePredictor):
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
             default=None,
         ),
+        n: int = Input(
+            description="Batch size",
+            default=1
+        )
     ) -> ConcatenateIterator[str]:
         if stop_sequences:
             stop_sequences = stop_sequences.split(",")
@@ -182,6 +186,7 @@ class Predictor(BasePredictor):
         generated_text = ""
         for decoded_token in self.engine(
             prompt,
+            n=n,
             temperature=temperature,
             top_p=top_p,
             top_k=top_k,
@@ -192,7 +197,7 @@ class Predictor(BasePredictor):
         ):
             n_tokens += 1
             yield decoded_token
-            generated_text += decoded_token
+            #generated_text += decoded_token
             if n_tokens == 1 and debug:
                 second_start = time.time()
             if seed is not None:

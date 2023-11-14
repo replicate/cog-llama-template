@@ -156,6 +156,7 @@ class vLLMEngine(Engine):
         stop_token_ids: List[int] = None,
         frequency_penalty: float = 1.0,
         incremental_generation: bool = True,
+        n: int = 1,
         *args,
         **kwargs,
     ) -> str:
@@ -199,7 +200,7 @@ class vLLMEngine(Engine):
             stop.append(self.tokenizer.decode(tid))
 
         sampling_params = SamplingParams(
-            n=1,
+            n=n,
             top_p=top_p,
             top_k=top_k,
             temperature=temperature,
@@ -224,14 +225,19 @@ class vLLMEngine(Engine):
         while True:
             try:
                 request_output = loop.run_until_complete(gen.__anext__())
-                assert len(request_output.outputs) == 1
-                generated_text = request_output.outputs[0].text
-                if incremental_generation:
-                    yield generated_text[generation_length:]
-                else:
-                    yield generated_text
-                generation_length = len(generated_text)
+                #assert len(request_output.outputs) == 1
+                # generated_text = request_output.outputs[0].text
+                # if incremental_generation:
+                #     yield generated_text[generation_length:]
+                # else:
+                #     yield generated_text
+                # generation_length = len(generated_text)
             except StopAsyncIteration:
+                print("NUm generations:", len(request_output.outputs))
+                for val in request_output.outputs:
+                    #print(val.text)
+                    yield val.text
+                #yield [val.text for val in request_output.outputs]
                 break
 
 
