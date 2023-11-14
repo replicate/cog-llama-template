@@ -143,7 +143,7 @@ class Downloader:
             f" kB chunks in {time.time() - start_time:.3f}s with {self.retries} retries"
         )
         self.retries = 0
-        return dest.get_buf()
+        return await dest.get_buf()
 
     async def download_file_to_disk(self, url: str, path: str) -> None:
         fd = os.open(path, os.O_RDWR | os.O_CREAT)
