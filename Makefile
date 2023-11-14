@@ -163,7 +163,7 @@ stage-and-test-models:
 	)
 	
 push: select
-	cog push --openapi-schema=$(schema) --use-cuda-base-image=false --progress plain r8.im/$(REPLICATE_USER)/$(PROD_MODEL)
+	cog push --openapi-schema=fake-schema.json --use-cuda-base-image=false --progress plain r8.im/$(REPLICATE_USER)/$(PROD_MODEL)
 
 test-prod-predict:
 	@if [ "$(verbose)" = "true" ]; then \

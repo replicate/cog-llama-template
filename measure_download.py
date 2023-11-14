@@ -4,11 +4,12 @@ import statistics as stats
 import time
 from typing import Optional
 
-from cog import BasePredictor
+from cog import BasePredictor, Input
 
 from config import mlc_weights as weights
 from src import download
 from src.download import Downloader, Method
+
 
 def time_down(method: Method):
     download.write_method = method
@@ -25,9 +26,15 @@ def time_down(method: Method):
 
 
 class Predictor(BasePredictor):
-    def predict(self, method: Optional[Method] = None) -> str:
-        methods = [method] if method else list(Method)
-        jobs = [m for m in methods for _ in range(5)]
+    def predict(
+        self,
+        method: str = Input(
+            default=None, choices=["MMAP", "SENDFILE", "COPYFILE", "ALL"]
+        ),
+        repetitions: int = 2
+    ) -> str:
+        methods = list(Method) if method == "ALL" else [Method[method]]
+        jobs = [m for m in methods for _ in range(repetitions)]
         # minimize order effects
         random.shuffle(jobs)
         method_times = {m: [] for m in methods}

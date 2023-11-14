@@ -47,5 +47,5 @@ build:
     - bash -c 'ln -s /usr/local/lib/python3.11/site-packages/torch/lib/lib{nv,cu}* /usr/lib'
 # predict.py defines how predictions are run on your model
 #predict: "predict.py:Predictor"
-predict: "fake_predict.py:Predictor"
+predict: "measure_download.py:Predictor"
 train: "train.py:train"

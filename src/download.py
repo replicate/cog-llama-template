@@ -1,8 +1,10 @@
 import asyncio
+import enum
 import functools
 import mmap
 import os
 import random
+import shutil
 import sys
 import time
 import typing as t
@@ -28,12 +30,15 @@ class SeekableMmap(mmap.mmap):
     def seekable(self) -> bool:
         return True
 
+
 class Method(enum.Enum):
     COPYFILE = 1
     SENDFILE = 2
     MMAP = 3
 
-write_method = Method.COPYFILE
+
+write_method = Method.SENDFILE
+
 
 class Downloader:
     def __init__(self, concurrency: int | None = None) -> None:
@@ -141,9 +146,16 @@ class Downloader:
         concurrency = min(allowed_concurrency, max_chunks)
         chunk_size = file_size // concurrency
         tasks = []
-        if dest_fd != -1:
-            os.ftruncate(dest_fd, file_size)
-        buf = SeekableMmap(dest_fd, file_size)
+        try:
+            if write_method in (Method.MMAP, Method.SENDFILE):
+                os.ftruncate(dest_fd, file_size)
+            # elif write_method == Method.SENDFILE:
+            #     page_size = 1 << 21 # 2MB
+            #     os.ftruncate(dest_fd, max(page_size, (file_size + page_size - 1) // page_size * page_size))
+            buf = SeekableMmap(dest_fd, file_size)
+        except:
+            print(f"method {write_method}, fd {dest_fd}, size {file_size}")
+            raise
         buffer_view = memoryview(buf)
         start_time = time.time()
         for i in range(concurrency):
@@ -161,28 +173,38 @@ class Downloader:
         return buf
 
     async def download_file_to_disk(self, url: str, path: str) -> None:
-        sendfile = os.getenv("SENDFILE")
-        copyfile = os.getenv("COPYFILE")
-        if write_method == Method.COPYFILE:
-            fd = -1
-        elif write_method == Method.SENDFILE:
-            fd = os.memfd_create("tmp", os.MFD_HUGE_32MB)
-        else:
-            fd = os.open(path, os.O_RDWR | os.O_CREAT)
+        match write_method:
+            case Method.COPYFILE:
+                fd = -1
+            case Method.SENDFILE:
+                fd = os.memfd_create("tmp", os.MFD_HUGE_2MB | os.MFD_HUGETLB)
+                print(fd)
+                assert fd > 0
+            case Method.MMAP:
+                fd = os.open(path, os.O_RDWR | os.O_CREAT)
+                print(fd)
+                assert fd > 0
         buf = await self.download_file(url, fd)
         if write_method in (Method.COPYFILE, Method.SENDFILE):
+
             def send():
-                remaining = os.lseek(fd, 0, os.SEEK_END)
+                remaining = fsize =os.lseek(fd, 0, os.SEEK_END)
                 os.lseek(fd, 0, os.SEEK_SET)
-                dest = os.open(path, os.O_RDWR | os.O_CREAT)
+                dest = os.open(path, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
+                start = time.perf_counter()
                 while remaining:
-                    remaining -= os.sendfile(fd, dest, remaining)
+                    remaining -= os.sendfile(fd, dest, 0, remaining)
+                os.close(fd)
+                print(f"sendfile: {fsize/1024/1024/(time.perf_counter() - start)} MB/s")
 
             if write_method == Method.COPYFILE:
-                send = lambda: shutil.copyfileobj(buf, open(path, "wb"), length=2 << 18),
+                send = lambda: shutil.copyfileobj(
+                    buf, open(path, "wb"), length=2 << 18
+                )
 
             # don't block the event loop for disk io
             await self.loop.run_in_executor(self.threadpool, send)
+        buf.close()
 
     async def maybe_download_files_to_disk(
         self, path: str, remote_path: str, filenames: list[str]
@@ -190,6 +212,7 @@ class Downloader:
         remote_path = remote_path.rstrip("/")
         if not os.path.exists(path):
             os.makedirs(path, exist_ok=True)
+            os.makedirs(path + "/params", exist_ok=True)
             missing_files = filenames
         else:
             missing_files = check_files_exist(filenames, path)
@@ -232,4 +255,8 @@ class Downloader:
 
 
 if __name__ == "__main__":
-    Downloader().sync_download_file(sys.argv[1])
+    if len(sys.argv) > 2:
+        Downloader().sync_maybe_download_files(".", sys.argv[1], [sys.argv[2]])
+    else:
+        Downloader().sync_download_file(sys.argv[1])
+
