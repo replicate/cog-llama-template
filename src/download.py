@@ -56,7 +56,7 @@ class Downloader:
     @property
     def threadpool(self) -> ThreadPoolExecutor:
         if not self._threadpool:
-            self._threadpool = ThreadPoolExecutor(2)
+            self._threadpool = ThreadPoolExecutor(4)
         return self._threadpool
 
     async def get_remote_file_size(self, url: str | URL) -> "tuple[URL, int]":
@@ -103,7 +103,11 @@ class Downloader:
                 try:
                     headers |= {"Range": f"bytes={start}-{end}"}
                     async with self.session.get(url, headers=headers) as response:
-                        buffer_view[start : end + 1] = await response.read()
+                        res = await response.read()
+                        await self.loop.run_in_executor(
+                            self.threadpool,
+                            lambda: buffer_view[start : end + 1] = res
+                        )
                         return
                 except (aiohttp.ClientError, asyncio.TimeoutError) as e:
                     print(f"Error: {e}")
