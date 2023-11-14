@@ -14,7 +14,7 @@ load_dotenv()
 MODEL_NAME = "llama-2-70b-mlc"
 
 # Inference weights
-mlc_file_list = get_mlc_file_list(model_name="Llama-2-70b-q4f16_1", n_shards=483)
+mlc_file_list = get_mlc_file_list(model_name="llama-2-70b-hf-q0f16", n_shards=323)
 
 LOCAL_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 
