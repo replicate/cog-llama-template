@@ -1,15 +1,16 @@
 import asyncio
 import functools
-import mmap
 import os
 import random
 import sys
 import time
 import typing as t
+from io import IOBase
 from concurrent.futures import ThreadPoolExecutor
 import aiohttp
 from yarl import URL
 from .utils import check_files_exist, get_loop
+from .aio_file import AIOFile
 
 # some important tricks:
 # 1. os.sched_getaffinity to get an accurate cpu count in containers
@@ -21,12 +22,6 @@ from .utils import check_files_exist, get_loop
 MIN_CHUNK_SIZE = 1024 * 1024 * 8  # 8mb
 
 global_downloader = None
-
-
-# zipfile requires seekable
-class SeekableMmap(mmap.mmap):
-    def seekable(self) -> bool:
-        return True
 
 
 class Downloader:
@@ -95,7 +90,7 @@ class Downloader:
         raise ValueError(f"Failed to HEAD {url} after multiple retries")
 
     async def download_chunk(
-        self, url: str | URL, start: int, end: int, buffer_view: memoryview
+        self, url: str | URL, start: int, end: int, dest: AIOFile
     ) -> None:
         async with self.sem:
             for i in range(5):
@@ -103,11 +98,7 @@ class Downloader:
                 try:
                     headers |= {"Range": f"bytes={start}-{end}"}
                     async with self.session.get(url, headers=headers) as response:
-                        res = await response.read()
-                        await self.loop.run_in_executor(
-                            self.threadpool,
-                            lambda: buffer_view[start : end + 1] = res
-                        )
+                        await dest.write(await response.read(), start)
                         return
                 except (aiohttp.ClientError, asyncio.TimeoutError) as e:
                     print(f"Error: {e}")
@@ -117,7 +108,7 @@ class Downloader:
     files_processed = 0
     total_size = 0
 
-    async def download_file(self, url: str | URL, dest_fd: int = -1) -> mmap.mmap:
+    async def download_file(self, url: str | URL, dest_fd: int = -1) -> IOBase:
         """
         download file into a mmap
 
@@ -139,25 +130,20 @@ class Downloader:
         concurrency = min(allowed_concurrency, max_chunks)
         chunk_size = file_size // concurrency
         tasks = []
-        if dest_fd != -1:
-            os.ftruncate(dest_fd, file_size)
-            os.posix_fallocate(dest_fd, 0, file_size)
-        buf = SeekableMmap(dest_fd, file_size)
-        buffer_view = memoryview(buf)
+        dest = AIOFile(dest_fd, file_size, self.loop, self.threadpool)
         start_time = time.time()
         for i in range(concurrency):
             start = i * chunk_size
             end = start + chunk_size - 1 if i != concurrency - 1 else file_size - 1
-            tasks.append(self.download_chunk(url, start, end, buffer_view))
+            tasks.append(self.download_chunk(url, start, end, dest))
 
         await asyncio.gather(*tasks)
-        buf.seek(0)
         print(
             f"Downloaded {os.path.basename(str(url))} as {concurrency} {chunk_size // 1024}"
             f" kB chunks in {time.time() - start_time:.3f}s with {self.retries} retries"
         )
         self.retries = 0
-        return buf
+        return dest.get_buf()
 
     async def download_file_to_disk(self, url: str, path: str) -> None:
         fd = os.open(path, os.O_RDWR | os.O_CREAT)
