@@ -65,11 +65,11 @@ class BufferPool:
 
 
 class Downloader:
-    def __init__(self, concurrency: int | None = None) -> None:
+    def __init__(self, concurrency: int | None = None, sem: int = 2) -> None:
         if not concurrency:
             concurrency = len(os.sched_getaffinity(0))
         self.concurrency = concurrency
-        self.sem = asyncio.Semaphore(concurrency * 2)
+        self.sem = asyncio.Semaphore(concurrency * sem)
         self.retries = 0
         self.loop = get_loop()
         self.buffer_pool = BufferPool()
@@ -231,7 +231,7 @@ class Downloader:
                 while remaining:
                     remaining -= os.sendfile(dest, fd, None, remaining)
                 self.buffer_pool.release(fd)
-                print(f"sendfile: {fsize/(1<<20):.1f} MB, {(fsize/(1<<30)/(time.perf_counter() - start):.4f} GB/s")
+                print(f"sendfile: {fsize/(1<<20):.1f} MB, {fsize/(1<<30)/(time.perf_counter() - start):.4f} GB/s")
 
             if write_method == Method.ANON_MMAP_COPYFILE:
                 send = lambda: shutil.copyfileobj(buf, open(path, "wb"), length=2 << 18)
