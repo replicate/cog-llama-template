@@ -11,36 +11,36 @@ build:
 
   # a list of packages in the format <package-name>==<version>
   python_packages:
-    - "numpy==1.24.2"
-    - "sentencepiece==0.1.99"
-    - "jinja2==3.1.2"
-    - "scipy==1.11.1"
-    - "safetensors>=0.3.1"
-    - "python-dotenv"
-    - "fire"
-    - "datasets"
-    - "transformers==4.33.2"
-    - "peft==0.4.0"
-    - "accelerate"
-    - "bitsandbytes"
-    - "trl==0.5.0"
+    # - "numpy==1.24.2"
+    # - "sentencepiece==0.1.99"
+    # - "jinja2==3.1.2"
+    # - "scipy==1.11.1"
+    # - "safetensors>=0.3.1"
+    # - "python-dotenv"
+    # - "fire"
+    # - "datasets"
+    # - "transformers==4.33.2"
+    # - "peft==0.4.0"
+    # - "accelerate"
+    # - "bitsandbytes"
+    # - "trl==0.5.0"
     - "aiohttp[speedups]"
-    - "triton" # hm
-    - "fastapi<0.99.0"
-    # uncomment these when we go back to 12.1
-    # - "https://r2.drysys.workers.dev/torch/torch-2.1.0-cp311-cp311-linux_x86_64.whl" 
-    # - "https://weights.replicate.delivery/default/wheels/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"
+    # - "triton" # hm
+    # - "fastapi<0.99.0"
+    # # uncomment these when we go back to 12.1
+    # # - "https://r2.drysys.workers.dev/torch/torch-2.1.0-cp311-cp311-linux_x86_64.whl" 
+    # # - "https://weights.replicate.delivery/default/wheels/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"
 
-    - "https://r2.drysys.workers.dev/torch/11.8/torch-2.1.0-cp311-cp311-linux_x86_64.whl"
-    # This wheel can be built by running `TORCH_CUDA_ARCH_LIST="8.0;8.6" pip wheel .` in https://github.com/replicate/vllm-with-loras
-    - "https://r2.drysys.workers.dev/vllm/11.8/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"
-    - "https://r2.drysys.workers.dev/xformers/11.8/xformers-0.0.23+b4c853d.d20231107-cp311-cp311-linux_x86_64.whl"
+    # - "https://r2.drysys.workers.dev/torch/11.8/torch-2.1.0-cp311-cp311-linux_x86_64.whl"
+    # # This wheel can be built by running `TORCH_CUDA_ARCH_LIST="8.0;8.6" pip wheel .` in https://github.com/replicate/vllm-with-loras
+    # - "https://r2.drysys.workers.dev/vllm/11.8/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"
+    # - "https://r2.drysys.workers.dev/xformers/11.8/xformers-0.0.23+b4c853d.d20231107-cp311-cp311-linux_x86_64.whl"
 
-    - "--pre -f https://mlc.ai/wheels"
-    - "mlc-chat-nightly-cu118"
-    - "mlc-ai-nightly-cu118"
-    # - "mlc-chat-nightly-cu121"
-    # - "mlc-ai-nightly-cu121"
+    # - "--pre -f https://mlc.ai/wheels"
+    # - "mlc-chat-nightly-cu118"
+    # - "mlc-ai-nightly-cu118"
+    # # - "mlc-chat-nightly-cu121"
+    # # - "mlc-ai-nightly-cu121"
   run:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.6/pget" && chmod +x /usr/local/bin/pget
     # since we can't do LD_LIBRARY_PATH=torch/lib, use this to make sure mlc can access the cuda libs bundled with torch

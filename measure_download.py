@@ -18,6 +18,7 @@ def time_down(method: Method):
     download.write_method = method
     downloader = Downloader()
     start = time.perf_counter()
+    print("downloading with method", method)
     if method == Method.PGET:
         utils.maybe_download_with_pget(*download_args)
     else:
@@ -33,7 +34,7 @@ class Predictor(BasePredictor):
     def predict(
         self,
         method: str = Input(
-            default="ALL", choices=["MMAP", "SENDFILE", "COPYFILE", "PGET", "ALL"]
+            default="ALL", choices=["DEST_MMAP", "MEMFD_SENDFILE", "ANON_MMAP_COPYFILE", "PGET", "ALL"]
         ),
         repetitions: int = 2,
     ) -> str:
@@ -45,12 +46,12 @@ class Predictor(BasePredictor):
         for m in jobs:
             method_times[m].append(time_down(m))
         results = []
-        for m, times in method_times.items():
+        for m, times in sorted(method_times.items()):
             info = {
                 "mean": stats.mean(times),
                 "stdev": stats.stdev(times) if len(times) > 1 else 0,
                 "min": min(times),
             }
-            msg = f"{method}: " + " ".join(f"{k}: {v:.3f}" for k, v in info.items())
+            msg = f"{m}: " + " ".join(f"{k}: {v:.3f}" for k, v in info.items())
             results.append(msg)
-        return "\n".join(msg)
+        return "\n".join(results)

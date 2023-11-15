@@ -8,6 +8,7 @@ import shutil
 import sys
 import time
 import typing as t
+import queue
 from concurrent.futures import ThreadPoolExecutor
 import aiohttp
 from yarl import URL
@@ -32,25 +33,31 @@ class SeekableMmap(mmap.mmap):
 
 
 class Method(enum.Enum):
-    COPYFILE = 1
-    SENDFILE = 2
-    MMAP = 3
-    PGET = 4
+    ANON_MMAP_COPYFILE = 1
+    ANON_MMAP_COPYFILE_REUSE = 2
+    MEMFD_SENDFILE = 3
+    DEST_MMAP = 4
+    PGET = 5
 
 
-write_method = Method.SENDFILE
+write_method = Method.MEMFD_SENDFILE_REUSE
 
 
-# class BufferPool:
-#     q = queue.Queue()
-#     def acquire(self) -> int:
-#         try:
-#             return q.get_nowait()
-#         except queue.Empty:
-#             return os.memfd_create("tmp")
+class BufferPool:
+    q = queue.Queue()
+    def acquire(self) -> int:
+        if write_method != Method.MEMFD_SENDFILE_REUSE:
+            return os.memfd_create("tmp")
+        try:
+            return q.get_nowait()
+        except queue.Empty:
+            return os.memfd_create("tmp")
 
-#     def release(self, fd: int) -> None:
-#         self.q.put_nowait(fd)
+    def release(self, fd: int) -> None:
+        if write_method == Method.MEMFD_SENDFILE_REUSE:
+            self.q.put_nowait(fd)
+        else:
+            os.close(fd)
 
 
 class Downloader:
@@ -61,6 +68,7 @@ class Downloader:
         self.sem = asyncio.Semaphore(concurrency * 2)
         self.retries = 0
         self.loop = get_loop()
+        self.buffer_pool = BufferPool()
         global global_downloader
         global_downloader = self
 
@@ -165,7 +173,7 @@ class Downloader:
         chunk_size = file_size // concurrency
         tasks = []
         try:
-            if write_method in (Method.MMAP, Method.SENDFILE):
+            if write_method in (Method.DEST_MMAP, Method.MEMFD_SENDFILE, Method.MEMFD_SENDFILE_REUSE):
                 os.ftruncate(dest_fd, file_size)
             # elif write_method == Method.SENDFILE:
             #     page_size = 1 << 21 # 2MB
@@ -192,18 +200,16 @@ class Downloader:
 
     async def download_file_to_disk(self, url: str, path: str) -> None:
         match write_method:
-            case Method.COPYFILE:
+            case Method.ANON_MMAP_COPYFILE:
                 fd = -1
-            case Method.SENDFILE:
-                fd = os.memfd_create("tmp")
-                print("sendfile fd", fd)
+            case Method.MEMFD_SENDFILE | Method.MEMFD_SENDFILE_REUSE:
+                fd = self.buffer_pool.acquire()
                 assert fd > 0
-            case Method.MMAP:
+            case Method.DEST_MMAP:
                 fd = os.open(path, os.O_RDWR | os.O_CREAT)
-                print(fd)
                 assert fd > 0
         buf = await self.download_file(url, fd, latency=False)
-        if write_method in (Method.COPYFILE, Method.SENDFILE):
+        if write_method in (Method.ANON_MMAP_COPYFILE, Method.MEMFD_SENDFILE, Method.MEMFD_SENDFILE_REUSE):
 
             def send() -> None:
                 remaining = fsize = os.lseek(fd, 0, os.SEEK_END)
@@ -212,11 +218,11 @@ class Downloader:
                 # os.posix_fallocate(dest_fd, 0, fsize)
                 start = time.perf_counter()
                 while remaining:
-                    remaining -= os.sendfile(fd, dest, 0, remaining)
-                os.close(fd)
-                print(f"sendfile: {fsize/1024/1024/(time.perf_counter() - start)} MB/s")
+                    remaining -= os.sendfile(dest, fd, None, remaining)
+                self.buffer_pool.release(fd)
+                print(f"sendfile: {fsize/1024/1024:.1f} MB, {fsize/1024/1024/1024/(time.perf_counter() - start):.4f} GB/s")
 
-            if write_method == Method.COPYFILE:
+            if write_method == Method.ANON_MMAP_COPYFILE:
                 send = lambda: shutil.copyfileobj(buf, open(path, "wb"), length=2 << 18)
 
             # don't block the event loop for disk io

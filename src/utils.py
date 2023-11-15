@@ -157,6 +157,7 @@ def maybe_download_with_pget(
 
         if not os.path.exists(path):
             os.makedirs(path, exist_ok=True)
+            os.makedirs(path + "/params", exist_ok=True)
             missing_files = remote_filenames or []
         else:
             missing_files = check_files_exist(remote_filenames or [], path)
