@@ -34,7 +34,7 @@ class SeekableMmap(mmap.mmap):
 
 class Method(enum.Enum):
     ANON_MMAP_COPYFILE = 1
-    ANON_MMAP_COPYFILE_REUSE = 2
+    MEMFD_SENDFILE_REUSE = 2
     MEMFD_SENDFILE = 3
     DEST_MMAP = 4
     PGET = 5
@@ -49,7 +49,7 @@ class BufferPool:
         if write_method != Method.MEMFD_SENDFILE_REUSE:
             return os.memfd_create("tmp")
         try:
-            return q.get_nowait()
+            return self.q.get_nowait()
         except queue.Empty:
             return os.memfd_create("tmp")
 
@@ -58,6 +58,10 @@ class BufferPool:
             self.q.put_nowait(fd)
         else:
             os.close(fd)
+
+    def __del__(self) -> None:
+        while not self.q.empty():
+            os.close(self.q.get_nowait())
 
 
 class Downloader:
@@ -90,6 +94,13 @@ class Downloader:
         if not self._threadpool:
             self._threadpool = ThreadPoolExecutor(2)
         return self._threadpool
+
+    def __del__(self):
+        if self._threadpool:
+            self._threadpool.shutdown(wait=False)
+        if self._session:
+            self.loop.run_until_complete(self._session.close())
+        del self.buffer_pool
 
     async def get_remote_file_size(self, url: str | URL) -> "tuple[URL, int]":
         # try:
@@ -220,7 +231,7 @@ class Downloader:
                 while remaining:
                     remaining -= os.sendfile(dest, fd, None, remaining)
                 self.buffer_pool.release(fd)
-                print(f"sendfile: {fsize/1024/1024:.1f} MB, {fsize/1024/1024/1024/(time.perf_counter() - start):.4f} GB/s")
+                print(f"sendfile: {fsize/(1<<20):.1f} MB, {(fsize/(1<<30)/(time.perf_counter() - start):.4f} GB/s")
 
             if write_method == Method.ANON_MMAP_COPYFILE:
                 send = lambda: shutil.copyfileobj(buf, open(path, "wb"), length=2 << 18)

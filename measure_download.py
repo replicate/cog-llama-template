@@ -34,7 +34,7 @@ class Predictor(BasePredictor):
     def predict(
         self,
         method: str = Input(
-            default="ALL", choices=["DEST_MMAP", "MEMFD_SENDFILE", "ANON_MMAP_COPYFILE", "PGET", "ALL"]
+            default="ALL", choices=["DEST_MMAP", "MEMFD_SENDFILE", "MEMFD_SENDFILE_REUSE", "ANON_MMAP_COPYFILE", "PGET", "ALL"]
         ),
         repetitions: int = 2,
     ) -> str:
@@ -46,7 +46,7 @@ class Predictor(BasePredictor):
         for m in jobs:
             method_times[m].append(time_down(m))
         results = []
-        for m, times in sorted(method_times.items()):
+        for m, times in sorted(method_times.items(), key=str):
             info = {
                 "mean": stats.mean(times),
                 "stdev": stats.stdev(times) if len(times) > 1 else 0,
