@@ -11,7 +11,7 @@ from cog import BasePredictor, ConcatenateIterator, Input, Path
 
 from config import ENGINE, ENGINE_KWARGS, USE_SYSTEM_PROMPT
 from src.download import Downloader
-from src.utils import seed_all
+from src.utils import seed_all, delay_prints
 
 # This prompt formatting was copied from the original Llama v2 repo:
 # https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44
@@ -82,6 +82,7 @@ class Predictor(BasePredictor):
         self.current_path = None
         self.engine.delete_lora()
 
+    @delay_prints()
     def predict(
         self,
         prompt: str = Input(description="Prompt to send to the model."),

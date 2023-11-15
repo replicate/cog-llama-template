@@ -1,9 +1,12 @@
 import asyncio
+import builtins
+import contextlib
 import os
 import random
 import subprocess
 import time
 import typing as tp
+
 
 def seed_all(seed: int):
     import numpy
@@ -59,6 +62,7 @@ def get_loop() -> asyncio.AbstractEventLoop:
         return asyncio.get_running_loop()
     except RuntimeError:
         return asyncio.new_event_loop()
+
 
 def download_file(file, local_filename):
     print(f"Downloading {file} to {local_filename}")
@@ -281,3 +285,19 @@ class StreamingTextStopSequenceHandler:
         if self.cache:
             yield from self.cache
             self.cache.clear()
+
+
+@contextlib.contextmanager
+def delay_prints() -> tp.Iterator[None]:
+    lines = []
+
+    def delayed_print(*args: tp.Any, **kwargs: tp.Any) -> None:
+        lines.append((args, kwargs))
+
+    builtins.print, _print = delayed_print, builtins.print
+    try:
+        yield
+    finally:
+        builtins.print = _print
+        for args, kwargs in lines:
+            print(*args, **kwargs)
