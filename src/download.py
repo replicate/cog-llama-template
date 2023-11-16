@@ -1,8 +1,10 @@
 import asyncio
+import enum
 import functools
 import mmap
 import os
 import random
+import shutil
 import sys
 import time
 import typing as t
@@ -13,10 +15,10 @@ from .utils import check_files_exist, get_loop
 
 # some important tricks:
 # 1. os.sched_getaffinity to get an accurate cpu count in containers
-# 2. memoryview for less copies
-# 3. keep redirects from the first head
+# 2. keep redirects from the first head
+# 3. memoryview for less copies
 # 4. mmap
-# 5. thread for file writes
+# 5. thread for file writes if not mmap
 
 MIN_CHUNK_SIZE = 1024 * 1024 * 8  # 8mb
 
@@ -28,12 +30,14 @@ class SeekableMmap(mmap.mmap):
     def seekable(self) -> bool:
         return True
 
+
 class Method(enum.Enum):
     COPYFILE = 1
-    SENDFILE = 2
-    MMAP = 3
+    DEST_MMAP = 3
 
-write_method = Method.COPYFILE
+
+write_method = Method.DEST_MMAP
+
 
 class Downloader:
     def __init__(self, concurrency: int | None = None) -> None:
@@ -62,7 +66,7 @@ class Downloader:
     @property
     def threadpool(self) -> ThreadPoolExecutor:
         if not self._threadpool:
-            self._threadpool = ThreadPoolExecutor(2)
+            self._threadpool = ThreadPoolExecutor(5)
         return self._threadpool
 
     async def get_remote_file_size(self, url: str | URL) -> "tuple[URL, int]":
@@ -161,28 +165,17 @@ class Downloader:
         return buf
 
     async def download_file_to_disk(self, url: str, path: str) -> None:
-        sendfile = os.getenv("SENDFILE")
-        copyfile = os.getenv("COPYFILE")
         if write_method == Method.COPYFILE:
             fd = -1
-        elif write_method == Method.SENDFILE:
-            fd = os.memfd_create("tmp", os.MFD_HUGE_32MB)
         else:
             fd = os.open(path, os.O_RDWR | os.O_CREAT)
         buf = await self.download_file(url, fd)
-        if write_method in (Method.COPYFILE, Method.SENDFILE):
-            def send():
-                remaining = os.lseek(fd, 0, os.SEEK_END)
-                os.lseek(fd, 0, os.SEEK_SET)
-                dest = os.open(path, os.O_RDWR | os.O_CREAT)
-                while remaining:
-                    remaining -= os.sendfile(fd, dest, remaining)
-
-            if write_method == Method.COPYFILE:
-                send = lambda: shutil.copyfileobj(buf, open(path, "wb"), length=2 << 18),
-
+        if write_method == Method.COPYFILE:
             # don't block the event loop for disk io
-            await self.loop.run_in_executor(self.threadpool, send)
+            await self.loop.run_in_executor(
+                self.threadpool,
+                lambda: shutil.copyfileobj(buf, open(path, "wb"), length=2 << 18),
+            )
 
     async def maybe_download_files_to_disk(
         self, path: str, remote_path: str, filenames: list[str]
