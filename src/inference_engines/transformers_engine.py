@@ -1,6 +1,6 @@
 import os
 import shutil
-from transformers import AutoModelForCausalLM, TextIteratorStreamer, StoppingCriteria
+from transformers import AutoModelForCausalLM, TextIteratorStreamer, StoppingCriteria, AutoTokenizer
 from typing import Optional, List, Tuple, Any
 from threading import Thread
 from peft import PeftModel, LoraConfig
@@ -48,7 +48,10 @@ class TransformersEngine(Engine):
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path, torch_dtype=torch.bfloat16
         ).to(device)
-        self.tokenizer = tokenizer_func()
+        if tokenizer_func is None:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+        else:
+            self.tokenizer = tokenizer_func()
         self.device = device
         print("Transformers engine initialized.")
 
@@ -143,6 +146,9 @@ class TransformersEngine(Engine):
         streamer = TextIteratorStreamer(
             self.tokenizer, timeout=10.0, skip_prompt=True, skip_special_tokens=True
         )
+        
+        if top_k <=0:
+            top_k=None
 
         stopping_criteria_list = None
         if stop_sequences is not None:

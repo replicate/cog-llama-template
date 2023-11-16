@@ -4,9 +4,10 @@ from src.config_utils import (
     get_fp16_file_list,
     get_mlc_file_list,
     mlc_kwargs,
+    transformers_kwargs,
     vllm_kwargs,
 )
-from src.inference_engines.mlc_vllm_engine import MLCvLLMEngine
+from src.inference_engines.mlc_transformers_engine import MLCTransformersEngine
 from src.utils import get_env_var_or_default
 
 load_dotenv()
@@ -24,19 +25,19 @@ mlc_weights = Weights(
     remote_files=mlc_file_list,
 )
 
-vllm_weights = Weights(
+transformers_weights = Weights(
     local_path=f"models/{MODEL_NAME}/model_artifacts/lora_inference_weights",
-    remote_path=get_env_var_or_default("REMOTE_VLLM_INFERENCE_WEIGHTS_PATH", None),
+    remote_path=get_env_var_or_default("REMOTE_FINE_TUNE_INFERENCE_WEIGHTS_PATH", None),
     remote_files=get_fp16_file_list(2),
 )
 
 # Inference config
 USE_SYSTEM_PROMPT = False
 
-ENGINE = MLCvLLMEngine
+ENGINE = MLCTransformersEngine
 ENGINE_KWARGS = {
     "mlc_args": mlc_kwargs(mlc_weights, is_chat=False),
-    "vllm_args": vllm_kwargs(vllm_weights),
+    "transformers_args": transformers_kwargs(transformers_weights),
 }
 
 # Training config
