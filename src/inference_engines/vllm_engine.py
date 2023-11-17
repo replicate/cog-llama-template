@@ -129,11 +129,12 @@ class vLLMEngine(Engine):
         """
         Given a loaded lora (created w/ load_lora), configures the engine to use that lora in combination with the loaded base weights.
         """
-        self.delete_lora()  # defensive check -- can move this out of the engine if everything works appropriately
-        self.delete_lora()  # defensive check -- can move this out of the engine if everything works appropriately
+        import time
+        st = time.time()
         self.engine.engine.load_lora(
             lora_config=lora.adapter_config, lora_state_dict=lora.adapter_model
         )
+        print(f"loaded in {time.time() - st}")
 
     def delete_lora(self) -> None:
         self.engine.engine.delete_lora()
