@@ -82,7 +82,11 @@ class Predictor(BasePredictor):
         self.current_path = None
         self.engine.delete_lora()
 
-    @delay_prints()
+    # currently, outputs including tokens and logs are throttled to 50ms
+    # because of this, printing before outputing tokens is bad
+    # so this patches print to not only print until after we leave this function
+    # eventually that will be fixed and this can be removed
+    @delay_prints(REALLY_EAT_MY_PRINT_STATEMENTS=True)
     def predict(
         self,
         prompt: str = Input(description="Prompt to send to the model."),
