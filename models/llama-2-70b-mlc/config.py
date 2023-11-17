@@ -14,7 +14,7 @@ load_dotenv()
 MODEL_NAME = "llama-2-70b-mlc"
 
 # Inference weights
-mlc_file_list = get_mlc_file_list(model_name="llama-2-70b-hf-q0f16", n_shards=323)
+mlc_file_list = get_mlc_file_list(model_name="llama-2-70b-q0f16", n_shards=323)
 
 LOCAL_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 
@@ -35,7 +35,7 @@ USE_SYSTEM_PROMPT = False
 
 ENGINE = MLCvLLMEngine
 ENGINE_KWARGS = {
-    "mlc_args": mlc_kwargs(mlc_weights, is_chat=False),
+    "mlc_args": mlc_kwargs(mlc_weights, is_chat=False, num_shards=4),
     "vllm_args": vllm_kwargs(vllm_weights),
 }
 
