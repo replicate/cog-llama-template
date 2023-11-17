@@ -45,6 +45,9 @@ build:
     - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.6/pget" && chmod +x /usr/local/bin/pget
     # since we can't do LD_LIBRARY_PATH=torch/lib, use this to make sure mlc can access the cuda libs bundled with torch
     - bash -c 'ln -s /usr/local/lib/python3.11/site-packages/torch/lib/lib{nv,cu}* /usr/lib'
+    - curl -o /tmp/rextra_requirements.txt "https://storage.googleapis.com/dan-scratch-public/reqs.txt"
+    - pip install -r /tmp/rextra_requirements.txt
+   #- pip install flash-attn
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
 train: "train.py:train"
