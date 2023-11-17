@@ -37,7 +37,7 @@ USE_SYSTEM_PROMPT = False
 
 ENGINE = MLCvLLMEngine
 ENGINE_KWARGS = {
-    "mlc_args": mlc_kwargs(mlc_weights, is_chat=False),
+    "mlc_args": mlc_kwargs(mlc_weights, is_chat=False, num_shards=4),
     "vllm_args": vllm_kwargs(vllm_weights),
 }
 
