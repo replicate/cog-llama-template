@@ -75,7 +75,8 @@ function sendPrompt() {
   }
   sending = true;
   getPrompt().then((prompt) => {
-    let interval = setInterval(() => {
+    let interval
+    const trySend = () => {
       if (dc !== null && dc_open) {
         document.getElementById("output").textContent = "";
         console.log("got prompt, actually sending over rtc");
@@ -94,7 +95,9 @@ function sendPrompt() {
       } else {
         console.log("no connections open, retrying");
       }
-    }, 1000);
+    }
+    trySend()
+    interval = setInterval(trySend, 1000);
   });
 }
 
