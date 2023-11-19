@@ -17,10 +17,9 @@ async function getPrompt() {
         console.log("got prompt");
         last_sent = Date.now();
         console.time("generation");
-        return JSON.stringify({
+        return {
           input: { prompt: prompt.value /*,seed: seed.value*/ },
-          id: last_sent,
-        });
+        };
       }
     }
     await new Promise((r) => setTimeout(r, 100));
@@ -77,18 +76,20 @@ function sendPrompt() {
   getPrompt().then((prompt) => {
     let interval
     const trySend = () => {
+      prompt.id = Date.now()
+      data = JSON.stringify(prompt)
       if (dc !== null && dc_open) {
         document.getElementById("output").textContent = "";
         console.log("got prompt, actually sending over rtc");
         dataChannelLog.textContent += "> " + prompt + "\n";
-        dc.send(prompt);
+        dc.send(data);
         clearInterval(interval);
         sending = false;
         waiting = true;
       } else if (ws && ws.readyState === 1) {
         console.log("sending over ws");
         document.getElementById("output").textContent = "";
-        ws.send(prompt);
+        ws.send(data);
         clearInterval(interval);
         sending = false;
         waiting = true;
