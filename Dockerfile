@@ -70,10 +70,10 @@ ARG DEBUG=
 ENV DEBUG=$DEBUG
 RUN if [ -n "$DEBUG" ]; then apt update && apt install -yy kakoune gdb; fi
 # unmangle this particular version
-RUN ln -s /app/torch/lib/libcudart-*.so.11 /app/torch/lib/libcudart.so.11
+RUN ln -s /app/torch/lib/libcudart-9335f6a2.so.12 /app/torch/lib/libcudart.so.12
 ENV LD_LIBRARY_PATH=/app/torch/lib
 
-#COPY --link ./exllama/ /app/exllama/
+COPY --link ./exllama/ /app/exllama/
 COPY --link ./src/ /app/src/
 COPY --link ./predict.py ./config.py ./subclass.py /app/
 COPY --link ./client.js ./index.html ./server.py /app/
