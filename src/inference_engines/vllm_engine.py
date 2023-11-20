@@ -22,7 +22,7 @@ class LoRA:
         self, adapter_config: Union[str, bytes, bytearray], adapter_model: FILE_LIKE
     ) -> None:
         self.adapter_config = json.loads(adapter_config)
-        self.adapter_model = torch.load(adapter_model, map_location="cpu")
+        self.adapter_model = torch.load(adapter_model, map_location="cuda")
 
     @classmethod
     def load_from_path(
