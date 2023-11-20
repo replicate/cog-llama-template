@@ -115,10 +115,10 @@ async def download_files_with_pget(
     remote_path: str, path: str, files: list[str]
 ) -> None:
     download_jobs = "\n".join(f"{remote_path}/{f} {path}/{f}" for f in files)
-    args = ["pget", "multifile", "/dev/shm/job"]
+    args = ["pget", "multifile", "-", "-f"]
     process = await asyncio.create_subprocess_exec(*args, stdin=-1, close_fds=True)
     # Wait for the subprocess to finish
-    await process.communicate(download_jobs)
+    await process.communicate(download_jobs.encode())
 
 
 def maybe_download_with_pget(
@@ -155,7 +155,7 @@ def maybe_download_with_pget(
         else:
             missing_files = check_files_exist(remote_filenames or [], path)
         get_loop().run_until_complete(
-            download_files_with_pget(remote_path, path, missing_file_batch)
+            download_files_with_pget(remote_path, path, missing_files)
         )
 
     return path
