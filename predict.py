@@ -86,7 +86,6 @@ class Predictor(BasePredictor):
     # because of this, printing before outputing tokens is bad
     # so this patches print to not only print until after we leave this function
     # eventually that will be fixed and this can be removed
-    @delay_prints(REALLY_EAT_MY_PRINT_STATEMENTS=True)
     def predict(
         self,
         prompt: str = Input(description="Prompt to send to the model."),
@@ -146,75 +145,76 @@ class Predictor(BasePredictor):
             default=None,
         ),
     ) -> ConcatenateIterator[str]:
-        if stop_sequences:
-            stop_sequences = stop_sequences.split(",")
+        with delay_prints() as print:
+            if stop_sequences:
+                stop_sequences = stop_sequences.split(",")
 
-        if USE_SYSTEM_PROMPT:
-            prompt = (
-                prompt.strip("\n").removeprefix(B_INST).removesuffix(E_INST).strip()
-            )
-            prompt = PROMPT_TEMPLATE.format(
-                system_prompt=system_prompt.strip(), instruction=prompt.strip()
-            )
+            if USE_SYSTEM_PROMPT:
+                prompt = (
+                    prompt.strip("\n").removeprefix(B_INST).removesuffix(E_INST).strip()
+                )
+                prompt = PROMPT_TEMPLATE.format(
+                    system_prompt=system_prompt.strip(), instruction=prompt.strip()
+                )
 
-        print(f"Your formatted prompt is: \n{prompt}")
+            print(f"Your formatted prompt is: \n{prompt}")
 
-        if replicate_weights:
-            start = time.time()
-            self.initialize_peft(replicate_weights)
-            print(f"Overall initialize_peft took {time.time() - start:.3f}")
-        else:
-            if "COG_WEIGHTS" not in os.environ:
-                self.delete_lora()
-                print("Not using LoRA")
+            if replicate_weights:
+                start = time.time()
+                self.initialize_peft(replicate_weights)
+                print(f"Overall initialize_peft took {time.time() - start:.3f}")
+            else:
+                if "COG_WEIGHTS" not in os.environ:
+                    self.delete_lora()
+                    print("Not using LoRA")
 
-        if seed is not None:
-            print(f"Setting seed to {seed}")
-            seed_all(seed)
-
-        n_tokens = 0
-        st = time.time()
-
-        # if return_logits:
-        # logits = self.engine.get_logits(prompt)
-        # # serializing so we aren't returning a massive json
-        # logits_path = "logits.pt"
-        # torch.save(logits, logits_path)
-        # yield Path(logits_path)
-
-        # # todo: may need to do something clever with kwargs if/when we add more engines.
-        # else:
-        generated_text = ""
-        for decoded_token in self.engine(
-            prompt,
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
-            repetition_penalty=repetition_penalty,
-            max_new_tokens=max_new_tokens,
-            min_new_tokens=min_new_tokens,
-            stop_sequences=stop_sequences,
-        ):
-            n_tokens += 1
-            yield decoded_token
-            generated_text += decoded_token
-            if n_tokens == 1 and debug:
-                second_start = time.time()
             if seed is not None:
-                torch.manual_seed(seed)
-        et = time.time()
-        t = et - st
-        print(f"hostname: {socket.gethostname()}")
-        if debug:
-            print("generated text:", generated_text)
-            print(f"after initialization, first token took {second_start - st:.3f}")
-            print(f"Tokens per second: {n_tokens / t:.2f}")
-            print(
-                f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}"
-            )
-            print(f"cur memory: {torch.cuda.memory_allocated()}")
-            print(f"max allocated: {torch.cuda.max_memory_allocated()}")
-            print(f"peak memory: {torch.cuda.max_memory_reserved()}")
+                print(f"Setting seed to {seed}")
+                seed_all(seed)
+
+            n_tokens = 0
+            st = time.time()
+
+            # if return_logits:
+            # logits = self.engine.get_logits(prompt)
+            # # serializing so we aren't returning a massive json
+            # logits_path = "logits.pt"
+            # torch.save(logits, logits_path)
+            # yield Path(logits_path)
+
+            # # todo: may need to do something clever with kwargs if/when we add more engines.
+            # else:
+            generated_text = ""
+            for decoded_token in self.engine(
+                prompt,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                repetition_penalty=repetition_penalty,
+                max_new_tokens=max_new_tokens,
+                min_new_tokens=min_new_tokens,
+                stop_sequences=stop_sequences,
+            ):
+                n_tokens += 1
+                yield decoded_token
+                generated_text += decoded_token
+                if n_tokens == 1 and debug:
+                    second_start = time.time()
+                if seed is not None:
+                    torch.manual_seed(seed)
+            et = time.time()
+            t = et - st
+            print(f"hostname: {socket.gethostname()}")
+            if debug:
+                print("generated text:", generated_text)
+                print(f"after initialization, first token took {second_start - st:.3f}")
+                print(f"Tokens per second: {n_tokens / t:.2f}")
+                print(
+                    f"Tokens per second not including time to first token: {(n_tokens -1) / (et - second_start):.2f}"
+                )
+                print(f"cur memory: {torch.cuda.memory_allocated()}")
+                print(f"max allocated: {torch.cuda.max_memory_allocated()}")
+                print(f"peak memory: {torch.cuda.max_memory_reserved()}")
 
     def remove(f: Callable, defaults: dict[str, Any]) -> Callable:
         # pylint: disable=no-self-argument
