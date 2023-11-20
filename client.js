@@ -74,7 +74,7 @@ function sendPrompt() {
   }
   sending = true;
   getPrompt().then((prompt) => {
-    let interval
+    // let interval
     const trySend = () => {
       prompt.id = Date.now()
       data = JSON.stringify(prompt)
@@ -83,14 +83,14 @@ function sendPrompt() {
         console.log("got prompt, actually sending over rtc");
         dataChannelLog.textContent += "> " + prompt + "\n";
         dc.send(data);
-        clearInterval(interval);
+        // clearInterval(interval);
         sending = false;
         waiting = true;
       } else if (ws && ws.readyState === 1) {
         console.log("sending over ws");
         document.getElementById("output").textContent = "";
         ws.send(data);
-        clearInterval(interval);
+        // clearInterval(interval);
         sending = false;
         waiting = true;
       } else {
@@ -98,7 +98,7 @@ function sendPrompt() {
       }
     }
     trySend()
-    interval = setInterval(trySend, 1000);
+    // interval = setInterval(trySend, 1000);
   });
 }
 
