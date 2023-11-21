@@ -15,17 +15,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1699463216,
-        "narHash": "sha256-JBQmDIAPnetlLtOr+BQsLEE4xU6hxWNzuoArNSYLQSs=",
-        "owner": "datakami",
-        "repo": "cognix",
-        "rev": "1d354678876f1de0f68c88b3bfeb5fa3937c0523",
-        "type": "github"
+        "lastModified": 1700530029,
+        "narHash": "sha256-JHtp4J+HnHvpR8IJs215d1GfmMW9aUvYSv/qS/3Tsuk=",
+        "ref": "refs/heads/tmp",
+        "rev": "f3733f09db3a0dd0a4fc9eeb0db0e96d90471ef9",
+        "revCount": 62,
+        "type": "git",
+        "url": "file:///home/sylv/cognix"
       },
       "original": {
-        "owner": "datakami",
-        "repo": "cognix",
-        "type": "github"
+        "type": "git",
+        "url": "file:///home/sylv/cognix"
       }
     },
     "devshell": {

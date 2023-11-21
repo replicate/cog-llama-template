@@ -1,5 +1,5 @@
 {
-  inputs.cognix.url = "github:datakami/cognix";
+  inputs.cognix.url = "/home/sylv/cognix";
 
   outputs = { self, cognix, ... }:
     let
