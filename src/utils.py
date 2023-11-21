@@ -255,22 +255,21 @@ class StreamingTextStopSequenceHandler:
             self.cache.clear()
 
 
-def delay_prints(REALLY_EAT_MY_PRINT_STATEMENTS: bool = False) -> tp.Callable:
-    @contextlib.contextmanager
-    def _delay_prints() -> tp.Iterator[tp.Callable]:
-        lines = []
+@contextlib.contextmanager
+def delay_prints(REALLY_EAT_MY_PRINT_STATEMENTS: bool = False) -> tp.Iterator[tp.Callable]:
+    lines = []
 
-        def delayed_print(*args: tp.Any, **kwargs: tp.Any) -> None:
-            lines.append((args, kwargs))
+    def delayed_print(*args: tp.Any, **kwargs: tp.Any) -> None:
+        lines.append((args, kwargs))
 
+    if REALLY_EAT_MY_PRINT_STATEMENTS:
+        builtins.print, _print = delayed_print, builtins.print
+    try:
+        yield delayed_print
+    finally:
         if REALLY_EAT_MY_PRINT_STATEMENTS:
-            builtins.print, _print = delayed_print, builtins.print
-        try:
-            yield delayed_print
-        finally:
-            if REALLY_EAT_MY_PRINT_STATEMENTS:
-                builtins.print = _print
-            for args, kwargs in lines:
-                print(*args, **kwargs)
+            builtins.print = _print
+        for args, kwargs in lines:
+            print(*args, **kwargs)
 
-    return _delay_prints
+    return delay_prints
