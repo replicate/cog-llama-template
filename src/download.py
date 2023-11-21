@@ -10,7 +10,7 @@ import typing as t
 from concurrent.futures import ThreadPoolExecutor
 import aiohttp
 from yarl import URL
-from .utils import check_files_exist
+from .utils import check_files_exist, get_loop
 
 # some important tricks:
 # 1. os.sched_getaffinity to get an accurate cpu count in containers
@@ -37,10 +37,7 @@ class Downloader:
         self.concurrency = concurrency
         self.sem = asyncio.Semaphore(concurrency * 2)
         self.retries = 0
-        try:
-            self.loop = asyncio.get_running_loop()
-        except RuntimeError:
-            self.loop = asyncio.new_event_loop()
+        self.loop = get_loop()
         global global_downloader
         global_downloader = self
 
@@ -192,11 +189,11 @@ class Downloader:
             except RuntimeError as e:
                 if e.args[0] == "Event loop is closed":
                     print("has to start a new event loop")
-                    self.loop = asyncio.new_event_loop()
+                    self.loop = get_loop()
                     self._session = None
                     return self.loop.run_until_complete(f(self, *args, **kwargs))
                 if "another loop is running" in e.args[0]:
-                    self.loop = asyncio.get_event_loop()
+                    self.loop = get_loop()
                     self._session = None
                     return self.loop.run_until_complete(f(self, *args, **kwargs))
                 raise e
