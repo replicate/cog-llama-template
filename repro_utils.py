@@ -2,6 +2,7 @@ import asyncio
 import dataclasses
 import os
 import typing as tp
+from pathlib import Path
 
 
 def get_loop() -> asyncio.AbstractEventLoop:
@@ -22,13 +23,15 @@ async def download_files_with_pget(
 
 
 def check_files_exist(remote_files: list[str], local_path: str) -> list[str]:
-    # Get the list of local file names
-    local_files = os.listdir(local_path)
+    local_path_obj = Path(local_path)
+
+    # Get the list of all local file paths relative to local_path
+    local_files_relative = set(
+        str(f.relative_to(local_path_obj)) for f in local_path_obj.rglob("*")
+    )
 
     # Check if each remote file exists in the local directory
-    missing_files = list(set(remote_files) - set(local_files))
-
-    return missing_files
+    return list(set(remote_files) - local_files_relative)
 
 
 def maybe_download_with_pget(

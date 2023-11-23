@@ -3,14 +3,19 @@ from mlc_chat import ChatConfig, ChatModule, ConvConfig, GenerationConfig
 from transformers import AutoTokenizer
 from repro_utils import Weights, get_mlc_file_list, maybe_download_with_pget, mlc_kwargs
 
-mlc_file_list = get_mlc_file_list(
-    model_name="Llama-2-70b-chat-hf-q4f16_1", n_shards=483
-)
-MODEL_NAME = "llama-2-70b-chat-hf-mlc"
+
+if os.getenv("7B"):
+    MODEL_NAME = "llama-2-7b-mlc"
+    mlc_file_list = get_mlc_file_list(model_name="llama-2-7b-hf-q4f16_1", n_shards=115)
+else:
+    MODEL_NAME = "llama-2-70b-chat-hf-mlc"
+    mlc_file_list = get_mlc_file_list(
+        model_name="Llama-2-70b-chat-hf-q4f16_1", n_shards=483
+    )
 
 mlc_weights = Weights(
     local_path=f"models/{MODEL_NAME}/model_artifacts/default_inference_weights",
-    remote_path="https://weights.replicate.delivery/default/llama-2-70b-chat-hf-mlc",
+    remote_path=f"https://weights.replicate.delivery/default/{MODEL_NAME}",
     remote_files=mlc_file_list,
 )
 
@@ -56,11 +61,11 @@ class MLCEngine:
     def __call__(
         self,
         prompt: str,
-        max_new_tokens: int,
-        temperature: float,
-        top_p: float,
-        top_k: int,
         *args,
+        max_new_tokens: int = 100,
+        temperature: float = 0.7,
+        top_p: float = 0.95,
+        top_k: int = -1,
         stop_sequences: str | list[str] = None,
         stop_token_ids: list[int] = [],
         repetition_penalty: float = 1.0,
@@ -116,15 +121,6 @@ class MLCEngine:
             max_gen_len=max_new_tokens,
         )
         self.cm._prefill(input=prompt, generation_config=generation_config)
-
-        min_new_tokens = kwargs.pop("min_new_tokens", None)
-        if min_new_tokens is not None and min_new_tokens > -1:
-            raise ValueError(
-                "min_new_tokens is currently not supported by MLC's engine."
-            )
-
-        if len(kwargs) > 0:
-            raise ValueError(f"Unknown keyword arguments: {', '.join(kwargs.keys())}")
 
         generation_length = 0
         while True:
