@@ -5,6 +5,7 @@ import shutil
 import subprocess
 from zipfile import ZipFile
 import psutil
+import json
 
 
 import torch
@@ -23,12 +24,24 @@ from src.utils import maybe_download_with_pget, download_file_with_pget
 MODEL_OUT = "/src/tuned_weights.tensors"
 CHECKPOINT_DIR = "checkpoints"
 SAVE_STRATEGY = "epoch"
-OUTPUT_DIR = "training_output"
+OUTPUT_DIR = "/src/training_output"
 
 
 class TrainingOutput(BaseModel):
     weights: Path
 
+def remap_train_data(train_data):
+    """Quick and hacky"""
+    train_dir = '/tmp/remapped_train_data.jsonl'
+    with open(train_data, 'r') as f:
+        lines = [json.loads(val) for val in f]
+    
+    new_lines = [{'text': val['prompt'] + '\n' + val['completion']} for val in lines]
+    with open(train_dir, 'w') as f:
+        for line in new_lines:
+            f.write(json.dumps(line))
+            f.write('\n')
+    return train_dir
 
 def train(
     fake_output: str = Input(description="fake training", default=None),
@@ -157,6 +170,8 @@ def train(
 
     else:
         model_path = local_model_path
+    
+    model_path = os.path.abspath(model_path)
 
     root_path = os.getcwd()
 
@@ -175,34 +190,25 @@ def train(
 
     args = ["accelerate", "launch", "-m", "axolotl.cli.train"]
 
-    # pull base config - right now we'll hard code this to mistral 
-    config = "/src/axolotl/replicate/mistral.yaml"
+    # pull base config - right now we'll hard code this to mistral, easy enough to map
+    config = "/src/axolotl-configs/mistral.yaml"
 
     args.append(config)
     
-    # TODO: map our dataset types to axolotl "completion"
-    # TODO - optional - alpaca supports a lot of built in prompt types; if we want to, we can modify our coding setup in order 
+    # hack to quickly handle prompt: completion: dataset 
     with open(train_data, 'r') as f:
-        line_zero = f.read()
-    import json
+        line_zero = f.readline()
     jl = json.loads(line_zero)
-    ds_type = 'copmletion' if 'text' in jl.keys() else 'custom'
-
-    # Killed - pad_to_sequence_len, chunk_size, peft_method
-    # killed most of our validation - run_validation, num_validastion_+samples, validation_data, val_batch_size, validation_prompt
-
-    # try flash_attention=false? maybe then we can run without the cuda base image? 
+    if 'prompt' in jl.keys():
+        train_data = remap_train_data(train_data)
 
     args.extend(
         [
-            # Hard coded for now
             f"--base_model={model_path}",
             f"--output_dir={output_dir}",
-            # User specified arguments -----
             # Preprocessing arguments
             f"--sample_packing={pack_sequences}",
             f"--pad_to_sequence_len={pack_sequences}", # todo - perhaps its own argument? 
-            #f"--chunk_size={chunk_size}", 
             # Train arguments
             f"--datasets.path={train_data}",
             f"--datasets.type=completion",
@@ -214,12 +220,7 @@ def train(
             f"--lora_alpha={lora_alpha}",
             f"--lora_dropout={lora_dropout}",
             # Validation arguments
-            # f"--run_validation={'False' if not run_validation else 'True'}",
-            # f"--num_validation_samples={num_validation_samples}",
-            # f"--validation_data_path={validation_data}",
-            # f"--val_batch_size={validation_batch_size}",
-            # f"--validation_prompt={validation_prompt}",
-            f"--val_set_size={validation_frac}"
+            f"--val_set_size={validation_frac}",
             # Other arguments
             f"--seed={seed}",
         ]
@@ -229,7 +230,7 @@ def train(
 
     p = None
     try:
-        p = subprocess.Popen(args, close_fds=False)
+        p = subprocess.Popen(args, close_fds=False, cwd="./axolotl/src")
         p.wait()
         return_code = p.poll()
         if return_code != 0:
@@ -240,9 +241,10 @@ def train(
 
         directory = Path(output_dir)
         with ZipFile(out_path, "w") as zip:
-            for file_path in directory.rglob("*"):
+            for file_name in ['adapter_model.bin', 'adapter_config.json']:
+                file_path = os.path.join(directory, file_name)
                 print(file_path)
-                zip.write(file_path, arcname=file_path.relative_to(directory))
+                zip.write(file_path, arcname=file_name)
 
         return TrainingOutput(weights=Path(out_path))
     finally:

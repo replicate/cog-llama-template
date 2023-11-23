@@ -48,7 +48,6 @@ build:
     - bash -c 'ln -s /usr/local/lib/python3.11/site-packages/torch/lib/lib{nv,cu}* /usr/lib'
     - curl -o /tmp/rextra_requirements.txt "https://storage.googleapis.com/replicate-datasets/dependencies/reqs.txt"
     - pip install -r /tmp/rextra_requirements.txt
-    - pip install flash-attn
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
 train: "train_axolotl.py:train"
