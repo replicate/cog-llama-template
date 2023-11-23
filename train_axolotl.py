@@ -6,6 +6,7 @@ import subprocess
 from zipfile import ZipFile
 import psutil
 import json
+import time
 
 
 import torch
@@ -32,7 +33,7 @@ class TrainingOutput(BaseModel):
 
 def remap_train_data(train_data):
     """Quick and hacky"""
-    train_dir = '/tmp/remapped_train_data.jsonl'
+    train_dir = f'/tmp/{int(time.time())}remapped_train_data.jsonl'
     with open(train_data, 'r') as f:
         lines = [json.loads(val) for val in f]
     
@@ -187,13 +188,6 @@ def train(
 
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     os.environ["HF_DATASETS_CACHE"] = "/src/.hf-cache"
-
-    args = ["accelerate", "launch", "-m", "axolotl.cli.train"]
-
-    # pull base config - right now we'll hard code this to mistral, easy enough to map
-    config = "/src/axolotl-configs/mistral.yaml"
-
-    args.append(config)
     
     # hack to quickly handle prompt: completion: dataset 
     with open(train_data, 'r') as f:
@@ -202,16 +196,30 @@ def train(
     if 'prompt' in jl.keys():
         train_data = remap_train_data(train_data)
 
+    args = ["accelerate", "launch", "-m", "axolotl.cli.train"]
+
+    # pull base config - right now we'll hard code this to mistral, easy enough to map
+    base_config = "/src/axolotl-configs/mistral.yaml"
+    config_to_run = "/src/axolotl-configs/config-to-run.yaml"
+    
+    # dataset workaround. we need to write dataset to a new file every time, and can't override on the cli 
+    shutil.copy(base_config, config_to_run)
+
+    args.append(config_to_run)
+
+    dataset_string = f"\ndatasets:\n  - path: {train_data}\n    type: completion"
+
+    with open(config_to_run, 'a') as f:
+        f.write(dataset_string)
+
     args.extend(
         [
             f"--base_model={model_path}",
             f"--output_dir={output_dir}",
             # Preprocessing arguments
             f"--sample_packing={pack_sequences}",
-            f"--pad_to_sequence_len={pack_sequences}", # todo - perhaps its own argument? 
+            f"--pad_to_sequence_len={pack_sequences}", 
             # Train arguments
-            f"--datasets.path={train_data}",
-            f"--datasets.type=completion",
             f"--num_epochs={num_train_epochs}",
             f"--micro_batch_size={train_batch_size}",
             f"--gradient_accumulation_steps={gradient_accumulation_steps}",
