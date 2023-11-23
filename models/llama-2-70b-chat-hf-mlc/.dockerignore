@@ -1,4 +1,0 @@
-/models/*/
-!/models/llama-2-70b-chat-hf-mlc/
-/models/llama-2-70b-chat-hf-mlc/model_artifacts/**
-!/models/llama-2-70b-chat-hf-mlc/model_artifacts/tokenizer/
