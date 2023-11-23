@@ -64,30 +64,30 @@ def train(
         default=1,
         ge=1,
     ),
-    num_validation_samples: int = Input(
-        description=(
-            "Number of samples to use for validation."
-            "If `run_validation` is `True` and `validation_data` is not specified, this number of samples"
-            "will be selected from the tail of the training data. If `validation_data` is specified, this"
-            "number of samples will be selected from the head of the validation data, up to the size of the validation data."
-        ),
-        default=50,
-        ge=1,
-    ),
-    validation_data: Path = Input(
-        description="path to optional evaluation data file to use for model eval",
-        default=None,
-    ),
-    validation_batch_size: int = Input(
-        description="Batch size for evaluation", default=1, ge=1
-    ),
-    run_validation: bool = Input(
-        description="Whether to run validation during training.", default=True
-    ),
-    validation_prompt: str = Input(
-        description="Prompt to use for generation during validation. If provided, a response to this prompt will be sampled and logged during validation.",
-        default=None,
-    ),
+    # num_validation_samples: int = Input(
+    #     description=(
+    #         "Number of samples to use for validation."
+    #         "If `run_validation` is `True` and `validation_data` is not specified, this number of samples"
+    #         "will be selected from the tail of the training data. If `validation_data` is specified, this"
+    #         "number of samples will be selected from the head of the validation data, up to the size of the validation data."
+    #     ),
+    #     default=50,
+    #     ge=1,
+    # ),
+    # validation_data: Path = Input(
+    #     description="path to optional evaluation data file to use for model eval",
+    #     default=None,
+    # ),
+    # validation_batch_size: int = Input(
+    #     description="Batch size for evaluation", default=1, ge=1
+    # ),
+    # run_validation: bool = Input(
+    #     description="Whether to run validation during training.", default=True
+    # ),
+    # validation_prompt: str = Input(
+    #     description="Prompt to use for generation during validation. If provided, a response to this prompt will be sampled and logged during validation.",
+    #     default=None,
+    # ),
     validation_frac: float = Input(
         description=("Percentage of training dataset to use for validation"),
         default=0.03,
@@ -101,15 +101,15 @@ def train(
         description="If 'True', sequences will be packed into a single sequences up to a given length. This improves computational efficiency.",
         default=False,
     ),
-    wrap_packed_sequences: bool = Input(
-        description="If 'pack_sequences' is 'True', this will wrap packed sequences across examples, ensuring a constant sequence length but breaking prompt formatting.",
-        default=False,
-    ),
-    chunk_size: int = Input(
-        description="If 'pack_sequences' is 'True', this will chunk sequences into chunks of this size.",
-        default=2048,
-        ge=1,
-    ),
+    # wrap_packed_sequences: bool = Input(
+    #     description="If 'pack_sequences' is 'True', this will wrap packed sequences across examples, ensuring a constant sequence length but breaking prompt formatting.",
+    #     default=False,
+    # ),
+    # chunk_size: int = Input(
+    #     description="If 'pack_sequences' is 'True', this will chunk sequences into chunks of this size.",
+    #     default=2048,
+    #     ge=1,
+    # ),
     peft_method: str = Input(
         description="Training method to use. Currently, 'lora' and 'qlora'.",
         default="lora",
