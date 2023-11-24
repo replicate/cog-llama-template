@@ -92,7 +92,7 @@ def get_mlc_file_list(model_name: str, n_shards: int):
         "params/tokenizer.json",
         "params/tokenizer_config.json",
         "params/tokenizer.model",
-        "params/config.json",
+        "params/mlc-chat-config.json",
     ]
     return files_to_download
 

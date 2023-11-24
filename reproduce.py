@@ -3,12 +3,11 @@ from mlc_chat import ChatConfig, ChatModule, ConvConfig, GenerationConfig
 from transformers import AutoTokenizer
 from repro_utils import Weights, get_mlc_file_list, maybe_download_with_pget, mlc_kwargs
 
-
 if os.getenv("7B"):
     MODEL_NAME = "llama-2-7b-mlc"
     mlc_file_list = get_mlc_file_list(model_name="llama-2-7b-hf-q4f16_1", n_shards=115)
 else:
-    MODEL_NAME = "llama-2-70b-chat-hf-mlc"
+    MODEL_NAME = "llama-2-70b-chat-hf-mlc-sm90"
     mlc_file_list = get_mlc_file_list(
         model_name="Llama-2-70b-chat-hf-q4f16_1", n_shards=483
     )
