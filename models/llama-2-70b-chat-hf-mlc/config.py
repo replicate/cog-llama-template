@@ -6,7 +6,7 @@ from src.config_utils import (
     mlc_kwargs,
     vllm_kwargs,
 )
-from src.inference_engines.mlc_vllm_engine import MLCvLLMEngine
+from src.inference_engines.mlc_engine import MLCEngine
 from src.utils import get_env_var_or_default
 
 load_dotenv()
@@ -35,11 +35,13 @@ vllm_weights = Weights(
 # Inference config
 USE_SYSTEM_PROMPT = False
 
-ENGINE = MLCvLLMEngine
-ENGINE_KWARGS = {
-    "mlc_args": mlc_kwargs(mlc_weights, is_chat=False),
-    "vllm_args": vllm_kwargs(vllm_weights),
-}
+# ENGINE = MLCvLLMEngine
+# ENGINE_KWARGS = {
+#     "mlc_args": mlc_kwargs(mlc_weights, is_chat=False),
+#     "vllm_args": vllm_kwargs(vllm_weights),
+# }
+ENGINE = MLCEngine
+ENGINE_KWARGS = mlc_kwargs(mlc_weights, is_chat=False)
 
 # Training config
 LOAD_IN_4BIT = False

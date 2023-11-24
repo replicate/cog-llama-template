@@ -6,6 +6,7 @@ import random
 import subprocess
 import time
 import typing as tp
+from pathlib import Path
 
 
 def seed_all(seed: int):
@@ -77,13 +78,15 @@ def download_file(file, local_filename):
 
 
 def check_files_exist(remote_files: list[str], local_path: str) -> list[str]:
-    # Get the list of local file names
-    local_files = os.listdir(local_path)
+    local_path_obj = Path(local_path)
+
+    # Get the list of all local file paths relative to local_path
+    local_files_relative = set(
+        str(f.relative_to(local_path_obj)) for f in local_path_obj.rglob("*")
+    )
 
     # Check if each remote file exists in the local directory
-    missing_files = list(set(remote_files) - set(local_files))
-
-    return missing_files
+    return list(set(remote_files) - local_files_relative)
 
 
 async def download_file_with_pget(remote_path, dest_path, pget_concurrency="10"):
@@ -256,7 +259,9 @@ class StreamingTextStopSequenceHandler:
 
 
 @contextlib.contextmanager
-def delay_prints(REALLY_EAT_MY_PRINT_STATEMENTS: bool = False) -> tp.Iterator[tp.Callable]:
+def delay_prints(
+    REALLY_EAT_MY_PRINT_STATEMENTS: bool = False,
+) -> tp.Iterator[tp.Callable]:
     lines = []
 
     def delayed_print(*args: tp.Any, **kwargs: tp.Any) -> None:

@@ -4,7 +4,7 @@
 build:
   # set to true if your model requires a GPU
   gpu: true
-  cuda: "11.8"
+  cuda: "12.1"
 
   # python version in the form '3.8' or '3.8.12'
   python_version: "3.11"
@@ -19,31 +19,30 @@ build:
     - "scipy==1.11.1"
     - "safetensors>=0.3.1"
     - "python-dotenv"
-    - "fire"
+    #- "fire"
     - "datasets"
     - "transformers==4.33.2"
     - "peft==0.4.0"
     - "accelerate"
     # - "bitsandbytes"
-    - "trl==0.5.0"
+    #- "trl==0.5.0"
     - "aiohttp[speedups]"
     - "triton" # hm
     - "fastapi<0.99.0"
     # uncomment these when we go back to 12.1
     # - "https://r2.drysys.workers.dev/torch/torch-2.1.0-cp311-cp311-linux_x86_64.whl"
     # - "https://weights.replicate.delivery/default/wheels/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"
-
-    - "https://r2.drysys.workers.dev/torch/11.8/torch-2.1.0-cp311-cp311-linux_x86_64.whl"
+    - "torch"
+    #- "https://r2.drysys.workers.dev/torch/11.8/torch-2.1.0-cp311-cp311-linux_x86_64.whl"
     # This wheel can be built by running `TORCH_CUDA_ARCH_LIST="8.0;8.6" pip wheel .` in https://github.com/replicate/vllm-with-loras
-    - "https://r2.drysys.workers.dev/vllm/11.8/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"
-    - "https://r2.drysys.workers.dev/xformers/11.8/xformers-0.0.23+b4c853d.d20231107-cp311-cp311-linux_x86_64.whl"
+    #- "https://r2.drysys.workers.dev/vllm/11.8/vllm-0.2a0-cp311-cp311-linux_x86_64.whl#"
+    #- "https://r2.drysys.workers.dev/xformers/11.8/xformers-0.0.23+b4c853d.d20231107-cp311-cp311-linux_x86_64.whl"
+
     - "--pre"
     - "-f"
     - "https://mlc.ai/wheels"
-    - "mlc-ai-nightly-cu118"
-    - "mlc-chat-nightly-cu118"
-    # - "mlc-chat-nightly-cu121"
-    # - "mlc-ai-nightly-cu121"
+    - "mlc-chat-nightly-cu121"
+    - "mlc-ai-nightly-cu121"
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
 train: "train.py:train"
