@@ -4,7 +4,7 @@ import os
 import socket
 import time
 import zipfile
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Iterator
 
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
@@ -82,11 +82,53 @@ class Predictor(BasePredictor):
         self.current_path = None
         self.engine.delete_lora()
 
-    # currently, outputs including tokens and logs are throttled to 50ms
-    # because of this, printing before outputing tokens is bad
-    # so this patches print to not only print until after we leave this function
-    # eventually that will be fixed and this can be removed
     def predict(
+        self,
+        offer: str = Input(description="webRTC offer"),
+        ice_servers: str = Input(
+            description="ICE servers to use",
+            default='[{"urls":"stun:stun.l.google.com:19302"}]',
+        ),
+    ) -> Iterator[str]:
+        rtc = RTC(offer, ice_servers)
+
+        @connection.on_message
+        def handler(message: bytes | str) -> Iterator[bytes | str]:
+            if message[0] != "{":
+                print("received invalid message", message)
+                return
+            args = json.loads(message)  # works for bytes or str
+            start = time.time()
+            token_count = 0
+            id = args.pop("id", 0)
+            stream = self._predict(**args)
+            while True:
+                tok_start = time.time()
+                # while-next() seems clearer than for-in here
+                tok = next(stream, None)
+                if tok is None:
+                    break
+                token_count += 1
+                now = time.time()
+                resp = {
+                    "text": tok,
+                    "token_gen_latency": round((now - start) * 1000),
+                    "gen_time": round((now - tok_start) * 1000),
+                    "id": params.get("id"),
+                    "idx": token_count,
+                }
+                yield json.dumps(resp)
+
+            logging.info(f"finished generating in {time.time() - start:.3f}")
+            yield json.dumps({"status": "done", "id": id})
+
+        yield self.loop.run_until_complete(rtc.answer())
+        yield self.loop.run_until_complete(rtc.wait_disconnect())
+
+    # for whatever reason _predict doesn't get un-pydantic'd
+    Input = lambda default=None, **_: default
+
+    def _predict(
         self,
         prompt: str = Input(description="Prompt to send to the model."),
         system_prompt: str = Input(
@@ -240,5 +282,6 @@ class Predictor(BasePredictor):
         args_to_remove["system_prompt"] = None
     if not USE_TOP_K:
         args_to_remove["top_k"] = None
-    if args_to_remove:
-        predict = remove(predict, args_to_remove)
+    # don't do this for webrtc
+    # if args_to_remove:
+    #     predict = remove(predict, args_to_remove)
