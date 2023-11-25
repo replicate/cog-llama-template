@@ -13,7 +13,7 @@ in
       '';
     };
     # add dep on cudart bundled in torch
-    mlc-ai-nightly-cu118 = { config, ... }: {
+    mlc-ai-nightly-cu121 = { config, ... }: {
       env.autoPatchelfIgnoreMissingDeps = ["libcuda.so.1"];
       deps.torch = pipDrvs.torch;
       mkDerivation.postInstall = ''
@@ -22,14 +22,14 @@ in
     };
     # add dep on tvm bundled by mlc-ai
     # TODO: xformers can find native python lib deps, how does that work?
-    mlc-chat-nightly-cu118 = { config, ... }: {
-      deps.mlc-ai = pipDrvs.mlc-ai-nightly-cu118;
+    mlc-chat-nightly-cu121 = { config, ... }: {
+      deps.mlc-ai = pipDrvs.mlc-ai-nightly-cu121;
       mkDerivation.postInstall = ''
         addAutoPatchelfSearchPath ${sitePackages config.deps.mlc-ai}/tvm
       '';
     };
     # TODO: xformers depends on cuda 12
-    xformers.env.autoPatchelfIgnoreMissingDeps = [ "libcudart.so.12" ];
+    # xformers.env.autoPatchelfIgnoreMissingDeps = [ "libcudart.so.12" ];
   };
 }
 

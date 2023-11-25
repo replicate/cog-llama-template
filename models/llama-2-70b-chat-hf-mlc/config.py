@@ -6,7 +6,6 @@ from src.config_utils import (
     mlc_kwargs,
     vllm_kwargs,
 )
-from src.inference_engines.mlc_engine import MLCEngine
 from src.utils import get_env_var_or_default
 
 load_dotenv()
@@ -40,7 +39,11 @@ USE_SYSTEM_PROMPT = False
 #     "mlc_args": mlc_kwargs(mlc_weights, is_chat=False),
 #     "vllm_args": vllm_kwargs(vllm_weights),
 # }
-ENGINE = MLCEngine
+
+def ENGINE(*args, **kwargs):
+    from src.inference_engines.mlc_engine import MLCEngine
+    return MLCEngine(*args, **kwargs)
+
 ENGINE_KWARGS = mlc_kwargs(mlc_weights, is_chat=False)
 
 # Training config

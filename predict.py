@@ -6,7 +6,6 @@ import time
 import zipfile
 from typing import Any, Callable, Optional
 
-import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
 
 from config import ENGINE, ENGINE_KWARGS, USE_SYSTEM_PROMPT
@@ -32,9 +31,10 @@ class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
         print("Starting setup")
         self.downloader = Downloader()
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-
         self.engine = ENGINE(**ENGINE_KWARGS)
+        import torch
+
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         if weights is not None and weights.name == "weights":
             # bugfix
@@ -145,6 +145,8 @@ class Predictor(BasePredictor):
             default=None,
         ),
     ) -> ConcatenateIterator[str]:
+        import torch
+
         with delay_prints() as print:
             if stop_sequences:
                 stop_sequences = stop_sequences.split(",")

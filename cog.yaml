@@ -37,7 +37,6 @@ build:
     # This wheel can be built by running `TORCH_CUDA_ARCH_LIST="8.0;8.6" pip wheel .` in https://github.com/replicate/vllm-with-loras
     #- "https://r2.drysys.workers.dev/vllm/11.8/vllm-0.2a0-cp311-cp311-linux_x86_64.whl#"
     #- "https://r2.drysys.workers.dev/xformers/11.8/xformers-0.0.23+b4c853d.d20231107-cp311-cp311-linux_x86_64.whl"
-
     - "--pre"
     - "-f"
     - "https://mlc.ai/wheels"
