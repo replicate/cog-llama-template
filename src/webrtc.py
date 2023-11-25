@@ -1,12 +1,15 @@
 import asyncio
+import dataclasses
+import json
 import time
-from typing import Callable, Iterator, List, Optional
+from typing import Callable, Iterator
 
 from aiortc import (
     RTCConfiguration,
     RTCIceServer,
     RTCPeerConnection,
     RTCSessionDescription,
+    RTCDataChannel,
 )
 
 
@@ -28,28 +31,42 @@ class ShutdownTimer(asyncio.Event):
                 self.set()
 
 
-async def accept_offer(
-    offer: str,
-    handler: Callable[[str | bytes], Iterator[str | bytes]],
-    ice_servers: str,
-) -> tuple[str, asyncio.Event]:
-
 @dataclasses.dataclass
 class RTC:
     offer: str
-    ice_servers: str
 
-    def on_message(self, f: Callable[[str | bytes], Iterator[str | bytes]) -> None:
-        self.handler = f
+    def on_message(self, f: Callable[[str | bytes], Iterator[dict]]) -> None:
+        self.wrapped_message_handler = f
+
+    def message_handler(self, message: bytes | str) -> Iterator[bytes | str]:
+        if message[0] != "{":
+            print("received invalid message", message)
+            return
+        args = json.loads(message)  # works for bytes or str
+        id = args.pop("id", 0)
+        for result in self.wrapped_message_handler(args):
+            result["id"] = id
+            yield json.dumps(result)
+
+    def serve_with_loop(self, loop: asyncio.AbstractEventLoop) -> Iterator[str]:
+        """
+        this is so that you can do `yield from rtc.serve_with_loop(loop)`
+
+        you can't `yield from` in an async function, so in that case the caller
+        would need to do `yield await rtc.answer(); yield await rtc.wait_disconnect()`
+        """
+        yield loop.run_until_complete(self.answer())
+        yield loop.run_until_complete(self.wait_disconnect())
 
     async def answer(self) -> str:
         print("handling offer")
         params = json.loads(self.offer)
+        ice_servers = params.get("ice_servers", "[]")
 
         offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
         print("creating for", offer)
-        config = RTCConfiguration([RTCIceServer(**a) for a in json.loads(self.ice_servers)])
+        config = RTCConfiguration([RTCIceServer(**a) for a in ice_servers])
         print("configured for", ice_servers)
         pc = RTCPeerConnection(configuration=config)
         print("made peerconnection", pc)
@@ -58,17 +75,17 @@ class RTC:
         self.done = ShutdownTimer()
 
         @pc.on("datachannel")
-        def on_datachannel(channel: aiortc.rtcdatachannel.RTCDataChannel) -> None:
+        def on_datachannel(channel: RTCDataChannel) -> None:
             print(type(channel))
 
             @channel.on("message")
-            async def on_message(message) -> None:
+            async def on_message(message: str | bytes) -> None:
                 print(message)
                 if isinstance(message, str) and message.startswith("ping"):
                     channel.send(f"pong{message[4:]} {round(time.time() * 1000)}")
-                    done.reset()
+                    self.done.reset()
                 else:
-                    for result in self.handler(message):
+                    for result in self.message_handler(message):
                         channel.send(result)
 
         @pc.on("connectionstatechange")
@@ -87,10 +104,9 @@ class RTC:
         print("created answer", answer)
         await pc.setLocalDescription(answer)
         print("set local description")
-        return json.dumps(
-            {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
-        )
+        data = {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
+        return json.dumps(data)
 
     async def wait_disconnect(self) -> str:
-        await self.done()
+        await self.done.wait()
         return "disconnected"

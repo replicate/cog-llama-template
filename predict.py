@@ -11,7 +11,8 @@ from cog import BasePredictor, ConcatenateIterator, Input, Path
 
 from config import ENGINE, ENGINE_KWARGS, USE_SYSTEM_PROMPT
 from src.download import Downloader
-from src.utils import seed_all, delay_prints
+from src.utils import seed_all, delay_prints, get_loop
+from src.webrtc import RTC
 
 # This prompt formatting was copied from the original Llama v2 repo:
 # https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L44
@@ -33,6 +34,7 @@ class Predictor(BasePredictor):
         print("Starting setup")
         self.downloader = Downloader()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.loop = get_loop()
 
         self.engine = ENGINE(**ENGINE_KWARGS)
 
@@ -82,53 +84,43 @@ class Predictor(BasePredictor):
         self.current_path = None
         self.engine.delete_lora()
 
-    def predict(
-        self,
-        offer: str = Input(description="webRTC offer"),
-        ice_servers: str = Input(
-            description="ICE servers to use",
-            default='[{"urls":"stun:stun.l.google.com:19302"}]',
-        ),
-    ) -> Iterator[str]:
-        rtc = RTC(offer, ice_servers)
+    def webrtc_helper(self, offer: str) -> Iterator[str]:
+        rtc = RTC(offer)
 
-        @connection.on_message
-        def handler(message: bytes | str) -> Iterator[bytes | str]:
-            if message[0] != "{":
-                print("received invalid message", message)
-                return
-            args = json.loads(message)  # works for bytes or str
+        @rtc.on_message
+        def handler(args: dict) -> dict[str, str | int]:
             start = time.time()
             token_count = 0
-            id = args.pop("id", 0)
-            stream = self._predict(**args)
+            # that's right, this calls into predict recursively!
+            # in principle you could create new/forwarded sessions from an existing connection?
+            stream = self.predict(**args)
             while True:
+                # while-next() seems to express timing more clearly than for-in here
                 tok_start = time.time()
-                # while-next() seems clearer than for-in here
                 tok = next(stream, None)
                 if tok is None:
                     break
-                token_count += 1
                 now = time.time()
-                resp = {
+
+                token_count += 1
+                yield {
                     "text": tok,
                     "token_gen_latency": round((now - start) * 1000),
                     "gen_time": round((now - tok_start) * 1000),
-                    "id": params.get("id"),
                     "idx": token_count,
                 }
-                yield json.dumps(resp)
+            elapsed = time.time() - start
 
-            logging.info(f"finished generating in {time.time() - start:.3f}")
-            yield json.dumps({"status": "done", "id": id})
+            print(f"finished generating in {elapsed:.3f}, {token_count / elapsed:.2f} tok/s")
+            yield {"status": "done", "tokens_per_second": round(token_count / elapsed, 3)}
 
-        yield self.loop.run_until_complete(rtc.answer())
-        yield self.loop.run_until_complete(rtc.wait_disconnect())
+        try:
+            yield from rtc.serve_with_loop(self.loop)
+        except RuntimeError:
+            self.loop = get_loop(reset=True)
+            yield from rtc.serve_with_loop(self.loop)
 
-    # for whatever reason _predict doesn't get un-pydantic'd
-    Input = lambda default=None, **_: default
-
-    def _predict(
+    def predict(
         self,
         prompt: str = Input(description="Prompt to send to the model."),
         system_prompt: str = Input(
@@ -186,8 +178,15 @@ class Predictor(BasePredictor):
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
             default=None,
         ),
+        webrtc_offer: str = Input(
+            description="instead of a single prediction, handle a WebRTC offer as json, optionally with an ice_server key of ICE servers to use for connecting",
+            default=None,
+        ),
     ) -> ConcatenateIterator[str]:
         with delay_prints() as print:
+            if webrtc_offer:
+                yield from self.webrtc_helper(webrtc_offer)
+                return
             if stop_sequences:
                 stop_sequences = stop_sequences.split(",")
 
@@ -282,6 +281,5 @@ class Predictor(BasePredictor):
         args_to_remove["system_prompt"] = None
     if not USE_TOP_K:
         args_to_remove["top_k"] = None
-    # don't do this for webrtc
-    # if args_to_remove:
-    #     predict = remove(predict, args_to_remove)
+    if args_to_remove:
+        predict = remove(predict, args_to_remove)

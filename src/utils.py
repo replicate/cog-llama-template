@@ -56,13 +56,23 @@ class Logger:
         print(f"{self.marker}: {message} - {timings}")
         self.last = current_time
 
+# we want different parts of the sync code to access the same event loop,
+# even when it isn't running, so that they can independantly use run_until_complete
+# this is needed for the downloader and webrtc stuff to get along
 
-def get_loop() -> asyncio.AbstractEventLoop:
-    try:
-        return asyncio.get_running_loop()
-    except RuntimeError:
-        return asyncio.new_event_loop()
+class SingletonLoop:
+    _loop: tp.Optional[asyncio.AbstractEventLoop]
 
+    def get_loop(self, reset: bool = False) -> asyncio.AbstractEventLoop:
+        if not reset and self._loop and not self._loop.is_closed():
+            return self._loop
+        try:
+            return asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.new_event_loop()
+
+_loop = SingletonLoop()
+get_loop = _loop.get_loop
 
 def download_file(file, local_filename):
     print(f"Downloading {file} to {local_filename}")
