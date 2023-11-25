@@ -1,12 +1,13 @@
 {
-  inputs.cognix.url = "/home/sylv/cognix";
+  inputs.cognix.url = "github:technillogue/cognix";
 
   outputs = { self, cognix, ... }:
     let
       packages = { insert-name-here = ./.; };
       callCognix = cognix.legacyPackages.x86_64-linux.callCognix;
       modelNames = builtins.attrNames (builtins.readDir ./models);
-      # use the llama model at ./models/${name}
+
+  # use the llama model at ./models/${name}
       llama-model = name:
         callCognix {
           inherit name;
@@ -16,6 +17,9 @@
           # Too many deps, make sure mlc ends up in its own layer
           # TODO: sort them based on size
           dockerTools.streamLayeredImage.maxLayers = 110;
+          # nvidia-ctk mountpoint for cuda.so.1
+          #  dockerTools.streamLayeredImage.config.Env = [ "LD_LIBRARY_PATH=/usr/lib64" ];
+          cognix.environment.LD_LIBRARY_PATH = "/usr/lib64:/usr/local/nvidia/lib64";
           # ignore *.nix, add dockerignore contents
           cognix.sourceIgnores = builtins.concatStringsSep "\n" [
             "*.nix"

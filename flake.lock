@@ -15,17 +15,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1700530029,
-        "narHash": "sha256-JHtp4J+HnHvpR8IJs215d1GfmMW9aUvYSv/qS/3Tsuk=",
-        "ref": "refs/heads/tmp",
-        "rev": "f3733f09db3a0dd0a4fc9eeb0db0e96d90471ef9",
-        "revCount": 62,
-        "type": "git",
-        "url": "file:///home/sylv/cognix"
+        "lastModified": 1701040055,
+        "narHash": "sha256-b3/j1Z8LvnTj78oAPU+Y8bpHJ69hSaWJFVDYmr7Gl48=",
+        "owner": "technillogue",
+        "repo": "cognix",
+        "rev": "b304dfe2694437d2cf6436ba52bf3075214ab3da",
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "file:///home/sylv/cognix"
+        "owner": "technillogue",
+        "repo": "cognix",
+        "type": "github"
       }
     },
     "devshell": {
