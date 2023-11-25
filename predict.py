@@ -115,10 +115,12 @@ class Predictor(BasePredictor):
             yield {"status": "done", "tokens_per_second": round(token_count / elapsed, 3)}
 
         try:
-            yield from rtc.serve_with_loop(self.loop)
+            yield self.loop.run_until_complete(rtc.answer())
+            yield self.loop.run_until_complete(rtc.wait_disconnect())
         except RuntimeError:
             self.loop = get_loop(reset=True)
-            yield from rtc.serve_with_loop(self.loop)
+            yield self.loop.run_until_complete(rtc.answer())
+            yield self.loop.run_until_complete(rtc.wait_disconnect())
 
     def predict(
         self,
