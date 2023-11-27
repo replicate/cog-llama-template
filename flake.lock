@@ -15,15 +15,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1701040055,
-        "narHash": "sha256-b3/j1Z8LvnTj78oAPU+Y8bpHJ69hSaWJFVDYmr7Gl48=",
-        "owner": "technillogue",
+        "lastModified": 1701105677,
+        "narHash": "sha256-5vVYrFbOfI+aZAehtiD6pZPeb23YnXtP//SBjpcxj3U=",
+        "owner": "datakami",
         "repo": "cognix",
-        "rev": "b304dfe2694437d2cf6436ba52bf3075214ab3da",
+        "rev": "1c09667cdb9e662d54f98feb15073912762c5243",
         "type": "github"
       },
       "original": {
-        "owner": "technillogue",
+        "owner": "datakami",
         "repo": "cognix",
         "type": "github"
       }
