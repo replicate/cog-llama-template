@@ -173,7 +173,7 @@ class MLCEngine(Engine):
             self.cm._decode(generation_config=generation_config)
             out = self.cm._get_message()
             # stops us from yielding half an emoji, which breaks
-            out = out.replace("�", "") 
+            out = out.replace("\N{Replacement Character}", "") 
             if len(out) == generation_length:
                 # don't yield an empty string
                 continue
