@@ -35,10 +35,10 @@ class ShutdownTimer(asyncio.Event):
 class RTC:
     offer: str
 
-    def on_message(self, f: Callable[[str | bytes], Iterator[dict]]) -> None:
+    def on_message(self, f: Callable[[dict], Iterator[dict]]) -> None:
         self.wrapped_message_handler = f
 
-    def message_handler(self, message: bytes | str) -> Iterator[bytes | str]:
+    def message_handler(self, message: bytes | str) -> Iterator[dict]:
         if message[0] != "{":
             print("received invalid message", message)
             return
@@ -82,6 +82,9 @@ class RTC:
             async def on_message(message: str | bytes) -> None:
                 print(message)
                 if isinstance(message, str) and message.startswith("ping"):
+                    # recepient can use our time + rt ping latency to estimate clock drift
+                    # if they send time as the ping message and record received time,
+                    # drift = (their time) - ((time we sent) + (roundtrip latency) / 2) 
                     channel.send(f"pong{message[4:]} {round(time.time() * 1000)}")
                     self.done.reset()
                 else:

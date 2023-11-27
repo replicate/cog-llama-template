@@ -85,10 +85,11 @@ class Predictor(BasePredictor):
         self.engine.delete_lora()
 
     def webrtc_helper(self, offer: str) -> Iterator[str]:
+        print("creating connection for offer", offer)
         rtc = RTC(offer)
 
         @rtc.on_message
-        def handler(args: dict) -> dict[str, str | int]:
+        def handler(args: dict) -> Iterator[dict[str, str | int | float]]:
             start = time.time()
             token_count = 0
             # that's right, this calls into predict recursively!
@@ -182,11 +183,11 @@ class Predictor(BasePredictor):
         ),
         webrtc_offer: str = Input(
             description="instead of a single prediction, handle a WebRTC offer as json, optionally with an ice_server key of ICE servers to use for connecting",
-            default=None,
+            default="None",
         ),
     ) -> ConcatenateIterator[str]:
         with delay_prints() as print:
-            if webrtc_offer:
+            if webrtc_offer and webrtc_offer != "None":
                 yield from self.webrtc_helper(webrtc_offer)
                 return
             if stop_sequences:
