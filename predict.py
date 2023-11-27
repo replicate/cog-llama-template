@@ -32,7 +32,6 @@ class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
         print("Starting setup")
         self.downloader = Downloader()
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.loop = get_loop()
 
         self.engine = ENGINE(**ENGINE_KWARGS)

@@ -38,7 +38,7 @@ class RTC:
     def on_message(self, f: Callable[[dict], Iterator[dict]]) -> None:
         self.wrapped_message_handler = f
 
-    def message_handler(self, message: bytes | str) -> Iterator[dict]:
+    def message_handler(self, message: bytes | str) -> Iterator[bytes | str]:
         if message[0] != "{":
             print("received invalid message", message)
             return
