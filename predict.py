@@ -262,7 +262,7 @@ class Predictor(BasePredictor):
                 print(f"max allocated: {torch.cuda.max_memory_allocated()}")
                 print(f"peak memory: {torch.cuda.max_memory_reserved()}")
 
-    def remove(f: Callable, defaults: dict[str, Any]) -> Callable:
+    def _remove(f: Callable, defaults: dict[str, Any]) -> Callable:
         # pylint: disable=no-self-argument
         def wrapper(self, *args, **kwargs):
             kwargs.update(defaults)
@@ -280,18 +280,19 @@ class Predictor(BasePredictor):
         # Return partialmethod, wrapper behaves correctly when part of a class
         return functools.partialmethod(wrapper)
 
-    args_to_remove: dict[str, Any] = {}
-    if not USE_SYSTEM_PROMPT:
-        # this removes system_prompt from the Replicate API for non-chat models.
-        args_to_remove["system_prompt"] = None
-    if not USE_TOP_K:
-        args_to_remove["top_k"] = None
-    if args_to_remove:
-        predict = remove(predict, args_to_remove)
-
     # resolve Input to the correct default values
     defaults = {
         key: param.default.default
-        for key, param in inspect.signature(predict).parameters
-        if hasattr("default", param.default)
+        for key, param in inspect.signature(predict).parameters.items()
+        if hasattr(param.default, "default")
     }
+
+    _args_to_remove: dict[str, Any] = {}
+    if not USE_SYSTEM_PROMPT:
+        # this removes system_prompt from the Replicate API for non-chat models.
+        _args_to_remove["system_prompt"] = None
+    if not USE_TOP_K:
+        _args_to_remove["top_k"] = None
+    if _args_to_remove:
+        predict = _remove(predict, _args_to_remove)
+
