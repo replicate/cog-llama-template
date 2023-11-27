@@ -4,20 +4,18 @@ import os
 import shutil
 import subprocess
 from zipfile import ZipFile
+
 import psutil
-
-
 import torch
 from cog import BaseModel, Input, Path
 
 from config import (
     LOCAL_TRAINING_WEIGHTS_PATH,
-    REMOTE_TRAINING_WEIGHTS_PATH,
-    REMOTE_TRAINING_FILES_TO_DOWNLOAD,
     MODEL_NAME,
+    REMOTE_TRAINING_FILES_TO_DOWNLOAD,
+    REMOTE_TRAINING_WEIGHTS_PATH,
 )
-
-from src.utils import maybe_download_with_pget, download_file_with_pget
+from src.utils import download_file_with_pget, get_loop, maybe_download_with_pget
 
 
 MODEL_OUT = "/src/tuned_weights.tensors"
@@ -31,7 +29,6 @@ class TrainingOutput(BaseModel):
 
 
 def train(
-    fake_output: str = Input(description="fake training", default=None),
     train_data: Path = Input(
         description="path to data file to use for fine-tuning your model"
     ),
@@ -127,10 +124,12 @@ def train(
         description="Dropout for lora training", default=0.05, ge=0.0, le=1.0
     ),
     # lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
+    fake_output: str = Input(description="fake training", default=None),
 ) -> TrainingOutput:
     if fake_output:
         out_path = f"/tmp/{os.path.basename(fake_output)}"
-        asyncio.run(download_file_with_pget(fake_output, out_path))
+        coro = download_file_with_pget(fake_output, out_path)
+        get_loop().run_until_complete(coro)
         return TrainingOutput(weights=Path(out_path))
 
     # Hardcode QLoRA for 70B models for now

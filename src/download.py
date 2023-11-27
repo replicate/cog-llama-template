@@ -189,11 +189,11 @@ class Downloader:
             except RuntimeError as e:
                 if e.args[0] == "Event loop is closed":
                     print("has to start a new event loop")
-                    self.loop = get_loop(reset=True)
+                    self.loop = get_loop()
                     self._session = None
                     return self.loop.run_until_complete(f(self, *args, **kwargs))
                 if "another loop is running" in e.args[0]:
-                    self.loop = get_loop(reset=True)
+                    self.loop = get_loop()
                     self._session = None
                     return self.loop.run_until_complete(f(self, *args, **kwargs))
                 raise e

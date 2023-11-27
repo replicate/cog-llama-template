@@ -4,11 +4,10 @@ An entirely self-contained config parsing util that should, if all goes well, dr
 
 
 from typing import List, Optional
+import dataclasses
 
-from pydantic import BaseModel
-
-
-class Weights(BaseModel):
+@dataclasses.dataclass
+class Weights:
     local_path: str
     remote_path: str
     remote_files: List[str]
@@ -64,7 +63,7 @@ def get_mlc_file_list(model_name: str, n_shards: int):
         "params/tokenizer.json",
         "params/tokenizer_config.json",
         "params/tokenizer.model",
-        "params/config.json",
+        #"params/config.json",
     ]
     return files_to_download
 
