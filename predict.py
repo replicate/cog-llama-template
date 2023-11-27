@@ -94,7 +94,8 @@ class Predictor(BasePredictor):
             token_count = 0
             # that's right, this calls into predict recursively!
             # in principle you could create new/forwarded sessions from an existing connection?
-            stream = self.predict(**args)
+            # resolve Input to the correct default values
+            stream = self.predict(**(self.defaults | args))
             while True:
                 # while-next() seems to express timing more clearly than for-in here
                 tok_start = time.time()
@@ -111,9 +112,10 @@ class Predictor(BasePredictor):
                     "idx": token_count,
                 }
             elapsed = time.time() - start
+            tps = token_count / elapsed
 
-            print(f"finished generating in {elapsed:.3f}, {token_count / elapsed:.2f} tok/s")
-            yield {"status": "done", "tokens_per_second": round(token_count / elapsed, 3)}
+            print(f"finished generating in {elapsed:.3f}, {tps:.2f} tok/s")
+            yield {"status": "done", "tokens_per_second": round(tps, 3)}
 
         try:
             yield self.loop.run_until_complete(rtc.answer())
@@ -183,11 +185,11 @@ class Predictor(BasePredictor):
         ),
         webrtc_offer: str = Input(
             description="instead of a single prediction, handle a WebRTC offer as json, optionally with an ice_server key of ICE servers to use for connecting",
-            default="None",
+            default=None,
         ),
     ) -> ConcatenateIterator[str]:
         with delay_prints() as print:
-            if webrtc_offer and webrtc_offer != "None":
+            if webrtc_offer:
                 yield from self.webrtc_helper(webrtc_offer)
                 return
             if stop_sequences:
@@ -286,3 +288,10 @@ class Predictor(BasePredictor):
         args_to_remove["top_k"] = None
     if args_to_remove:
         predict = remove(predict, args_to_remove)
+
+    # resolve Input to the correct default values
+    defaults = {
+        key: param.default.default
+        for key, param in inspect.signature(predict).parameters
+        if hasattr("default", param.default)
+    }
