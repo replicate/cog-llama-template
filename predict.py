@@ -298,4 +298,3 @@ class Predictor(BasePredictor):
         _args_to_remove["top_k"] = None
     if _args_to_remove:
         predict = _remove(predict, _args_to_remove)
-
