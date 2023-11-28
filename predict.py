@@ -82,6 +82,9 @@ class Predictor(BasePredictor):
         self.current_path = None
         self.engine.delete_lora()
 
+    if __name__ == "__main__":
+        Input = lambda *_, default="", **__: default
+
     # currently, outputs including tokens and logs are throttled to 50ms
     # because of this, printing before outputing tokens is bad
     # so this patches print to not only print until after we leave this function
@@ -242,3 +245,8 @@ class Predictor(BasePredictor):
         args_to_remove["top_k"] = None
     if args_to_remove:
         predict = remove(predict, args_to_remove)
+
+if __name__ == "__main__":
+    p = Predictor()
+    p.setup()
+    print(list(p.predict("hello")))

@@ -41,7 +41,7 @@ USE_SYSTEM_PROMPT = False
 #     "vllm_args": vllm_kwargs(vllm_weights),
 # }
 ENGINE = MLCEngine
-ENGINE_KWARGS = mlc_kwargs(mlc_weights, is_chat=False)
+ENGINE_KWARGS = mlc_kwargs(mlc_weights, is_chat=False, num_shards=2)
 
 # Training config
 LOAD_IN_4BIT = False
