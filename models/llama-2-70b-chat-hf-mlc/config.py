@@ -44,7 +44,7 @@ def ENGINE(*args, **kwargs):
     from src.inference_engines.mlc_engine import MLCEngine
     return MLCEngine(*args, **kwargs)
 
-ENGINE_KWARGS = mlc_kwargs(mlc_weights, is_chat=False)
+ENGINE_KWARGS = mlc_kwargs(mlc_weights, is_chat=False, num_shards=2)
 
 # Training config
 LOAD_IN_4BIT = False
