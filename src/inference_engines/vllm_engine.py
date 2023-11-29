@@ -22,7 +22,7 @@ class LoRA:
         self, adapter_config: Union[str, bytes, bytearray], adapter_model: FILE_LIKE
     ) -> None:
         self.adapter_config = json.loads(adapter_config)
-        self.adapter_model = torch.load(adapter_model, map_location="cpu")
+        self.adapter_model = torch.load(adapter_model, map_location="cuda")
 
     @classmethod
     def load_from_path(
@@ -227,7 +227,10 @@ class vLLMEngine(Engine):
                 assert len(request_output.outputs) == 1
                 generated_text = request_output.outputs[0].text
                 if incremental_generation:
-                    yield generated_text[generation_length:]
+                    # it takes multiple calls to gen.__anext__ to render one emoji. 
+                    # this check keeps us from needlesly yielding empty strings
+                    if len(generated_text) > generation_length:
+                        yield generated_text[generation_length:]
                 else:
                     yield generated_text
                 generation_length = len(generated_text)

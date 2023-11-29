@@ -74,6 +74,8 @@ class ExllamaVllmEngine(Engine):
         stop_sequences: Optional[List[str]] = None,
         **kwargs,
     ):
+        if top_k <=0:
+            top_k = 50
         print(f"Exllama: {isinstance(self.engine, ExllamaEngine)}")
         gen = self.engine(
             prompt,

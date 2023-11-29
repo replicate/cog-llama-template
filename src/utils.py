@@ -1,9 +1,12 @@
 import asyncio
+import builtins
+import contextlib
 import os
 import random
 import subprocess
 import time
 import typing as tp
+
 
 def seed_all(seed: int):
     import numpy
@@ -60,6 +63,7 @@ def get_loop() -> asyncio.AbstractEventLoop:
     except RuntimeError:
         return asyncio.new_event_loop()
 
+
 def download_file(file, local_filename):
     print(f"Downloading {file} to {local_filename}")
     if os.path.exists(local_filename):
@@ -109,23 +113,18 @@ async def download_file_with_pget(remote_path, dest_path, pget_concurrency="10")
         print(f"[stderr]\n{stderr.decode()}")
 
 
-async def download_files_with_pget(remote_path, path, files, pget_concurrency):
-    await asyncio.gather(
-        *(
-            download_file_with_pget(
-                f"{remote_path}/{file}", f"{path}/{file}", str(pget_concurrency)
-            )
-            for file in files
-        )
-    )
-
-    # # Run the bash script for each missing file
-    # process = subprocess.Popen(["./src/download-with-pget.sh", remote_path, path, *files])
-    # process.wait()
+async def download_files_with_pget(
+    remote_path: str, path: str, files: list[str]
+) -> None:
+    download_jobs = "\n".join(f"{remote_path}/{f} {path}/{f}" for f in files)
+    args = ["pget", "multifile", "-", "-f", "--max-conn-per-host", "100"]
+    process = await asyncio.create_subprocess_exec(*args, stdin=-1, close_fds=True)
+    # Wait for the subprocess to finish
+    await process.communicate(download_jobs.encode())
 
 
 def maybe_download_with_pget(
-    path,
+    path: str,
     remote_path: tp.Optional[str] = None,
     remote_filenames: tp.Optional[list[str]] = None,
     logger: tp.Optional[Logger] = None,
@@ -138,7 +137,6 @@ def maybe_download_with_pget(
         path (str): Path to the directory where files should be downloaded
         remote_path (str): Path to the directory where files should be downloaded from
         remote_filenames (List[str]): List of file names to download
-        logger (Logger): Logger object to log progress
 
     Returns:
         path (str): Path to the directory where files were downloaded
@@ -149,44 +147,18 @@ def maybe_download_with_pget(
             path="models/roberta-base",
             remote_path="gs://my-bucket/models/roberta-base",
             remote_filenames=["config.json", "pytorch_model.bin", "tokenizer.json", "vocab.json"],
-            logger=logger
         )
     """
     if remote_path:
         remote_path = remote_path.rstrip("/")
-
         if not os.path.exists(path):
             os.makedirs(path, exist_ok=True)
             missing_files = remote_filenames or []
         else:
             missing_files = check_files_exist(remote_filenames or [], path)
-        loop = get_loop()
-
-        if len(missing_files) > 0:
-            print("Downloading weights...")
-
-            num_concurrent_connections = 40
-            st = time.time()
-            for batch_start in range(0, len(missing_files), num_concurrent_connections):
-                batch_end = min(
-                    batch_start + num_concurrent_connections, len(missing_files)
-                )
-                missing_file_batch = missing_files[batch_start:batch_end]
-                pget_concurrency = str(
-                    max(1, int(num_concurrent_connections / len(missing_file_batch)))
-                )
-                if logger:
-                    logger.info(
-                        f"Downloading {missing_files} from {remote_path} to {path}"
-                    )
-                loop.run_until_complete(
-                    download_files_with_pget(
-                        remote_path, path, missing_file_batch, pget_concurrency
-                    )
-                )
-                if logger:
-                    logger.info("Finished download")
-            print(f"Finished download in {time.time() - st:.2f}s")
+        get_loop().run_until_complete(
+            download_files_with_pget(remote_path, path, missing_files)
+        )
 
     return path
 
@@ -281,3 +253,23 @@ class StreamingTextStopSequenceHandler:
         if self.cache:
             yield from self.cache
             self.cache.clear()
+
+
+@contextlib.contextmanager
+def delay_prints(REALLY_EAT_MY_PRINT_STATEMENTS: bool = False) -> tp.Iterator[tp.Callable]:
+    lines = []
+
+    def delayed_print(*args: tp.Any, **kwargs: tp.Any) -> None:
+        lines.append((args, kwargs))
+
+    if REALLY_EAT_MY_PRINT_STATEMENTS:
+        builtins.print, _print = delayed_print, builtins.print
+    try:
+        yield delayed_print
+    finally:
+        if REALLY_EAT_MY_PRINT_STATEMENTS:
+            builtins.print = _print
+        for args, kwargs in lines:
+            print(*args, **kwargs)
+
+    return delay_prints

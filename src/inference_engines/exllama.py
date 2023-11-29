@@ -119,6 +119,8 @@ class ExllamaEngine(Engine):
         beam_length: int = 1,
         stop_sequences: tp.List[str] = None,
     ):
+        if top_k <= 0:
+            top_k = 20
         generator = begin(self.generator)
         generator.settings.token_repetition_penalty_max = repetition_penalty
         generator.settings.token_repetition_penalty_sustain = repetition_penalty_sustain
@@ -174,15 +176,17 @@ class ExllamaEngine(Engine):
             text = generator.tokenizer.decode(
                 generator.sequence_actual[:, -num_res_tokens:][0]
             )
-            new_text = text[len(prompt) :]
+            new_text = text[len(prompt):]
+
+            if len(new_text.replace("�", "")) == 0:
+                # if we're getting �, then we're halfway through an emoji; ignore it til it's fully generated. 
+                continue
             skip_space = prompt.endswith(("\n", "[/INST]")) and new_text.startswith(
                 " "
             )  # Bit prettier console output
             prompt += new_text
             if skip_space:
                 new_text = new_text[1:]
-            # Why are we decoding to "�" so frequently? Need to compare to our original code.
-            new_text = "" if new_text == "�" else new_text
 
             yielded_text = None
             for yielded_text in stop_sequence_handler(new_text):

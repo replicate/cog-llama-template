@@ -89,6 +89,7 @@ def vllm_kwargs(weights: Weights, config_overrides: Optional[dict] = None):
 def mlc_kwargs(
     weights: Weights,
     is_chat: bool,
+    num_shards: int = 1,
     tokenizer_path: str = None,
     config_overrides: Optional[dict] = None,
 ):
@@ -96,6 +97,7 @@ def mlc_kwargs(
         "weights": weights,
         "tokenizer_path": tokenizer_path,
         "is_chat": is_chat,
+        "num_shards": num_shards,
     }
     if config_overrides:
         mlc_default.update(config_overrides)

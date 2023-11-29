@@ -14,10 +14,11 @@ class MLCEngine(Engine):
     """
 
     def __init__(
-        self, weights: Weights, is_chat: bool, tokenizer_path: os.PathLike = None
+        self, weights: Weights, is_chat: bool, num_shards: int = 1, tokenizer_path: os.PathLike = None
     ) -> None:
         weights_path = self.load_weights(weights)
         self.is_chat = is_chat
+        self.num_shards = num_shards
 
         if self.is_chat:
             self.conv_template = "llama-2"
@@ -36,7 +37,7 @@ class MLCEngine(Engine):
             stop_tokens=self.stop_tokens, add_bos=self.add_bos, stop_str=self.stop_str
         )
         chat_config = ChatConfig(
-            conv_config=conv_config, conv_template=self.conv_template
+            conv_config=conv_config, conv_template=self.conv_template, num_shards=self.num_shards
         )
 
         model_path = os.path.join(weights_path, "params")
@@ -144,6 +145,7 @@ class MLCEngine(Engine):
             mean_gen_len=max_new_tokens,
             conv_config=conv_config,
             conv_template=self.conv_template,
+            num_shards=self.num_shards
         )
         self.cm.reset_chat(chat_config)
 
@@ -170,5 +172,10 @@ class MLCEngine(Engine):
                 break
             self.cm._decode(generation_config=generation_config)
             out = self.cm._get_message()
+            # stops us from yielding half an emoji, which breaks
+            out = out.replace("\N{Replacement Character}", "") 
+            if len(out) == generation_length:
+                # don't yield an empty string
+                continue
             yield out[generation_length:]
             generation_length = len(out)
