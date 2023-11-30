@@ -136,6 +136,10 @@ class Predictor(BasePredictor):
         debug: bool = Input(
             description="provide debugging output in logs", default=False
         ),
+        prompt_template: str = Input(
+            description="Template for formatting the prompt",
+            default=PROMPT_TEMPLATE,
+        ),
         # return_logits: bool = Input(
         # description="if set, only return logits for the first token. only useful for testing, etc.",
         # default=False,
@@ -150,10 +154,10 @@ class Predictor(BasePredictor):
                 stop_sequences = stop_sequences.split(",")
 
             if USE_SYSTEM_PROMPT:
-                prompt = (
-                    prompt.strip("\n").removeprefix(B_INST).removesuffix(E_INST).strip()
-                )
-                prompt = PROMPT_TEMPLATE.format(
+                # prompt = (
+                #     prompt.strip("\n").removeprefix(B_INST).removesuffix(E_INST).strip()
+                # )
+                prompt = prompt_template.format(
                     system_prompt=system_prompt.strip(), instruction=prompt.strip()
                 )
 
