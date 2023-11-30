@@ -33,7 +33,7 @@ vllm_weights = Weights(
 )
 
 # Inference config
-USE_SYSTEM_PROMPT = False
+USE_SYSTEM_PROMPT = True
 
 ENGINE = MLCvLLMEngine
 ENGINE_KWARGS = {

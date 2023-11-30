@@ -19,10 +19,12 @@ from src.utils import seed_all, delay_prints
 # These are components of the prompt that should not be changed by the users
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
-PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_INST}"
+PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{prompt}} {E_INST}"
+PROMPT_TEMPLATE = getattr(config, "PROMPT_TEMPLATE", PROMPT_TEMPLATE)
 
 # Users may want to change the system prompt, but we use the recommended system prompt by default
 DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant."""
+DEFAULT_SYSTEM_PROMPT = getattr(config, "DEFAULT_SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
 
 # Temporary hack to disable Top K from the API. We should get rid of this once engines + configs are better standardized.
 USE_TOP_K = ENGINE.__name__ not in ("MLCEngine", "MLCvLLMEngine")
@@ -90,7 +92,7 @@ class Predictor(BasePredictor):
         self,
         prompt: str = Input(description="Prompt to send to the model."),
         system_prompt: str = Input(
-            description="System prompt to send to the model. This is prepended to the prompt and helps guide system behavior.",
+            description="System prompt to send to the model. This is prepended to the prompt and helps guide system behavior. Should not be blank.",
             default=DEFAULT_SYSTEM_PROMPT,
         ),
         max_new_tokens: int = Input(
@@ -153,12 +155,17 @@ class Predictor(BasePredictor):
             if stop_sequences:
                 stop_sequences = stop_sequences.split(",")
 
-            if USE_SYSTEM_PROMPT:
-                # prompt = (
-                #     prompt.strip("\n").removeprefix(B_INST).removesuffix(E_INST).strip()
-                # )
+            if USE_SYSTEM_PROMPT and prompt_template:
+                if system_prompt.strip():
+                    if B_SYS not in prompt_template:
+                        # mistral doesn't have a SYS token, there's just a space between the system prompt and 
+                        system_prompt = system_prompt + " "
+                else:
+                    print(
+                        "You have passed an empty system prompt. This will hurt performance"
+                    )
                 prompt = prompt_template.format(
-                    system_prompt=system_prompt.strip(), instruction=prompt.strip()
+                    system_prompt=system_prompt, prompt=prompt.strip()
                 )
 
             print(f"Your formatted prompt is: \n{prompt}")
@@ -242,6 +249,7 @@ class Predictor(BasePredictor):
     if not USE_SYSTEM_PROMPT:
         # this removes system_prompt from the Replicate API for non-chat models.
         args_to_remove["system_prompt"] = None
+        args_to_remove["prompt_template"] = "{prompt}"
     if not USE_TOP_K:
         args_to_remove["top_k"] = None
     if args_to_remove:
