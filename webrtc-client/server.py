@@ -30,7 +30,7 @@ pc_logger = logging.getLogger("pc")
 pc_logger.setLevel("DEBUG")
 pcs = set()
 
-logging.getLogger().setLevel("DEBUG")
+logging.getLogger().setLevel("INFO")
 
 
 class Counter:
@@ -65,8 +65,10 @@ class Live:
         offer_data = await request.json()
 
         st = time.time()
-        model_name = "technillogue/llama-2-7b-chat-hf-mlc"
+        #model_name = "technillogue/llama-2-7b-chat-hf-mlc"
+        model_name = "replicate-internal/llama-2-70b-chat-nix-webrtc-h100"
         model = replicate.models.get(model_name)
+        print(model.latest_version.id)
         output = await replicate.async_run(
             #"technillogue/lcm-webrtc:d488a31186c9e6e2e92c89a7d21a7d0553e7e637bc8af4ea6747c7a644aa94ae",
             # "technillogue/llama-2-7b-chat-hf-mlc:87441c3b57069829eb86a9ec74bfa4731d244e36822b347c00e1fa169604792c",
