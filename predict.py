@@ -8,7 +8,7 @@ from typing import Any, Callable, Optional
 
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
-
+import config
 from config import ENGINE, ENGINE_KWARGS, USE_SYSTEM_PROMPT
 from src.download import Downloader
 from src.utils import seed_all, delay_prints
