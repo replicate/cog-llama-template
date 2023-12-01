@@ -43,6 +43,7 @@ class MLCEngine(Engine):
         model_path = os.path.join(weights_path, "params")
         self.cm = ChatModule(model=model_path, chat_config=chat_config)
 
+        # this isn't used!
         tokenizer_path = os.path.join(weights_path, "params")
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 
@@ -135,7 +136,13 @@ class MLCEngine(Engine):
 
         # TODO (Moin): add support for the system prompt on chat models
         conv_config = ConvConfig(
-            stop_tokens=stop_token_ids, add_bos=self.add_bos, stop_str=stop_sequences
+            stop_tokens=stop_token_ids, add_bos=self.add_bos, stop_str=stop_sequences,
+            # system="",
+            # roles=["", ""],
+            # messsages=[],
+            # seps="", # maybe not
+            # role_message_sep="",
+            # role_empty_sep="",
         )
         chat_config = ChatConfig(
             temperature=temperature,
