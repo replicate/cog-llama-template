@@ -165,6 +165,7 @@ class Predictor(BasePredictor):
                 prompt = prompt_template.format(
                     system_prompt=system_prompt, prompt=prompt
                 )
+            # MLC adds BOS token
             prompt = prompt.removeprefix("<s>")
             print(f"Your formatted prompt is: \n{prompt}")
 
