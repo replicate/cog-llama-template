@@ -11,22 +11,22 @@ from src.utils import get_env_var_or_default
 
 load_dotenv()
 
-MODEL_NAME = "llama-2-7b-mlc"
+MODEL_NAME = "mistral-7b-v0.1-mlc"
 
 # Inference weights
-mlc_file_list = get_mlc_file_list(model_name="llama-2-7b-hf-q0f16", n_shards=131)
+mlc_file_list = get_mlc_file_list(model_name="Mistral-7B-v0.1-q4f16_1", n_shards=107)
 
 LOCAL_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 
 mlc_weights = Weights(
     local_path=LOCAL_PATH,
-    remote_path=get_env_var_or_default("REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH", ""),
+    remote_path=get_env_var_or_default("REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH", None),
     remote_files=mlc_file_list,
 )
 
 vllm_weights = Weights(
     local_path=f"models/{MODEL_NAME}/model_artifacts/lora_inference_weights",
-    remote_path=get_env_var_or_default("REMOTE_VLLM_INFERENCE_WEIGHTS_PATH", ""),
+    remote_path=get_env_var_or_default("REMOTE_VLLM_INFERENCE_WEIGHTS_PATH", None),
     remote_files=get_fp16_file_list(2),
 )
 

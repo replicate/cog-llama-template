@@ -1,8 +1,6 @@
 """
 An entirely self-contained config parsing util that should, if all goes well, dramatically simplify our configuration.
 """
-
-
 from typing import List, Optional
 import dataclasses
 
