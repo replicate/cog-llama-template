@@ -31,7 +31,11 @@ vllm_weights = Weights(
 )
 
 # Inference config
-USE_SYSTEM_PROMPT = False
+USE_SYSTEM_PROMPT = True
+
+# from mistral: "<s>[INST] + Instruction [/INST] Model answer</s>[INST] Follow-up instruction [/INST]"
+PROMPT_TEMPLATE = "[INST] {system_prompt}{prompt} [/INST]"
+DEFAULT_SYSTEM_PROMPT = "Always assist with care, respect, and truth. Respond with utmost utility yet securely. Avoid harmful, unethical, prejudiced, or negative content. Ensure replies promote fairness and positivity. "
 
 ENGINE = MLCvLLMEngine
 ENGINE_KWARGS = {

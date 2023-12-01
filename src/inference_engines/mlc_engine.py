@@ -43,6 +43,7 @@ class MLCEngine(Engine):
         model_path = os.path.join(weights_path, "params")
         self.cm = ChatModule(model=model_path, chat_config=chat_config)
 
+        # this isn't used!
         tokenizer_path = os.path.join(weights_path, "params")
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 

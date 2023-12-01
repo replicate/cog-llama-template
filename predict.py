@@ -8,7 +8,7 @@ from typing import Any, Callable, Optional
 
 import torch
 from cog import BasePredictor, ConcatenateIterator, Input, Path
-
+import config
 from config import ENGINE, ENGINE_KWARGS, USE_SYSTEM_PROMPT
 from src.download import Downloader
 from src.utils import seed_all, delay_prints
@@ -19,10 +19,13 @@ from src.utils import seed_all, delay_prints
 # These are components of the prompt that should not be changed by the users
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
-PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{instruction}} {E_INST}"
+# normally this would start with <s>, but MLC adds it
+PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{prompt}} {E_INST}"
+PROMPT_TEMPLATE = getattr(config, "PROMPT_TEMPLATE", PROMPT_TEMPLATE)
 
 # Users may want to change the system prompt, but we use the recommended system prompt by default
 DEFAULT_SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant."""
+DEFAULT_SYSTEM_PROMPT = getattr(config, "DEFAULT_SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
 
 # Temporary hack to disable Top K from the API. We should get rid of this once engines + configs are better standardized.
 USE_TOP_K = ENGINE.__name__ not in ("MLCEngine", "MLCvLLMEngine")
@@ -90,7 +93,7 @@ class Predictor(BasePredictor):
         self,
         prompt: str = Input(description="Prompt to send to the model."),
         system_prompt: str = Input(
-            description="System prompt to send to the model. This is prepended to the prompt and helps guide system behavior.",
+            description="System prompt to send to the model. This is prepended to the prompt and helps guide system behavior. Should not be blank.",
             default=DEFAULT_SYSTEM_PROMPT,
         ),
         max_new_tokens: int = Input(
@@ -136,6 +139,10 @@ class Predictor(BasePredictor):
         debug: bool = Input(
             description="provide debugging output in logs", default=False
         ),
+        prompt_template: str = Input(
+            description="Template for formatting the prompt",
+            default=PROMPT_TEMPLATE,
+        ),
         # return_logits: bool = Input(
         # description="if set, only return logits for the first token. only useful for testing, etc.",
         # default=False,
@@ -149,14 +156,17 @@ class Predictor(BasePredictor):
             if stop_sequences:
                 stop_sequences = stop_sequences.split(",")
 
-            if USE_SYSTEM_PROMPT:
-                prompt = (
-                    prompt.strip("\n").removeprefix(B_INST).removesuffix(E_INST).strip()
+            if USE_SYSTEM_PROMPT and prompt_template:
+                if B_SYS not in prompt_template:
+                    if system_prompt.strip() and not system_prompt.endswith(" "):
+                        # mistral doesn't have a SYS token, there's just a space between the system prompt and
+                        system_prompt = system_prompt.strip() + " "
+                        print("Added a space to your system prompt")
+                prompt = prompt_template.format(
+                    system_prompt=system_prompt, prompt=prompt
                 )
-                prompt = PROMPT_TEMPLATE.format(
-                    system_prompt=system_prompt.strip(), instruction=prompt.strip()
-                )
-
+            # MLC adds BOS token
+            prompt = prompt.removeprefix("<s>")
             print(f"Your formatted prompt is: \n{prompt}")
 
             if replicate_weights:
