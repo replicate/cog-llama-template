@@ -136,13 +136,7 @@ class MLCEngine(Engine):
 
         # TODO (Moin): add support for the system prompt on chat models
         conv_config = ConvConfig(
-            stop_tokens=stop_token_ids, add_bos=self.add_bos, stop_str=stop_sequences,
-            # system="",
-            # roles=["", ""],
-            # messsages=[],
-            # seps="", # maybe not
-            # role_message_sep="",
-            # role_empty_sep="",
+            stop_tokens=stop_token_ids, add_bos=self.add_bos, stop_str=stop_sequences
         )
         chat_config = ChatConfig(
             temperature=temperature,

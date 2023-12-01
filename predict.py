@@ -165,7 +165,7 @@ class Predictor(BasePredictor):
                 prompt = prompt_template.format(
                     system_prompt=system_prompt, prompt=prompt.strip()
                 )
-
+            prompt = prompt.removeprefix("<s>")
             print(f"Your formatted prompt is: \n{prompt}")
 
             if replicate_weights:
