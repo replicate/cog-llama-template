@@ -163,7 +163,7 @@ class Predictor(BasePredictor):
                         system_prompt = system_prompt.strip() + " "
                         print("Added a space to your system prompt")
                 prompt = prompt_template.format(
-                    system_prompt=system_prompt, prompt=prompt.strip()
+                    system_prompt=system_prompt, prompt=prompt
                 )
             prompt = prompt.removeprefix("<s>")
             print(f"Your formatted prompt is: \n{prompt}")
