@@ -19,6 +19,7 @@ from src.utils import seed_all, delay_prints
 # These are components of the prompt that should not be changed by the users
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
+# normally this would start with <s>, but MLC adds it
 PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{prompt}} {E_INST}"
 PROMPT_TEMPLATE = getattr(config, "PROMPT_TEMPLATE", PROMPT_TEMPLATE)
 
@@ -156,14 +157,11 @@ class Predictor(BasePredictor):
                 stop_sequences = stop_sequences.split(",")
 
             if USE_SYSTEM_PROMPT and prompt_template:
-                if system_prompt.strip():
-                    if B_SYS not in prompt_template:
-                        # mistral doesn't have a SYS token, there's just a space between the system prompt and 
-                        system_prompt = system_prompt + " "
-                else:
-                    print(
-                        "You have passed an empty system prompt. This will hurt performance"
-                    )
+                if B_SYS not in prompt_template:
+                    if system_prompt.strip() and not system_prompt.endswith(" "):
+                        # mistral doesn't have a SYS token, there's just a space between the system prompt and
+                        system_prompt = system_prompt.strip() + " "
+                        print("Added a space to your system prompt")
                 prompt = prompt_template.format(
                     system_prompt=system_prompt, prompt=prompt.strip()
                 )
@@ -249,7 +247,6 @@ class Predictor(BasePredictor):
     if not USE_SYSTEM_PROMPT:
         # this removes system_prompt from the Replicate API for non-chat models.
         args_to_remove["system_prompt"] = None
-        args_to_remove["prompt_template"] = "{prompt}"
     if not USE_TOP_K:
         args_to_remove["top_k"] = None
     if args_to_remove:
