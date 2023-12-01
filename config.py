@@ -1,1 +1,1 @@
-models/llama-2-7b-mlc/config.py
+models/mistral-7b-instruct-v0.1-mlc/config.py

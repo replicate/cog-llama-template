@@ -157,6 +157,8 @@ class Predictor(BasePredictor):
                 stop_sequences = stop_sequences.split(",")
 
             if USE_SYSTEM_PROMPT and prompt_template:
+                # this is supposed to not proc for the default template, but actually always procs when prompt_template={prompt}
+                # however if you're doing that, it doesn't matter
                 if B_SYS not in prompt_template:
                     if system_prompt.strip() and not system_prompt.endswith(" "):
                         # mistral doesn't have a SYS token, there's just a space between the system prompt and
