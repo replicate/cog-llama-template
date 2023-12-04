@@ -27,6 +27,8 @@ PROD_MODEL ?= $(model)
 
 ifeq ($(findstring chat,$(model)),chat)
     schema := chat-schema.json
+else ifeq ($(model),mistral-7b-instruct-v0.1-mlc)
+    schema := mistral-schema.json
 else
     schema := base-schema.json
 endif
@@ -37,7 +39,10 @@ base-schema.json:
 chat-schema.json:
 	$(MAKE) select model=llama-2-7b-chat-hf-mlc
 	cog run --use-cuda-base-image=false python3 -m cog.command.openapi_schema | jq > chat-schema.json
-	
+mistral-schema.json:
+	$(MAKE) select model=mistral-7b-instruct-v0.1-mlc
+	cog run --use-cuda-base-image=false python3 -m cog.command.openapi_schema | jq > mistral-schema.json
+
 
 init:
 	@if [ -z "$(model)" ]; then \
