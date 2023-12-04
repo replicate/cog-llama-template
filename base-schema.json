@@ -306,7 +306,7 @@
             "title": "Prompt Template",
             "type": "string",
             "description": "Template for formatting the prompt",
-            "default": "[INST] <<SYS>>\n{system_prompt}\n<</SYS>>\n\n{prompt} [/INST]",
+            "default": "{prompt}",
             "x-order": 9
           },
           "replicate_weights": {
