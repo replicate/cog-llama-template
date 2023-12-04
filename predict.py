@@ -21,6 +21,8 @@ B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 # normally this would start with <s>, but MLC adds it
 PROMPT_TEMPLATE = f"{B_INST} {B_SYS}{{system_prompt}}{E_SYS}{{prompt}} {E_INST}"
+if not USE_SYSTEM_PROMPT:
+    PROMPT_TEMPLATE = "{prompt}"
 PROMPT_TEMPLATE = getattr(config, "PROMPT_TEMPLATE", PROMPT_TEMPLATE)
 
 # Users may want to change the system prompt, but we use the recommended system prompt by default
@@ -155,11 +157,12 @@ class Predictor(BasePredictor):
         with delay_prints() as print:
             if stop_sequences:
                 stop_sequences = stop_sequences.split(",")
-
-            if USE_SYSTEM_PROMPT and prompt_template:
+            # we must apply a prompt template if it is passed even for base models
+            if prompt_template:
+                # very rough hack to catch mistral-instruct / no SYS token
                 # this is supposed to not proc for the default template, but actually always procs when prompt_template={prompt}
                 # however if you're doing that, it doesn't matter
-                if B_SYS not in prompt_template:
+                if USE_SYSTEM_PROMPT and B_SYS not in prompt_template:
                     if system_prompt.strip() and not system_prompt.endswith(" "):
                         # mistral doesn't have a SYS token, there's just a space between the system prompt and
                         system_prompt = system_prompt.strip() + " "
