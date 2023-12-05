@@ -89,8 +89,11 @@ select:
 	# rsync -av --exclude 'model_artifacts/' --include '*/' --exclude '*' $(model_dir)/ .
 	# For symlinking files
 	find $(model_dir) -type f ! -path "$(model_dir)/model_artifacts/*" -exec ln -sf {} . \;
-	# For specific files like .env and .dockerignore, we link them if they exist
+	# For specific files like .env and cog.yaml we link them if they exist
+	[ -e $(model_dir)/cog.yaml ] && ln -sf $(model_dir)/cog.yaml cog.yaml || true
 	[ -e $(model_dir)/.env ] && ln -sf $(model_dir)/.env .env || true
+	[ -e $(model_dir)/requirements.txt ] && ln -sf $(model_dir)/requirements.txt requirements.txt || true
+
 	# rm .dockerignore || true
 	# [ -e $(model_dir)/dockerignore ] && cat $(model_dir)/dockerignore > .dockerignore
 	
