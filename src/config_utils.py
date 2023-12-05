@@ -100,3 +100,12 @@ def mlc_kwargs(
     if config_overrides:
         mlc_default.update(config_overrides)
     return mlc_default
+
+def transformers_kwargs(
+    weights: Weights,
+    config_overrides: Optional[dict] = None
+    ):
+    default= {"weights": weights}
+    if config_overrides:
+        default.update(config_overrides)
+    return default
