@@ -117,7 +117,7 @@ async def download_files_with_pget(
     remote_path: str, path: str, files: list[str]
 ) -> None:
     download_jobs = "\n".join(f"{remote_path}/{f} {path}/{f}" for f in files)
-    args = ["pget", "multifile", "-", "-f", "--max-conn-per-host", "100"]
+    args = ["pget", "multifile", "-", "-f", "--max-conn-per-host", "50"]
     process = await asyncio.create_subprocess_exec(*args, stdin=-1, close_fds=True)
     # Wait for the subprocess to finish
     await process.communicate(download_jobs.encode())
