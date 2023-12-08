@@ -1,0 +1,33 @@
+# Configuration for Cog ⚙️
+# Reference: https://github.com/replicate/cog/blob/main/docs/yaml.md
+
+build:
+  # set to true if your model requires a GPU
+  gpu: true
+  cuda: "11.8"
+
+  # python version in the form '3.8' or '3.8.12'
+  python_version: "3.11"
+
+  # a list of packages in the format <package-name>==<version>
+  # python_packages:
+  #   - "packaging"
+  #   - "torch==2.1.0"
+  
+  python_requirements: requirements.txt
+
+  run:
+    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.1.1/pget" && chmod +x /usr/local/bin/pget
+    # since we can't do LD_LIBRARY_PATH=torch/lib, use this to make sure mlc can access the cuda libs bundled with torch
+    # - "pip install flash-attn>=2.3.0"
+    # - pip3 install "axolotl[flash-attn] @ git+https://github.com/OpenAccess-AI-Collective/axolotl@3cc67d2cdd95196e4e9ae28fe2c6512092100e21"
+    - pip3 install "xformers @ git+https://github.com/facebookresearch/xformers.git@main"
+    - pip3 install --no-deps "axolotl @ git+https://github.com/OpenAccess-AI-Collective/axolotl@3cc67d2cdd95196e4e9ae28fe2c6512092100e21"
+    - pip3 install "flash-attn>=2.3.0"
+    # bodge: accelerate install necessary for CLI to work
+    - pip uninstall accelerate -y && pip install accelerate
+    - bash -c 'ln -s /usr/local/lib/python3.11/site-packages/torch/lib/lib{nv,cu}* /usr/lib'
+  
+# predict.py defines how predictions are run on your model
+predict: "predict.py:Predictor"
+train: "train_axolotl.py:train"

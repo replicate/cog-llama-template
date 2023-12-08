@@ -93,6 +93,7 @@ select:
 	[ -e $(model_dir)/cog.yaml ] && ln -sf $(model_dir)/cog.yaml cog.yaml || true
 	[ -e $(model_dir)/.env ] && ln -sf $(model_dir)/.env .env || true
 	[ -e $(model_dir)/requirements.txt ] && ln -sf $(model_dir)/requirements.txt requirements.txt || true
+	find $(model_dir) -type f -name 'train_config*' -exec ln -sf {} . \;
 
 	# rm .dockerignore || true
 	# [ -e $(model_dir)/dockerignore ] && cat $(model_dir)/dockerignore > .dockerignore
@@ -114,8 +115,9 @@ serve: select
 	-ti \
 	-p 5000:5000 \
 	--gpus=all \
-	-e COG_WEIGHTS=http://$(HOST_NAME):8000/training_output.zip \
+	-e COG_WEIGHTS=http://127.0.0.1:8000/training_output.zip \
 	-v `pwd`/training_output.zip:/src/local_weights.zip \
+	-v `pwd`/models/$(model)/model_artifacts:/src/models/$(model)/model_artifacts \
 	$(IMAGE_NAME)
 
 test-local-predict: build-local
