@@ -4,7 +4,7 @@ let
   sitePackages = drv: "${drv.public}/${config.python-env.deps.python.sitePackages}";
 in
 {
-  cog.build.cog_version = "0.9.0-beta9";
+  cog.build.cog_version = "0.9.0-beta10";
   python-env.pip.drvs = {
     # remove unlinkable libs to fix autoPatchelf complaint
     torch = {
