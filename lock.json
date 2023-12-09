@@ -2,10 +2,10 @@
   "fetchPipMetadata": {
     "sources": {
       "accelerate": {
-        "sha256": "866dec394da60e8da964be212379d8cf6cc0d0e5e28a7c0d7e09507715d21c61",
+        "sha256": "c7bb817eb974bba0ff3ea1ba0f24d55afb86d50e3d4fe98d6922dc69cf2ccff1",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/13/9e/ee987874058f2d93006961f6ff49e0bcb60ab9c26709ebe06bfa8707a4d8/accelerate-0.24.1-py3-none-any.whl",
-        "version": "0.24.1"
+        "url": "https://files.pythonhosted.org/packages/f7/fc/c55e5a2da345c9a24aa2e1e0f60eb2ca290b6a41be82da03a6d4baec4f99/accelerate-0.25.0-py3-none-any.whl",
+        "version": "0.25.0"
       },
       "aiodns": {
         "sha256": "a387b63da4ced6aad35b1dda2d09620ad608a1c7c0fb71efa07ebb4cd511928d",
@@ -14,10 +14,10 @@
         "version": "3.1.1"
       },
       "aiohttp": {
-        "sha256": "c5b7bf8fe4d39886adc34311a233a2e01bc10eb4e842220235ed1de57541a896",
+        "sha256": "ee2527134f95e106cc1653e9ac78846f3a2ec1004cf20ef4e02038035a74544d",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/6d/58/bfb949306520af2d305c70f8fafca05c99365f6f75ea2452f09068f2ab20/aiohttp-3.9.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-        "version": "3.9.0"
+        "url": "https://files.pythonhosted.org/packages/69/8d/769a1e9cdce1c9774dd2edc8f4e94c759256246066e5263de917e5b22a0a/aiohttp-3.9.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "version": "3.9.1"
       },
       "aiosignal": {
         "sha256": "f8376fb07dd1e86a584e4fcdec80b36b7f81aac666ebc724e2c090300dd83b17",
@@ -140,10 +140,10 @@
         "version": "0.19.4"
       },
       "idna": {
-        "sha256": "79b8f0ac92d2351be5f6122356c9a592c96d81c9a79e4b488bf2a6a15f88057a",
+        "sha256": "c05567e9c24a6b9faaa835c4821bad0590fbb9d5779e7caa6e1cc4978e7eb24f",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/ea/65/9c7a31be86861d43da3d4f8661f677b38120320540773a04979ad6fa9ecd/idna-3.5-py3-none-any.whl",
-        "version": "3.5"
+        "url": "https://files.pythonhosted.org/packages/c2/e7/a82b05cf63a603df6e68d59ae6a68bf5064484a0718ea5033660af4b54a9/idna-3.6-py3-none-any.whl",
+        "version": "3.6"
       },
       "jinja2": {
         "sha256": "6088930bfe239f0e6710546ab9c19c9ef35e29792895fed6e6e31a023a182a61",
@@ -164,16 +164,16 @@
         "version": "0.3.1"
       },
       "mlc-ai-nightly-cu121": {
-        "sha256": "78636689855161d1089d7c36a864363649d9cf17f0564a214326fb70949ded77",
+        "sha256": "d22881b23c3cd921deaca1950091d6c9ce29531b66af8af132f8388c778fc981",
         "type": "url",
         "url": "https://github.com/mlc-ai/package/releases/download/v0.9.dev0/mlc_ai_nightly_cu121-0.12.dev1880-cp311-cp311-manylinux_2_28_x86_64.whl",
         "version": "0.12.dev1880"
       },
       "mlc-chat-nightly-cu121": {
-        "sha256": "1c30d27dd69bda0f30ed4e7b97bd2ba8e02f56812839a03d6dfe86829af81a55",
+        "sha256": "44e4a0fdac0e2e6a7fc3fbd9c1206393342f7d4f834cf3d22662b002175f8167",
         "type": "url",
-        "url": "https://github.com/mlc-ai/package/releases/download/v0.9.dev0/mlc_chat_nightly_cu121-0.1.dev641-cp311-cp311-manylinux_2_28_x86_64.whl",
-        "version": "0.1.dev641"
+        "url": "https://github.com/mlc-ai/package/releases/download/v0.9.dev0/mlc_chat_nightly_cu121-0.1.dev657-cp311-cp311-manylinux_2_28_x86_64.whl",
+        "version": "0.1.dev657"
       },
       "mpmath": {
         "sha256": "a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c",
@@ -368,10 +368,10 @@
         "version": "2.31.0"
       },
       "safetensors": {
-        "sha256": "7b38d4f7eaeed28c92320c8599924e4b27aa9ccf82982320a74a17202ed9055d",
+        "sha256": "e9c80ce0001efa16066358d2dd77993adc25f5a6c61850e4ad096a2232930bce",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/40/0a/48191bda07afbbbd51ae5db8828aaedb5a39d32abddece7c7271d7a383e2/safetensors-0.4.1rc1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-        "version": "0.4.1rc1"
+        "url": "https://files.pythonhosted.org/packages/be/49/985429e1d1915df64d01603abae3c0c2e7deb77fd9c5d460768ad626ff84/safetensors-0.4.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "version": "0.4.1"
       },
       "scipy": {
         "sha256": "b4bb943010203465ac81efa392e4645265077b4d9e99b66cf3ed33ae12254173",
@@ -434,10 +434,10 @@
         "version": "2.1.1"
       },
       "tornado": {
-        "sha256": "3ec4bd9b4547a7acd6b2bee1bd7a4263cf02e637bc66cbb39741ec690088a7b7",
+        "sha256": "f0251554cdd50b4b44362f73ad5ba7126fc5b2c2895cc62b14a1c2d7ea32f212",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/c6/af/8a1fce66d1550c998d9878d87d754af8091006a73148cd6e4adfa8ec59dc/tornado-6.4b1-cp38-abi3-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-        "version": "6.4b1"
+        "url": "https://files.pythonhosted.org/packages/9f/12/11d0a757bb67278d3380d41955ae98527d5ad18330b2edbdc8de222b569b/tornado-6.4-cp38-abi3-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "version": "6.4"
       },
       "tqdm": {
         "sha256": "d302b3c5b53d47bce91fea46679d9c3c6508cf6332229aa1e7d8653723793386",
@@ -458,10 +458,10 @@
         "version": "2.1.0"
       },
       "typing-extensions": {
-        "sha256": "8f92fc8806f9a6b641eaa5318da32b44d401efaac0f6678c9bc448ba3605faa0",
+        "sha256": "cc22327e22d9b583d1565ce1ed9f5ecc22831afa743f8789a403cad849fb702b",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/24/21/7d397a4b7934ff4028987914ac1044d3b7d52712f30e2ac7a2ae5bc86dd0/typing_extensions-4.8.0-py3-none-any.whl",
-        "version": "4.8.0"
+        "url": "https://files.pythonhosted.org/packages/68/1e/4738def2321ec3a3ec2efde1515be665deb88eea3a60187b2ff42cde7447/typing_extensions-4.9.0rc1-py3-none-any.whl",
+        "version": "4.9.0rc1"
       },
       "tzdata": {
         "sha256": "7e65763eef3120314099b6939b5546db7adce1e7d6f2e179e3df563c70511eda",
@@ -520,6 +520,7 @@
           "packaging",
           "psutil",
           "pyyaml",
+          "safetensors",
           "torch"
         ],
         "aiohttp": [
