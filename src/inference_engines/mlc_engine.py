@@ -43,6 +43,7 @@ class MLCEngine(Engine):
         model_path = os.path.join(weights_path, "params")
         self.cm = ChatModule(model=model_path, chat_config=chat_config, device="cuda")
 
+        # this isn't used!
         tokenizer_path = os.path.join(weights_path, "params")
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 
@@ -172,5 +173,10 @@ class MLCEngine(Engine):
                 break
             self.cm._decode(generation_config=generation_config)
             out = self.cm._get_message()
+            # stops us from yielding half an emoji, which breaks
+            out = out.replace("\N{Replacement Character}", "") 
+            if len(out) == generation_length:
+                # don't yield an empty string
+                continue
             yield out[generation_length:]
             generation_length = len(out)
