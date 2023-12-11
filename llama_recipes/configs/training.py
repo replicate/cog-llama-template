@@ -40,7 +40,7 @@ class train_config:
     wrap_packed_sequences: bool = False
     pack_sequences: bool = True
     chunk_size: int = 2048
-
+    use_wandb: bool = False
     # optim: Optional[str] = field(
     #     default="paged_adamw_32bit",
     #     metadata={"help": "The optimizer to use."},
