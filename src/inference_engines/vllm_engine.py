@@ -138,7 +138,11 @@ class vLLMEngine(Engine):
         )
 
     def delete_lora(self) -> None:
-        self.engine.engine.delete_lora()
+        try:
+            self.engine.engine.delete_lora()
+        except AttributeError:
+            print("LoRA operations are not supported by this engine, skipping.")
+            
 
     async def generate_stream(
         self, prompt: str, sampling_params: SamplingParams
