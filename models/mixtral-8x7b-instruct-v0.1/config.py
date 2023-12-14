@@ -40,7 +40,7 @@ DEFAULT_SYSTEM_PROMPT = "Always assist with care, respect, and truth. Respond wi
 
 ENGINE = vLLMEngine
 vLLM_ENGINE_OVERRIDES = {
-    "tensor_parallel_size": 2,
+    "tensor_parallel_size": 4,
 }
 
 ENGINE_KWARGS = vllm_kwargs(
