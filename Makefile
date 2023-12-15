@@ -23,19 +23,26 @@ REPLICATE_USER ?= replicate-internal
 
 model ?= $(SELECTED_MODEL)
 
+PROD_MODEL ?= $(model)
+
 ifeq ($(findstring chat,$(model)),chat)
     schema := chat-schema.json
+else ifeq ($(model),mistral-7b-instruct-v0.1-mlc)
+    schema := mistral-schema.json
 else
     schema := base-schema.json
 endif
 
 base-schema.json:
-	$(MAKE) select model=llama-2-7b
-	cog run --use-cuda-base-image=false python3 -m cog.command.openapi_schema > base-schema.json
+	$(MAKE) select model=llama-2-7b-mlc
+	cog run --use-cuda-base-image=false python3 -m cog.command.openapi_schema | jq > base-schema.json
 chat-schema.json:
-	$(MAKE) select model=llama-2-7b-chat
-	cog run --use-cuda-base-image=false python3 -m cog.command.openapi_schema > chat-schema.json
-	
+	$(MAKE) select model=llama-2-7b-chat-hf-mlc
+	cog run --use-cuda-base-image=false python3 -m cog.command.openapi_schema | jq > chat-schema.json
+mistral-schema.json:
+	$(MAKE) select model=mistral-7b-instruct-v0.1-mlc
+	cog run --use-cuda-base-image=false python3 -m cog.command.openapi_schema | jq > mistral-schema.json
+
 
 init:
 	@if [ -z "$(model)" ]; then \
@@ -58,7 +65,6 @@ init:
 	printf "!/models/$(model)/model_artifacts/tokenizer/\n" >> models/$(model)/.dockerignore
 
 	mkdir -p models/$(model)/model_artifacts/tokenizer
-	cp -r llama_weights/tokenizer/* models/$(model)/model_artifacts/tokenizer
 
 update:
 	@if [ -z "$(model)" ]; then \
@@ -82,10 +88,14 @@ select:
 	# rsync -av --exclude 'model_artifacts/' --include '*/' --exclude '*' $(model_dir)/ .
 	# For symlinking files
 	find $(model_dir) -type f ! -path "$(model_dir)/model_artifacts/*" -exec ln -sf {} . \;
-	# For specific files like .env and .dockerignore, we link them if they exist
+	# For specific files like .env and cog.yaml we link them if they exist
+	[ -e $(model_dir)/cog.yaml ] && ln -sf $(model_dir)/cog.yaml cog.yaml || true
 	[ -e $(model_dir)/.env ] && ln -sf $(model_dir)/.env .env || true
-	rm .dockerignore || true
-	[ -e $(model_dir)/.dockerignore ] && cat model_templates/.dockerignore $(model_dir)/.dockerignore > .dockerignore || true
+	[ -e $(model_dir)/requirements.txt ] && ln -sf $(model_dir)/requirements.txt requirements.txt || true
+	find $(model_dir) -type f -name 'train_config*' -exec ln -sf {} . \;
+
+	# rm .dockerignore || true
+	# [ -e $(model_dir)/dockerignore ] && cat $(model_dir)/dockerignore > .dockerignore
 	
 
 	#cog build
@@ -104,8 +114,9 @@ serve: select
 	-ti \
 	-p 5000:5000 \
 	--gpus=all \
-	-e COG_WEIGHTS=http://$(HOST_NAME):8000/training_output.zip \
+	-e COG_WEIGHTS=http://127.0.0.1:8000/training_output.zip \
 	-v `pwd`/training_output.zip:/src/local_weights.zip \
+	-v `pwd`/models/$(model)/model_artifacts:/src/models/$(model)/model_artifacts \
 	$(IMAGE_NAME)
 
 test-local-predict: build-local
@@ -161,22 +172,32 @@ stage-and-test-models:
 	)
 	
 push: select
-	cog push --openapi-schema=$(schema) --use-cuda-base-image=false --progress plain r8.im/$(REPLICATE_USER)/$(model)
+	cog push --openapi-schema=$(schema) --use-cuda-base-image=false --progress plain r8.im/$(REPLICATE_USER)/$(PROD_MODEL)
 
-test-push: test-local push
-	
-test-live:
-	python test/push_test.py
+test-prod-predict:
+	@if [ "$(verbose)" = "true" ]; then \
+		pytest tests/test_remote_predict.py -s --model $(REPLICATE_USER)/$(PROD_MODEL); \
+	else \
+		pytest tests/test_remote_predict.py --model $(REPLICATE_USER)/$(PROD_MODEL); \
+	fi
 
-push-and-test: push test-live
+test-prod-train-predict:
+	@if [ "$(verbose)" = "true" ]; then \
+		pytest tests/test_remote_train.py -s --model $(REPLICATE_USER)/$(PROD_MODEL); \
+	else \
+		pytest tests/test_remote_train.py --model $(REPLICATE_USER)/$(PROD_MODEL); \
+	fi
+
+test-prod: test-prod-predict test-prod-train-predict
+
+format:
+	python3 -m ruff format .
+
+lint:
+	python3 -m ruff .
+	python3 -m ruff format --check .
 
 help:
 	@echo "Available targets:\n\n"
 	@echo "init: Create the model directory."
 	@echo "   e.g., \`make init dir=<model_dir>\`"
-
-mypush:
-        docker build -t us.gcr.io/replicate/wordframe:$(version) .
-        docker push us.gcr.io/replicate/wordframe:$(version)
-	# make select whatever
-       

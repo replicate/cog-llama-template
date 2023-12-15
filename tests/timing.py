@@ -13,9 +13,10 @@ ver2 = model.versions.get(v2)
 
 os.system("kubectl delete pod -l replicate/version_short_id=8ba7b947")
 
+
 def run(v):
     t0 = time.time()
-    #gen = replicate.run(v1, input={"prompt": "a"})
+    # gen = replicate.run(v1, input={"prompt": "a"})
     global last
     last = pred = replicate.predictions.create(v, input={"prompt": "a"})
     t1 = time.time()
@@ -41,6 +42,7 @@ def run(v):
     t3 = time.time()
     print(re.search("hostname: (.*)\n", pred.logs).group().strip())
     print(f"prediction took {t3 - t2:.4f} from first to last token")
+
 
 run(ver1)
 run(ver2)

@@ -23,10 +23,7 @@ def version(model):
 def training(model_name, version):
     training_input = {
         # "train_data": "https://storage.googleapis.com/replicate-weights/training-deadlock/1k_samples.jsonl",
-        "train_data": "https://r2.drysys.workers.dev/tmp/b_prompts.jsonl",
-        "gradient_accumulation_steps": 2,
-        "train_batch_size": 48,
-        "run_validation": False
+        "train_data": "https://pub-3054bb37389944ca9c8e5ada8572840e.r2.dev/samsum.jsonl",
     }
     return replicate.trainings.create(
         version=model_name + ":" + version.id,
@@ -39,6 +36,26 @@ def training(model_name, version):
 def prediction_tests():
     return [
         {"prompt": "How are you doing today?"},
+        {
+            "prompt": """[INST] <<SYS>>
+        Use the Input to provide a summary of a conversation.
+        <</SYS>>
+        Input:
+        Liam: did you see that new movie that just came out?
+        Liam: "Starry Skies" I think it's called 
+        Ava: oh yeah, I heard about it 
+        Liam: it's about this astronaut who gets lost in space 
+        Liam: and he has to find his way back to earth 
+        Ava: sounds intense 
+        Liam: it was! there were so many moments where I thought he wouldn't make it 
+        Ava: i need to watch it then, been looking for a good movie 
+        Liam: highly recommend it! 
+        Ava: thanks for the suggestion Liam! 
+        Liam: anytime, always happy to share good movies 
+        Ava: let's plan to watch it together sometime 
+        Liam: sounds like a plan! [/INST]
+        """
+        },
     ]
 
 
@@ -64,6 +81,10 @@ def test_post_training_predictions(trained_model_and_version, prediction_tests):
         for val in prediction_tests
     ]
 
-    for val in predictions:
+    for ind, val in enumerate(predictions):
         val.wait()
         assert val.status == "succeeded"
+        out = "".join(val.output)
+        print("Output: ", out)
+        if ind == 1:
+            assert "Summary" in out

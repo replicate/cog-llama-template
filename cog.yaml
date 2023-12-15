@@ -4,7 +4,7 @@
 build:
   # set to true if your model requires a GPU
   gpu: true
-  cuda: "12.1"
+  cuda: "11.8"
 
   # python version in the form '3.8' or '3.8.12'
   python_version: "3.11"
@@ -15,31 +15,36 @@ build:
     - "sentencepiece==0.1.99"
     - "jinja2==3.1.2"
     - "scipy==1.11.1"
-    - "asyncio==3.4.3"
-    - "safetensors==0.3.1"
-    - "ninja==1.11.1"
+    - "safetensors>=0.3.1"
     - "python-dotenv"
-    - "py7zr"
     - "fire"
     - "datasets"
     - "transformers==4.33.2"
     - "peft==0.4.0"
-    - "tensorizer==1.0.1"
     - "accelerate"
-    - "scipy"
-    - "bitsandbytes" # force upgrade afterwards?
-    - "https://r2.drysys.workers.dev/nyacomp-0.0.5-cp311-cp311-linux_x86_64.whl"
+    - "bitsandbytes"
     - "trl==0.5.0"
     - "aiohttp[speedups]"
-    #- "https://github.com/replicate/vllm-with-loras/raw/moin/lora_weight_space/vllm-0.1.7a0-cp311-cp311-linux_x86_64.whl"
-    #- https://github.com/replicate/vllm-with-loras/raw/main/vllm-0.1.7a0-cp311-cp311-linux_x86_64.whl
-    - "https://github.com/replicate/vllm-with-loras/raw/moin/lora_weight_space/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"
-    - "https://r2.drysys.workers.dev/xformers-0.0.23+d18d0ef.d20231009-cp311-cp311-linux_x86_64.whl"
-    - "torch==2.1.0"
-  run:
-    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.3/pget#cacheburst" && chmod +x /usr/local/bin/pget
-    - curl -o /usr/local/bin/remotefile -L "https://r2.drysys.workers.dev/remotefile" && chmod +x /usr/local/bin/remotefile
+    - "triton" # hm
+    - "fastapi<0.99.0"
+    # uncomment these when we go back to 12.1
+    # - "https://r2.drysys.workers.dev/torch/torch-2.1.0-cp311-cp311-linux_x86_64.whl" 
+    # - "https://weights.replicate.delivery/default/wheels/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"
 
+    - "https://r2.drysys.workers.dev/torch/11.8/torch-2.1.0-cp311-cp311-linux_x86_64.whl"
+    # This wheel can be built by running `TORCH_CUDA_ARCH_LIST="8.0;8.6" pip wheel .` in https://github.com/replicate/vllm-with-loras
+    - "https://r2.drysys.workers.dev/vllm/11.8/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"
+    - "https://r2.drysys.workers.dev/xformers/11.8/xformers-0.0.23+b4c853d.d20231107-cp311-cp311-linux_x86_64.whl"
+
+    - "--pre -f https://mlc.ai/wheels"
+    - "mlc-chat-nightly-cu118"
+    - "mlc-ai-nightly-cu118"
+    # - "mlc-chat-nightly-cu121"
+    # - "mlc-ai-nightly-cu121"
+  run:
+    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.1.1/pget" && chmod +x /usr/local/bin/pget
+    # since we can't do LD_LIBRARY_PATH=torch/lib, use this to make sure mlc can access the cuda libs bundled with torch
+    - bash -c 'ln -s /usr/local/lib/python3.11/site-packages/torch/lib/lib{nv,cu}* /usr/lib'
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
 train: "train.py:train"

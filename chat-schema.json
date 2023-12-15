@@ -244,13 +244,13 @@
           "system_prompt": {
             "title": "System Prompt",
             "type": "string",
-            "description": "System prompt to send to the model. This is prepended to the prompt and helps guide system behavior.",
-            "default": "You are a helpful assistant.",
+            "description": "System prompt to send to the model. This is prepended to the prompt and helps guide system behavior. Should not be blank.",
+            "default": "You are a helpful, respectful and honest assistant.",
             "x-order": 1
           },
           "max_new_tokens": {
             "title": "Max New Tokens",
-            "minimum": 1.0,
+            "minimum": 1,
             "type": "integer",
             "description": "Maximum number of tokens to generate. A word is generally 2-3 tokens",
             "default": 128,
@@ -258,7 +258,7 @@
           },
           "min_new_tokens": {
             "title": "Min New Tokens",
-            "minimum": -1.0,
+            "minimum": -1,
             "type": "integer",
             "description": "Minimum number of tokens to generate. To disable, set to -1. A word is generally 2-3 tokens.",
             "default": -1,
@@ -266,28 +266,28 @@
           },
           "temperature": {
             "title": "Temperature",
-            "maximum": 5.0,
+            "maximum": 5,
             "minimum": 0.01,
             "type": "number",
             "description": "Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic, 0.75 is a good starting value.",
-            "default": 0.75,
+            "default": 0.7,
             "x-order": 4
           },
           "top_p": {
             "title": "Top P",
-            "maximum": 1.0,
-            "minimum": 0.0,
+            "maximum": 1,
+            "minimum": 0,
             "type": "number",
             "description": "When decoding text, samples from the top p percentage of most likely tokens; lower to ignore less likely tokens",
-            "default": 0.9,
+            "default": 0.95,
             "x-order": 5
           },
-          "top_k": {
-            "title": "Top K",
-            "minimum": 0.0,
-            "type": "integer",
-            "description": "When decoding text, samples from the top k most likely tokens; lower to ignore less likely tokens",
-            "default": 50,
+          "repetition_penalty": {
+            "title": "Repetition Penalty",
+            "minimum": 0,
+            "type": "number",
+            "description": "A parameter that controls how repetitive text can be. Lower means more repetitive, while higher means less repetitive. Set to 1.0 to disable.",
+            "default": 1.15,
             "x-order": 6
           },
           "stop_sequences": {
@@ -309,11 +309,18 @@
             "default": false,
             "x-order": 9
           },
+          "prompt_template": {
+            "title": "Prompt Template",
+            "type": "string",
+            "description": "Template for formatting the prompt",
+            "default": "[INST] <<SYS>>\n{system_prompt}\n<</SYS>>\n\n{prompt} [/INST]",
+            "x-order": 10
+          },
           "replicate_weights": {
             "title": "Replicate Weights",
             "type": "string",
             "description": "Path to fine-tuned weights produced by a Replicate fine-tune job.",
-            "x-order": 10
+            "x-order": 11
           }
         }
       },
@@ -323,8 +330,8 @@
         "items": {
           "type": "string"
         },
-        "x-cog-array-display": "concatenate",
-        "x-cog-array-type": "iterator"
+        "x-cog-array-type": "iterator",
+        "x-cog-array-display": "concatenate"
       },
       "PredictionRequest": {
         "title": "PredictionRequest",

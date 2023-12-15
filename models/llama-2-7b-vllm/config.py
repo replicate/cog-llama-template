@@ -1,15 +1,22 @@
+<<<<<<< HEAD
 import os
 import subprocess
 
 import torch
 from dotenv import load_dotenv
 from transformers import LlamaTokenizer
+=======
+from dotenv import load_dotenv
+from src.config_utils import Weights, get_fp16_file_list, vllm_kwargs
+
+>>>>>>> origin/joe/mixtral-vllm
 
 from src.utils import get_env_var_or_default
 
 load_dotenv()
 
 MODEL_NAME = "llama-2-7b-vllm"
+<<<<<<< HEAD
 # INFERENCE CONFIGURATION
 #######################################################################
 # --------------------Notes--------------------------------------------
@@ -24,12 +31,26 @@ MODEL_NAME = "llama-2-7b-vllm"
 # This section defines the general inference configuration,
 # which is used for both trained and untrained models.
 # -------------------------------
+=======
+
+# Inference config
+
+weights = Weights(
+    local_path=f"models/{MODEL_NAME}/model_artifacts/default_inference_weights",
+    remote_path=get_env_var_or_default(
+        "REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH",
+        "remote/path/to/your/weights/here",
+    ),
+    remote_files=get_fp16_file_list(2),
+)
+>>>>>>> origin/joe/mixtral-vllm
 
 LOAD_IN_4BIT = False
 TOKENIZER_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 USE_SYSTEM_PROMPT = False
 USE_EXLLAMA_FOR_UNTRAINED_WEIGHTS = False
 
+<<<<<<< HEAD
 # ENGINE CONFIGURATION
 # -------------------------------
 # Here we define the specific inference engine we intend to use for inference, and all appropriate kwargs.
@@ -79,6 +100,16 @@ REMOTE_DEFAULT_INFERENCE_FILES_TO_DOWNLOAD = [
     "model-00001-of-00002.safetensors",
     "model-00002-of-00002.safetensors",
 ]
+=======
+# Engine config
+
+from src.inference_engines.vllm_engine import vLLMEngine
+
+
+ENGINE = vLLMEngine
+ENGINE_KWARGS = vllm_kwargs(weights)
+
+>>>>>>> origin/joe/mixtral-vllm
 
 # TRAINED INFERENCE CONFIGURATION
 # -------------------------------
@@ -89,6 +120,7 @@ LOCAL_TRAINING_WEIGHTS_PATH = f"models/{MODEL_NAME}/model_artifacts/training_wei
 
 REMOTE_TRAINING_WEIGHTS_PATH = get_env_var_or_default(
     var_name="REMOTE_TRAINING_WEIGHTS_PATH",
+<<<<<<< HEAD
     default_value="remote/path/to/your/weights/here"
 )
 
@@ -113,6 +145,21 @@ REMOTE_TRAINING_FILES_TO_DOWNLOAD += [
     "tokenizer.model",
     "model.safetensors.index.json"
 ]
+=======
+    default_value="remote/path/to/your/weights/here",
+)
+
+LOCAL_TRAINING_WEIGHTS_CONFIG_PATH = (
+    f"models/{MODEL_NAME}/model_artifacts/training_weights/config.json"
+)
+
+REMOTE_TRAINING_WEIGHTS_CONFIG_PATH = get_env_var_or_default(
+    var_name="REMOTE_TRAINING_WEIGHTS_CONFIG_PATH",
+    default_value="remote/path/to/your/weights/here",
+)
+
+REMOTE_TRAINING_FILES_TO_DOWNLOAD = get_fp16_file_list(2)
+>>>>>>> origin/joe/mixtral-vllm
 
 
 # -------------------------------

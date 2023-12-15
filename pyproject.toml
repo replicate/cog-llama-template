@@ -1,3 +1,13 @@
+# [build-system]
+# requires = ["setuptools", "wheel"]
+# build-backend = "setuptools.build_meta"
+
+[project]
+name = "cog-llama-template"
+version = "0.0.0"
+optional-dependencies = { dev = ["ruff>=0.1.3"] }
+
+
 [tool.poetry]
 name = "mirrorframe"
 version = "0.1.0"
@@ -6,8 +16,7 @@ authors = ["various"]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
-torch = "^2.1.0" # {url = "https://r2.drysys.workers.dev/torch/torch-2.1.0a0+git3af011b-cp311-cp311-linux_x86_64.whl"}
-#aitemplate = {url = "https://r2-public-worker.drysys.workers.dev/aitemplate-0.1.dev1-py3-none-any.whl"}
+torch = "^2.1.0"
 aiohttp = {extras = ["speedups"], version="*"}
 aiortc = "*"
 transformers = "==4.33.2"
@@ -16,9 +25,6 @@ safetensors = "^0.3.1"
 python-dotenv = "*"
 vllm = {url = "https://github.com/replicate/vllm-with-loras/raw/moin/lora_weight_space/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"}
 xformers = {url = "https://r2.drysys.workers.dev/xformers-0.0.23+d18d0ef.d20231009-cp311-cp311-linux_x86_64.whl"}
-
-# install in dockerfile as a diff layer for ease
-#nyacomp = {url = "https://r2-public-worker.drysys.workers.dev/nyacomp-0.0.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"}
 
 [tool.poetry.dev-dependencies]
 

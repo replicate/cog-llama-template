@@ -1,11 +1,23 @@
+import time
 from abc import ABC, abstractmethod
 from typing import Any
+
+from src.config_utils import Weights
+from src.utils import maybe_download_with_pget
 
 
 class Engine(ABC):
     """
     WIP - this is what the engine looks like at the moment, outlining this just as an exercise to see what our ABC looks like. It will change.
     """
+
+    def load_weights(self, weights: Weights):
+        start = time.time()
+        maybe_download_with_pget(
+            weights.local_path, weights.remote_path, weights.remote_files
+        )
+        print(f"downloading weights took {time.time() - start:.3f}s")
+        return weights.local_path
 
     @abstractmethod
     def load_lora(self, lora_data: dict):
@@ -23,16 +35,16 @@ class Engine(ABC):
         pass
 
     @abstractmethod
-    def delete_lora(self):
+    def is_lora_active(self) -> bool:
         """
-        Deletes a LoRA.
+        Checks whether a LoRA has currently been loaded onto the engine.
         """
         pass
 
     @abstractmethod
-    def is_lora_active(self) -> bool:
+    def delete_lora(self):
         """
-        Checks whether a LoRA has currently been loaded onto the engine.
+        Deletes a LoRA.
         """
         pass
 
