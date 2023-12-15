@@ -16,15 +16,15 @@ authors = ["various"]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
-torch = "^2.1.0"
+torch = {url = "https://r2.drysys.workers.dev/torch/11.8/torch-2.1.0-cp311-cp311-linux_x86_64.whl"}
 aiohttp = {extras = ["speedups"], version="*"}
 aiortc = "*"
 transformers = "==4.33.2"
 sentencepiece = "==0.1.99"
 safetensors = "^0.3.1"
 python-dotenv = "*"
-vllm = {url = "https://github.com/replicate/vllm-with-loras/raw/moin/lora_weight_space/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"}
-xformers = {url = "https://r2.drysys.workers.dev/xformers-0.0.23+d18d0ef.d20231009-cp311-cp311-linux_x86_64.whl"}
+vllm = {url = "https://r2.drysys.workers.dev/vllm/11.8/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"}
+xformers = {url = "https://r2.drysys.workers.dev/xformers/11.8/xformers-0.0.23+b4c853d.d20231107-cp311-cp311-linux_x86_64.whl"}
 
 [tool.poetry.dev-dependencies]
 

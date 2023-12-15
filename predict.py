@@ -91,7 +91,7 @@ class Predictor(BasePredictor):
     # because of this, printing before outputing tokens is bad
     # so this patches print to not only print until after we leave this function
     # eventually that will be fixed and this can be removed
-    def predict(
+    async def predict(
         self,
         prompt: str = Input(description="Prompt to send to the model."),
         system_prompt: str = Input(
@@ -200,7 +200,7 @@ class Predictor(BasePredictor):
             # # todo: may need to do something clever with kwargs if/when we add more engines.
             # else:
             generated_text = ""
-            for decoded_token in self.engine(
+            async for decoded_token in self.engine.call_async(
                 prompt,
                 temperature=temperature,
                 top_p=top_p,

@@ -142,7 +142,6 @@ class vLLMEngine(Engine):
             self.engine.engine.delete_lora()
         except AttributeError:
             print("LoRA operations are not supported by this engine, skipping.")
-            
 
     async def generate_stream(
         self, prompt: str, sampling_params: SamplingParams
@@ -151,7 +150,7 @@ class vLLMEngine(Engine):
         async for generated_text in results_generator:
             yield generated_text
 
-    def __call__(
+    async def call_async(
         self,
         prompt: str,
         max_new_tokens: int,
@@ -215,31 +214,61 @@ class vLLMEngine(Engine):
             frequency_penalty=frequency_penalty,
         )
 
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
         gen = self.generate_stream(
             prompt,
             sampling_params,
         )
 
         generation_length = 0
-        while True:
+        async for request_output in gen:
+            request_output = loop.run_until_complete(gen.__anext__())
+            assert len(request_output.outputs) == 1
+            generated_text = request_output.outputs[0].text
+            if incremental_generation:
+                # it takes multiple calls to gen.__anext__ to render one emoji.
+                # this check keeps us from needlesly yielding empty strings
+                if len(generated_text) > generation_length:
+                    yield generated_text[generation_length:]
+            else:
+                yield generated_text
+            generation_length = len(generated_text)
+
+    def __call__(
+        self,
+        prompt: str,
+        max_new_tokens: int,
+        temperature: float,
+        top_p: float,
+        top_k: int,
+        stop_sequences: str | List[str] = None,
+        stop_token_ids: List[int] = None,
+        frequency_penalty: float = 1.0,
+        incremental_generation: bool = True,
+        *args,
+        **kwargs,
+    ) -> str:
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        gen = self.call_async(
+            prompt,
+            max_new_tokens,
+            temperature,
+            top_p,
+            top_k,
+            stop_sequences,
+            stop_token_ids,
+            frequency_penalty,
+            incremental_generation,
+            *args,
+            **kwargs,
+        )
+        while 1:
             try:
-                request_output = loop.run_until_complete(gen.__anext__())
-                assert len(request_output.outputs) == 1
-                generated_text = request_output.outputs[0].text
-                if incremental_generation:
-                    # it takes multiple calls to gen.__anext__ to render one emoji. 
-                    # this check keeps us from needlesly yielding empty strings
-                    if len(generated_text) > generation_length:
-                        yield generated_text[generation_length:]
-                else:
-                    yield generated_text
-                generation_length = len(generated_text)
+                yield loop.run_until_complete(anext(gen))
             except StopAsyncIteration:
                 break
 

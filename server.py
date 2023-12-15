@@ -63,7 +63,7 @@ class Live:
 
     async def generate(self, params: dict) -> t.AsyncIterator[str]:
         start = time.time()
-        stream = self.llama.async_predict(**params["input"])
+        stream = self.llama.predict(**params["input"])
         token_count = 0
         with self.in_progress.start():
             while True:

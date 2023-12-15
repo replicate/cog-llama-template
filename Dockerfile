@@ -58,7 +58,7 @@ WORKDIR /app
 # COPY --from=ait /workdir/tmp /app/tmp
 # COPY --from=model /model /app/model
 COPY --link --from=downloaders /usr/local/bin/pget /usr/local/bin
-COPY --link --from=downloaders /usr/local/bin/remotefile /usr/local/bin
+#COPY --link --from=downloaders /usr/local/bin/remotefile /usr/local/bin
 COPY --link --from=libbuilder /app/venv/lib/python3.11/site-packages /app/
 COPY --link --from=libbuilder /app/nya/ /app/
 #COPY --from=next /app/out /app/next
