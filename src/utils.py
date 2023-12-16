@@ -123,7 +123,7 @@ async def download_files_with_pget(
     await process.communicate(download_jobs.encode())
 
 
-def maybe_download_with_pget(
+async def _maybe_download_with_pget(
     path: str,
     remote_path: tp.Optional[str] = None,
     remote_filenames: tp.Optional[list[str]] = None,
@@ -156,11 +156,19 @@ def maybe_download_with_pget(
             missing_files = remote_filenames or []
         else:
             missing_files = check_files_exist(remote_filenames or [], path)
-        get_loop().run_until_complete(
-            download_files_with_pget(remote_path, path, missing_files)
-        )
+        await download_files_with_pget(remote_path, path, missing_files)
 
     return path
+
+
+def maybe_download_with_pget(
+    path: str,
+    remote_path: tp.Optional[str] = None,
+    remote_filenames: tp.Optional[list[str]] = None,
+):
+    get_loop().run_until_complete(
+        _maybe_download_with_pget(path, remote_path, remote_filenames)
+    )
 
 
 class StreamingTextStopSequenceHandler:
@@ -256,7 +264,9 @@ class StreamingTextStopSequenceHandler:
 
 
 @contextlib.contextmanager
-def delay_prints(REALLY_EAT_MY_PRINT_STATEMENTS: bool = False) -> tp.Iterator[tp.Callable]:
+def delay_prints(
+    REALLY_EAT_MY_PRINT_STATEMENTS: bool = False,
+) -> tp.Iterator[tp.Callable]:
     lines = []
 
     def delayed_print(*args: tp.Any, **kwargs: tp.Any) -> None:

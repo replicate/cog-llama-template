@@ -57,7 +57,7 @@ class Live:
         from predict import Predictor as Llama
 
         self.llama = Llama()
-        # self.llama.setup()
+        self.llama.setup()
 
         self.connections = set()
 
@@ -175,7 +175,7 @@ class Live:
 
     async def on_startup(self, app: web.Application) -> None:
         launched = os.getenv("START")
-        await self.llama.async_setup()
+        # await self.llama.setup()
         self.cs = cs = aiohttp.ClientSession()
         if launched:
             msg = f"wordmirror started {int(server_start - int(launched))}s after launch, ready {time.time() - server_start:.3f}s after start"

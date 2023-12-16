@@ -37,8 +37,8 @@
 # RUN tar -xf ait-verdant.tar -C /workdir
 
 FROM appropriate/curl as downloaders
-RUN curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.3/pget#cacheburst" && chmod +x /usr/local/bin/pget
-RUN curl -o /usr/local/bin/remotefile -L "https://r2.drysys.workers.dev/remotefile" && chmod +x /usr/local/bin/remotefile
+RUN curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.5.3/pget_linux_x86_64" && chmod +x /usr/local/bin/pget
+#RUN curl -o /usr/local/bin/remotefile -L "https://r2.drysys.workers.dev/remotefile" && chmod +x /usr/local/bin/remotefile
 
 FROM python:3.11 as libbuilder
 WORKDIR /app
@@ -49,7 +49,7 @@ WORKDIR /app/
 # RUN VIRTUAL_ENV=/app/venv poetry install 
 RUN mkdir nya
 COPY ./requirements.txt /requirements.txt
-RUN pip install -t nya -r /requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip pip install -t nya -r /requirements.txt
 #RUN pip install -t nya https://r2.drysys.workers.dev/torch/torch-2.1.0a0+git3af011b-cp311-cp311-linux_x86_64.whl
 #RUN pip install -t nya https://r2.drysys.workers.dev/nyacomp-0.0.5-cp311-cp311-linux_x86_64.whl
 
@@ -57,10 +57,10 @@ FROM python:3.11-slim
 WORKDIR /app
 # COPY --from=ait /workdir/tmp /app/tmp
 # COPY --from=model /model /app/model
-COPY --link --from=downloaders /usr/local/bin/pget /usr/local/bin
 #COPY --link --from=downloaders /usr/local/bin/remotefile /usr/local/bin
-COPY --link --from=libbuilder /app/venv/lib/python3.11/site-packages /app/
+#COPY --link --from=libbuilder /app/venv/lib/python3.11/site-packages /app/
 COPY --link --from=libbuilder /app/nya/ /app/
+COPY --link --from=downloaders /usr/local/bin/pget /usr/local/bin
 #COPY --from=next /app/out /app/next
 
 
@@ -75,7 +75,7 @@ ENV LD_LIBRARY_PATH=/app/torch/lib
 
 # COPY --link ./exllama/ /app/exllama/
 COPY --link ./src/ /app/src/
-COPY --link ./predict.py ./config.py ./subclass.py /app/
+COPY --link ./predict.py ./config.py /app/
 COPY --link ./client.js ./index.html ./server.py /app/
 # ew
 COPY .env /app/

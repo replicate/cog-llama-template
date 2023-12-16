@@ -221,7 +221,6 @@ class vLLMEngine(Engine):
 
         generation_length = 0
         async for request_output in gen:
-            request_output = loop.run_until_complete(gen.__anext__())
             assert len(request_output.outputs) == 1
             generated_text = request_output.outputs[0].text
             if incremental_generation:

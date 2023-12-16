@@ -1,1 +1,1 @@
-models/llama-2-7b-mlc/config.py
+models/mixtral-8x7b-instruct-v0.1/config.py

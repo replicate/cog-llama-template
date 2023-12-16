@@ -4,10 +4,10 @@ import os
 import socket
 import time
 import zipfile
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Iterator
 
 import torch
-from cog import BasePredictor, ConcatenateIterator, Input, Path
+# from cog import BasePredictor, ConcatenateIterator, Input, Path
 import config
 from config import ENGINE, ENGINE_KWARGS, USE_SYSTEM_PROMPT
 from src.download import Downloader
@@ -32,6 +32,8 @@ DEFAULT_SYSTEM_PROMPT = getattr(config, "DEFAULT_SYSTEM_PROMPT", DEFAULT_SYSTEM_
 # Temporary hack to disable Top K from the API. We should get rid of this once engines + configs are better standardized.
 USE_TOP_K = ENGINE.__name__ not in ("MLCEngine", "MLCvLLMEngine")
 
+BasePredictor = object
+Path = object
 
 class Predictor(BasePredictor):
     def setup(self, weights: Optional[Path] = None):
@@ -91,6 +93,7 @@ class Predictor(BasePredictor):
     # because of this, printing before outputing tokens is bad
     # so this patches print to not only print until after we leave this function
     # eventually that will be fixed and this can be removed
+    Input = lambda default=None, **_: default
     async def predict(
         self,
         prompt: str = Input(description="Prompt to send to the model."),
@@ -153,7 +156,7 @@ class Predictor(BasePredictor):
             description="Path to fine-tuned weights produced by a Replicate fine-tune job.",
             default=None,
         ),
-    ) -> ConcatenateIterator[str]:
+    ) -> Iterator[str]:
         with delay_prints() as print:
             if stop_sequences:
                 stop_sequences = stop_sequences.split(",")
