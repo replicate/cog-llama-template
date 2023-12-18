@@ -92,9 +92,9 @@ select:
 	# For specific files like .env and .dockerignore, we link them if they exist
 	[ -e $(model_dir)/.env ] && ln -sf $(model_dir)/.env .env || true
 	# rm .dockerignore || true
+	cp models/dockerignore .dockerignore
+	echo "!$(model_dir)" >> .dockerignore
 	# [ -e $(model_dir)/dockerignore ] && cat $(model_dir)/dockerignore > .dockerignore
-	
-
 	#cog build
 	@echo "#########Selected model: $(model)########"
 
