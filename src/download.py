@@ -1,4 +1,5 @@
 import asyncio
+import enum
 import functools
 import mmap
 import os
@@ -10,14 +11,14 @@ import typing as t
 from concurrent.futures import ThreadPoolExecutor
 import aiohttp
 from yarl import URL
-from .utils import check_files_exist
+from .utils import check_files_exist, get_loop
 
 # some important tricks:
 # 1. os.sched_getaffinity to get an accurate cpu count in containers
-# 2. memoryview for less copies
-# 3. keep redirects from the first head
+# 2. keep redirects from the first head
+# 3. memoryview for less copies
 # 4. mmap
-# 5. thread for file writes
+# 5. thread for file writes if not mmap
 
 MIN_CHUNK_SIZE = 1024 * 1024 * 8  # 8mb
 
@@ -30,6 +31,14 @@ class SeekableMmap(mmap.mmap):
         return True
 
 
+class Method(enum.Enum):
+    COPYFILE = 1
+    DEST_MMAP = 3
+
+
+write_method = Method.DEST_MMAP
+
+
 class Downloader:
     def __init__(self, concurrency: int | None = None) -> None:
         if not concurrency:
@@ -37,10 +46,7 @@ class Downloader:
         self.concurrency = concurrency
         self.sem = asyncio.Semaphore(concurrency * 2)
         self.retries = 0
-        try:
-            self.loop = asyncio.get_running_loop()
-        except RuntimeError:
-            self.loop = asyncio.new_event_loop()
+        self.loop = get_loop()
         global global_downloader
         global_downloader = self
 
@@ -60,7 +66,7 @@ class Downloader:
     @property
     def threadpool(self) -> ThreadPoolExecutor:
         if not self._threadpool:
-            self._threadpool = ThreadPoolExecutor(2)
+            self._threadpool = ThreadPoolExecutor(5)
         return self._threadpool
 
     async def get_remote_file_size(self, url: str | URL) -> "tuple[URL, int]":
@@ -117,7 +123,12 @@ class Downloader:
     files_processed = 0
     total_size = 0
 
-    async def download_file(self, url: str | URL) -> mmap.mmap:
+    async def download_file(self, url: str | URL, dest_fd: int = -1) -> mmap.mmap:
+        """
+        download file into a mmap
+
+        if dest_fd is not passed, an anonymous map is used for a buffer
+        """
         self.retries = 0
         url, file_size = await self.get_remote_file_size(url)
         self.total_size += file_size
@@ -134,7 +145,9 @@ class Downloader:
         concurrency = min(allowed_concurrency, max_chunks)
         chunk_size = file_size // concurrency
         tasks = []
-        buf = SeekableMmap(-1, file_size)
+        if dest_fd != -1:
+            os.ftruncate(dest_fd, file_size)
+        buf = SeekableMmap(dest_fd, file_size)
         buffer_view = memoryview(buf)
         start_time = time.time()
         for i in range(concurrency):
@@ -152,13 +165,17 @@ class Downloader:
         return buf
 
     async def download_file_to_disk(self, url: str, path: str) -> None:
-        buf = await self.download_file(url)
-        # don't block the event loop for disk io
-        await self.loop.run_in_executor(
-            self.threadpool,
-            lambda: shutil.copyfileobj(buf, open(path, "wb"), length=2 << 18),
-        )
-        buf.close()
+        if write_method == Method.COPYFILE:
+            fd = -1
+        else:
+            fd = os.open(path, os.O_RDWR | os.O_CREAT)
+        buf = await self.download_file(url, fd)
+        if write_method == Method.COPYFILE:
+            # don't block the event loop for disk io
+            await self.loop.run_in_executor(
+                self.threadpool,
+                lambda: shutil.copyfileobj(buf, open(path, "wb"), length=2 << 18),
+            )
 
     async def maybe_download_files_to_disk(
         self, path: str, remote_path: str, filenames: list[str]
@@ -192,11 +209,11 @@ class Downloader:
             except RuntimeError as e:
                 if e.args[0] == "Event loop is closed":
                     print("has to start a new event loop")
-                    self.loop = asyncio.new_event_loop()
+                    self.loop = get_loop()
                     self._session = None
                     return self.loop.run_until_complete(f(self, *args, **kwargs))
                 if "another loop is running" in e.args[0]:
-                    self.loop = asyncio.get_event_loop()
+                    self.loop = get_loop()
                     self._session = None
                     return self.loop.run_until_complete(f(self, *args, **kwargs))
                 raise e
