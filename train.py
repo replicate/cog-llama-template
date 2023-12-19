@@ -127,6 +127,14 @@ def train(
         description="Dropout for lora training", default=0.05, ge=0.0, le=1.0
     ),
     # lora_target_modules: str = Input(description="Comma-separated list of lora modules to target, i.e. 'q_proj,v_proj'. Leave blank for default.", default="q_proj,v_proj")
+    wandb_token: str = Input(
+        description="Optional Weights and Biases token to use for logging. Token can be found at https://wandb.ai/authorize.",
+        default=None
+    ),
+    wandb_project: str = Input(
+        description="Weights and Biases project to use for logging",
+        default="cog-llama-template"
+    ),
 ) -> TrainingOutput:
     if fake_output:
         out_path = f"/tmp/{os.path.basename(fake_output)}"
@@ -166,6 +174,12 @@ def train(
 
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     os.environ["HF_DATASETS_CACHE"] = "/src/.hf-cache"
+
+    use_wandb = False
+    if wandb_token:
+        os.environ["WANDB_API_KEY"] = wandb_token.strip()
+        os.environ["WANDB_PROJECT"] = wandb_project.strip()
+        use_wandb = True
 
     args = []
 
@@ -221,6 +235,7 @@ def train(
             f"--validation_prompt={validation_prompt}",
             # Other arguments
             f"--seed={seed}",
+            f"--use_wandb={'False' if not use_wandb else 'True'}",
         ]
     )
 

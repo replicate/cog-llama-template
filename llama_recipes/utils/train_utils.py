@@ -74,6 +74,11 @@ def train(
         scaler = torch.cuda.amp.GradScaler()
     if train_config.enable_fsdp:
         world_size = int(os.environ["WORLD_SIZE"])
+    if train_config.use_wandb and rank == 0:
+        import wandb
+
+        wandb.init(config=vars(train_config))
+
     train_prep = []
     train_loss = []
     val_prep = []
@@ -118,10 +123,24 @@ def train(
                         print(
                             f"\n step {step} is completed and loss is {loss.detach().float()}"
                         )
+                        if train_config.use_wandb:
+                            wandb.log(
+                                {
+                                    "train/loss": loss.detach().float(),
+                                    "train/step": step,
+                                }
+                            )
                 else:
                     print(
                         f"\n step {step} is completed and loss is {loss.detach().float()}"
                     )
+                    if train_config.use_wandb:
+                        wandb.log(
+                            {
+                                "train/loss": loss.detach().float(),
+                                "train/step": step,
+                            }
+                        )
 
         # Reducing total_loss across all devices if there's more than one CUDA device
         if torch.cuda.device_count() > 1 and train_config.enable_fsdp:
@@ -130,6 +149,9 @@ def train(
         if train_config.enable_fsdp:
             train_epoch_loss = train_epoch_loss / world_size
         train_perplexity = torch.exp(train_epoch_loss)
+
+        # Dictionary containing metrics for the current epoch to be logged to wandb
+        epoch_metrics = {"train/epoch_loss": train_epoch_loss, "train/epoch_perplexity": train_perplexity}
 
         train_prep.append(train_perplexity)
         train_loss.append(train_epoch_loss)
@@ -158,6 +180,10 @@ def train(
             eval_ppl, eval_epoch_loss = evaluation(
                 model, train_config, eval_dataloader, rank, tokenizer
             )
+            if train_config.use_wandb and (rank == 0 if train_config.enable_fsdp else True):
+                epoch_metrics["eval/epoch_perplexity"] = eval_ppl
+                epoch_metrics["eval/epoch_loss"] = eval_epoch_loss
+
             if train_config.save_model and eval_epoch_loss < best_val_loss:
                 if train_config.enable_fsdp:
                     dist.barrier()
@@ -236,10 +262,14 @@ def train(
                 print(
                     f"Epoch {epoch+1}: train_perplexity={train_perplexity:.4f}, train_epoch_loss={train_epoch_loss:.4f}"
                 )
+                if train_config.use_wandb:
+                    wandb.log(epoch_metrics)
         else:
             print(
                 f"Epoch {epoch+1}: train_perplexity={train_perplexity:.4f}, train_epoch_loss={train_epoch_loss:.4f}"
             )
+            if train_config.use_wandb:
+                wandb.log(epoch_metrics)
 
     avg_train_prep = sum(train_prep) / len(train_prep)
     avg_train_loss = sum(train_loss) / len(train_loss)
@@ -269,6 +299,9 @@ def train(
                 print(f"PEFT modules are saved in {train_config.output_dir} directory")
         else:
             print(f"PEFT modules are saved in {train_config.output_dir} directory")
+
+    if train_config.use_wandb and (rank == 0 if train_config.enable_fsdp else True):
+        wandb.finish()
 
     return results
 

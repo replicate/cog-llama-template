@@ -27,6 +27,7 @@ build:
     - "aiohttp[speedups]"
     - "triton" # hm
     - "fastapi<0.99.0"
+    - "wandb==0.16.1"
     # uncomment these when we go back to 12.1
     # - "https://r2.drysys.workers.dev/torch/torch-2.1.0-cp311-cp311-linux_x86_64.whl" 
     # - "https://weights.replicate.delivery/default/wheels/vllm-0.2a0-cp311-cp311-linux_x86_64.whl"
