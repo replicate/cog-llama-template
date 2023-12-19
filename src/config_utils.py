@@ -2,11 +2,10 @@
 An entirely self-contained config parsing util that should, if all goes well, dramatically simplify our configuration.
 """
 from typing import List, Optional
+import dataclasses
 
-from pydantic import BaseModel
-
-
-class Weights(BaseModel):
+@dataclasses.dataclass
+class Weights:
     local_path: str
     remote_path: str
     remote_files: List[str]

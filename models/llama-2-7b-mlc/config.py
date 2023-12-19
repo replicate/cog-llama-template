@@ -20,13 +20,13 @@ LOCAL_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"
 
 mlc_weights = Weights(
     local_path=LOCAL_PATH,
-    remote_path=get_env_var_or_default("REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH", None),
+    remote_path=get_env_var_or_default("REMOTE_DEFAULT_INFERENCE_WEIGHTS_PATH", ""),
     remote_files=mlc_file_list,
 )
 
 vllm_weights = Weights(
     local_path=f"models/{MODEL_NAME}/model_artifacts/lora_inference_weights",
-    remote_path=get_env_var_or_default("REMOTE_VLLM_INFERENCE_WEIGHTS_PATH", None),
+    remote_path=get_env_var_or_default("REMOTE_VLLM_INFERENCE_WEIGHTS_PATH", ""),
     remote_files=get_fp16_file_list(2),
 )
 
