@@ -77,6 +77,8 @@ class ExllamaVllmEngine(Engine):
         if top_k <=0:
             top_k = 50
         print(f"Exllama: {isinstance(self.engine, ExllamaEngine)}")
+        if top_k <=0:
+            top_k = 50
         gen = self.engine(
             prompt,
             max_new_tokens=max_new_tokens,
