@@ -12,7 +12,7 @@ from src.utils import get_env_var_or_default
 
 load_dotenv()
 
-MODEL_NAME = "mistral-7b-v0.1-train"
+MODEL_NAME = "mistral-7b-v01-train"
 
 
 LOCAL_PATH = f"models/{MODEL_NAME}/model_artifacts/default_inference_weights"

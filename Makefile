@@ -96,8 +96,7 @@ select:
 	find $(model_dir) -type f -name 'train_config*' -exec ln -sf {} . \;
 
 	# rm .dockerignore || true
-	# [ -e $(model_dir)/dockerignore ] && cat $(model_dir)/dockerignore > .dockerignore
-	
+	[ -e $(model_dir)/.dockerignore ] && ln -sf $(model_dir)/.dockerignore .dockerignore || true	
 
 	#cog build
 	@echo "#########Selected model: $(model)########"

@@ -1,3 +1,9 @@
 [submodule "exllama"]
 	path = exllama
 	url = https://github.com/technillogue/exllama.git
+[submodule "path/where/you/want/submodule"]
+	path = path/where/you/want/submodule
+	url = https://github.com/OpenAccess-AI-Collective/axolotl.git
+[submodule "axolotl"]
+	path = axolotl
+	url = https://github.com/OpenAccess-AI-Collective/axolotl.git
