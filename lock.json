@@ -26,10 +26,10 @@
         "version": "1.3.1"
       },
       "anyio": {
-        "sha256": "56a415fbc462291813a94528a779597226619c8e78af7de0507333f700011e5f",
+        "sha256": "745843b39e829e108e518c489b31dc757de7d2131d53fac32bd8df268227bfee",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/85/4f/d010eca6914703d8e6be222165d02c3e708ed909cdb2b7af3743667f302e/anyio-4.1.0-py3-none-any.whl",
-        "version": "4.1.0"
+        "url": "https://files.pythonhosted.org/packages/bf/cd/d6d9bb1dadf73e7af02d18225cbd2c93f8552e13130484f1c8dcfece292b/anyio-4.2.0-py3-none-any.whl",
+        "version": "4.2.0"
       },
       "attrs": {
         "sha256": "1f28b4522cdc2fb4256ac1a020c78acf9cba2c6b461ccd2c126f3aa8e8335d04",
@@ -80,10 +80,10 @@
         "version": "0.9.0b9"
       },
       "datasets": {
-        "sha256": "6d658d23811393dfc982d026082e1650bdaaae28f6a86e651966cb072229a228",
+        "sha256": "301cc39b3d81cd751100b79c85f8ae8626c17b0b113819ba2831c204d90b43f2",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/e2/cf/db41e572d7ed958e8679018f8190438ef700aeb501b62da9e1eed9e4d69a/datasets-2.15.0-py3-none-any.whl",
-        "version": "2.15.0"
+        "url": "https://files.pythonhosted.org/packages/a0/93/da8a22a292e51ab76f969eb87bda8fd70cc3963b4dd71f67bb92a70a7992/datasets-2.16.0-py3-none-any.whl",
+        "version": "2.16.0"
       },
       "decorator": {
         "sha256": "b8c3f85900b9dc423225913c5aace94729fe1fa9763b38939a95226f02d37186",
@@ -110,10 +110,10 @@
         "version": "3.13.1"
       },
       "frozenlist": {
-        "sha256": "261b9f5d17cac914531331ff1b1d452125bf5daa05faf73b71d935485b0c510b",
+        "sha256": "4f9c515e7914626b2a2e1e311794b4c35720a0be87af52b79ff8e1429fc25f19",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/e6/7e/74b176a5580e1a41da326d07cf47a0032923fb3eeec9afbd92bb5c6457df/frozenlist-1.4.0-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-        "version": "1.4.0"
+        "url": "https://files.pythonhosted.org/packages/b3/c9/0bc5ee7e1f5cc7358ab67da0b7dfe60fbd05c254cea5c6108e7d1ae28c63/frozenlist-1.4.1-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "version": "1.4.1"
       },
       "fsspec": {
         "sha256": "346a8f024efeb749d2a5fca7ba8854474b1ff9af7c3faaf636a4548781136529",
@@ -134,10 +134,10 @@
         "version": "0.6.1"
       },
       "huggingface-hub": {
-        "sha256": "dba013f779da16f14b606492828f3760600a1e1801432d09fe1c33e50b825bb5",
+        "sha256": "ecfdea395a8bc68cd160106c5bd857f7e010768d95f9e1862a779010cc304831",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/05/09/1945ca6ba3ad8ad6e2872ba682ce8d68c5e63c8e55458ed8ab4885709f1d/huggingface_hub-0.19.4-py3-none-any.whl",
-        "version": "0.19.4"
+        "url": "https://files.pythonhosted.org/packages/a0/0a/02ac0ae1047d97769003ff4fb8e6717024f3f174a5d13257415aa09e13d9/huggingface_hub-0.20.1-py3-none-any.whl",
+        "version": "0.20.1"
       },
       "idna": {
         "sha256": "c05567e9c24a6b9faaa835c4821bad0590fbb9d5779e7caa6e1cc4978e7eb24f",
@@ -164,16 +164,16 @@
         "version": "0.3.1"
       },
       "mlc-ai-nightly-cu121": {
-        "sha256": "d22881b23c3cd921deaca1950091d6c9ce29531b66af8af132f8388c778fc981",
+        "sha256": "4d86c033f1de37a82b31f6923e590d4ee62403fe3d9205c9825dadd9f8e3ed26",
         "type": "url",
-        "url": "https://github.com/mlc-ai/package/releases/download/v0.9.dev0/mlc_ai_nightly_cu121-0.12.dev1880-cp311-cp311-manylinux_2_28_x86_64.whl",
-        "version": "0.12.dev1880"
+        "url": "https://github.com/mlc-ai/package/releases/download/v0.9.dev0/mlc_ai_nightly_cu121-0.12.dev1938-cp311-cp311-manylinux_2_28_x86_64.whl",
+        "version": "0.12.dev1938"
       },
       "mlc-chat-nightly-cu121": {
-        "sha256": "44e4a0fdac0e2e6a7fc3fbd9c1206393342f7d4f834cf3d22662b002175f8167",
+        "sha256": "73ad3e2f18daedf9c7800a0adda443db4c8b5ab472bc3d8af030ff81ff0887e9",
         "type": "url",
-        "url": "https://github.com/mlc-ai/package/releases/download/v0.9.dev0/mlc_chat_nightly_cu121-0.1.dev657-cp311-cp311-manylinux_2_28_x86_64.whl",
-        "version": "0.1.dev657"
+        "url": "https://github.com/mlc-ai/package/releases/download/v0.9.dev0/mlc_chat_nightly_cu121-0.1.dev700-cp311-cp311-manylinux_2_28_x86_64.whl",
+        "version": "0.1.dev700"
       },
       "mpmath": {
         "sha256": "a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c",
@@ -284,10 +284,10 @@
         "version": "23.2"
       },
       "pandas": {
-        "sha256": "d5ded6ff28abbf0ea7689f251754d3789e1edb0c4d0d91028f0b980598418a58",
+        "sha256": "348f3a567f34be51fc894f668a5fcb0ac702acd6c1affbf5ba0c6609c2a27397",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/08/de/d4448c423484537ebc9373d3da2496a2e47f42ea11ff48e025cf49665471/pandas-2.1.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-        "version": "2.1.3"
+        "url": "https://files.pythonhosted.org/packages/8c/42/de91e6cead6cd11735199994c05853b5e08a24ba541716877fe5ed18f988/pandas-2.2.0rc0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "version": "2.2.0rc0"
       },
       "peft": {
         "sha256": "2cf992772a6d703814477e0bdcdadd68cb8ea388111ce2d793dd2ff0e438f357",
@@ -296,16 +296,16 @@
         "version": "0.4.0"
       },
       "psutil": {
-        "sha256": "748c9dd2583ed86347ed65d0035f45fa8c851e8d90354c122ab72319b5f366f4",
+        "sha256": "fe8b7f07948f1304497ce4f4684881250cd859b16d06a1dc4d7941eeb6233bfe",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/19/06/4e3fa3c1b79271e933c5ddbad3a48aa2c3d5f592a0fb7c037f3e0f619f4d/psutil-5.9.6-cp36-abi3-manylinux_2_12_x86_64.manylinux2010_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-        "version": "5.9.6"
+        "url": "https://files.pythonhosted.org/packages/be/fa/f1f626620e3b47e6237dcc64cb8cc1472f139e99422e5b9fa5bbcf457f48/psutil-5.9.7-cp36-abi3-manylinux_2_12_x86_64.manylinux2010_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "version": "5.9.7"
       },
       "pyarrow": {
-        "sha256": "981670b4ce0110d8dcb3246410a4aabf5714db5d8ea63b15686bce1c914b1f83",
+        "sha256": "32356bfb58b36059773f49e4e214996888eeea3a08893e7dbde44753799b2a02",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/fe/2b/72ca700c2ecc82a05a8e2742a04853f9ebf0feab06aa4d61f37a4d5bb279/pyarrow-14.0.1-cp311-cp311-manylinux_2_28_x86_64.whl",
-        "version": "14.0.1"
+        "url": "https://files.pythonhosted.org/packages/d9/f8/cfba56f5353e51c19b0c240380ce39483f4c76e5c4aee5a000f3d75b72da/pyarrow-14.0.2-cp311-cp311-manylinux_2_28_x86_64.whl",
+        "version": "14.0.2"
       },
       "pyarrow-hotfix": {
         "sha256": "dcc9ae2d220dff0083be6a9aa8e0cdee5182ad358d4931fce825c545e5c89178",
@@ -428,10 +428,10 @@
         "version": "0.13.4rc3"
       },
       "torch": {
-        "sha256": "98fea993639b0bb432dfceb7b538f07c0f1c33386d63f635219f49254968c80f",
+        "sha256": "a6ebbe517097ef289cc7952783588c72de071d4b15ce0f8b285093f0916b1162",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/65/1f/de6bc1b246531db81d9a6afc491356b17d70e6c898e16f564970849f69b6/torch-2.1.1-cp311-cp311-manylinux1_x86_64.whl",
-        "version": "2.1.1"
+        "url": "https://files.pythonhosted.org/packages/da/6a/7fb9d82db4568834ff6d4df2fe3b143de4ed65a3f8f93e7daed703626cb6/torch-2.1.2-cp311-cp311-manylinux1_x86_64.whl",
+        "version": "2.1.2"
       },
       "tornado": {
         "sha256": "f0251554cdd50b4b44362f73ad5ba7126fc5b2c2895cc62b14a1c2d7ea32f212",
@@ -458,10 +458,10 @@
         "version": "2.1.0"
       },
       "typing-extensions": {
-        "sha256": "cc22327e22d9b583d1565ce1ed9f5ecc22831afa743f8789a403cad849fb702b",
+        "sha256": "af72aea155e91adfc61c3ae9e0e342dbc0cba726d6cba4b6c72c1f34e47291cd",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/68/1e/4738def2321ec3a3ec2efde1515be665deb88eea3a60187b2ff42cde7447/typing_extensions-4.9.0rc1-py3-none-any.whl",
-        "version": "4.9.0rc1"
+        "url": "https://files.pythonhosted.org/packages/b7/f4/6a90020cd2d93349b442bfcb657d0dc91eee65491600b2cb1d388bc98e6b/typing_extensions-4.9.0-py3-none-any.whl",
+        "version": "4.9.0"
       },
       "tzdata": {
         "sha256": "7e65763eef3120314099b6939b5546db7adce1e7d6f2e179e3df563c70511eda",
@@ -476,10 +476,10 @@
         "version": "2.1.0"
       },
       "uvicorn": {
-        "sha256": "7c84fea70c619d4a710153482c0d230929af7bcf76c7bfa6de151f0a3a80121e",
+        "sha256": "ce107f5d9bd02b4636001a77a4e74aab5e1e2b146868ebbad565237145af444c",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/7e/17/4b7a76fffa7babf397481040d8aef2725b2b81ae19f1a31b5ca0c17d49e6/uvicorn-0.24.0.post1-py3-none-any.whl",
-        "version": "0.24.0.post1"
+        "url": "https://files.pythonhosted.org/packages/26/59/fddd9df489fe27f492cc97626e03663fb3b9b6ef7ce8597a7cdc5f2cbbad/uvicorn-0.25.0-py3-none-any.whl",
+        "version": "0.25.0"
       },
       "uvloop": {
         "sha256": "5138821e40b0c3e6c9478643b4660bd44372ae1e16a322b8fc07478f92684e24",
@@ -506,10 +506,10 @@
         "version": "3.4.1"
       },
       "yarl": {
-        "sha256": "72a57b41a0920b9a220125081c1e191b88a4cdec13bf9d0649e382a822705c65",
+        "sha256": "e23a6d84d9d1738dbc6e38167776107e63307dfc8ad108e580548d1f2c587f42",
         "type": "url",
-        "url": "https://files.pythonhosted.org/packages/50/8b/5ed41713edda564d9df1e5e34a4ec7048d3606682b1de893842ae1b1dbed/yarl-1.9.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
-        "version": "1.9.3"
+        "url": "https://files.pythonhosted.org/packages/9f/ea/94ad7d8299df89844e666e4aa8a0e9b88e02416cd6a7dd97969e9eae5212/yarl-1.9.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "version": "1.9.4"
       }
     },
     "targets": {
@@ -555,6 +555,7 @@
         "datasets": [
           "aiohttp",
           "dill",
+          "filelock",
           "fsspec",
           "huggingface-hub",
           "multiprocess",
