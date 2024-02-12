@@ -260,7 +260,7 @@
           "temperature": {
             "title": "Temperature",
             "maximum": 5,
-            "minimum": 0.01,
+            "minimum": 0,
             "type": "number",
             "description": "Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic, 0.75 is a good starting value.",
             "default": 0.7,

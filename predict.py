@@ -1,3 +1,4 @@
+### cacheburst
 import functools
 import inspect
 import os
@@ -94,10 +95,10 @@ class Predictor(BasePredictor):
     def predict(
         self,
         prompt: str = Input(description="Prompt to send to the model."),
-        system_prompt: str = Input(
-            description="System prompt to send to the model. This is prepended to the prompt and helps guide system behavior. Should not be blank.",
-            default=DEFAULT_SYSTEM_PROMPT,
-        ),
+        # system_prompt: str = Input(
+        #     description="System prompt to send to the model. This is prepended to the prompt and helps guide system behavior. Should not be blank.",
+        #     default=DEFAULT_SYSTEM_PROMPT,
+        # ),
         max_new_tokens: int = Input(
             description="Maximum number of tokens to generate. A word is generally 2-3 tokens",
             ge=1,
@@ -110,8 +111,8 @@ class Predictor(BasePredictor):
         ),
         temperature: float = Input(
             description="Adjusts randomness of outputs, greater than 1 is random and 0 is deterministic, 0.75 is a good starting value.",
-            ge=0.01,
-            le=5,
+            ge=0.0,
+            le=5.01,
             default=0.7,
         ),
         top_p: float = Input(
@@ -120,11 +121,11 @@ class Predictor(BasePredictor):
             le=1.0,
             default=0.95,
         ),
-        top_k: int = Input(
-            description="When decoding text, samples from the top k most likely tokens; lower to ignore less likely tokens",
-            ge=-1,
-            default=-1,
-        ),
+        # top_k: int = Input(
+        #     description="When decoding text, samples from the top k most likely tokens; lower to ignore less likely tokens",
+        #     ge=-1,
+        #     default=-1,
+        # ),
         repetition_penalty: float = Input(
             description="A parameter that controls how repetitive text can be. Lower means more repetitive, while higher means less repetitive. Set to 1.0 to disable.",
             ge=0.0,
@@ -143,7 +144,7 @@ class Predictor(BasePredictor):
         ),
         prompt_template: str = Input(
             description="Template for formatting the prompt",
-            default=PROMPT_TEMPLATE,
+            default="{prompt}",
         ),
         # return_logits: bool = Input(
         # description="if set, only return logits for the first token. only useful for testing, etc.",
