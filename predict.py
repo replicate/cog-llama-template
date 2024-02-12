@@ -32,6 +32,7 @@ DEFAULT_SYSTEM_PROMPT = getattr(config, "DEFAULT_SYSTEM_PROMPT", DEFAULT_SYSTEM_
 
 # Temporary hack to disable Top K from the API. We should get rid of this once engines + configs are better standardized.
 USE_TOP_K = ENGINE.__name__ not in ("MLCEngine", "MLCvLLMEngine")
+NO_STOP_LIST = ENGINE.__name__ in ("MLCEngine", "MLCvLLMEngine")
 
 
 class Predictor(BasePredictor):
@@ -132,7 +133,7 @@ class Predictor(BasePredictor):
             default=1.15,
         ),
         stop_sequences: str = Input(
-            description="A comma-separated list of sequences to stop generation at. For example, '<end>,<stop>' will stop generation at the first instance of 'end' or '<stop>'.",
+            description="When stop_sequence is encountered, the model will stop generating output. This is a single string.",
             default=None,
         ),
         seed: int = Input(
@@ -156,7 +157,7 @@ class Predictor(BasePredictor):
         ),
     ) -> ConcatenateIterator[str]:
         with delay_prints() as print:
-            if stop_sequences:
+            if stop_sequences and not NO_STOP_LIST:
                 stop_sequences = stop_sequences.split(",")
             # we must apply a prompt template if it is passed even for base models
             if prompt_template:

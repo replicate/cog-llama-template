@@ -101,7 +101,7 @@ class MLCEngine(Engine):
         temperature: float,
         top_p: float,
         top_k: int,
-        stop_sequences: str | list[str] = None,
+        stop_sequences: str = None,
         stop_token_ids: list[int] = [],
         repetition_penalty: float = 1.0,
         incremental_generation: bool = True,
